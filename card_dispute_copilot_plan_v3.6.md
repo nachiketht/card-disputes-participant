@@ -1,6 +1,6 @@
 ---
-name: Card Dispute Copilot Plan v3.4
-overview: "v3.4: deterministic-core dispute intake copilot for the Lumen Bank capstone. Rules own every scored field. Bounded mock-API tool client. Deterministic retrieval (policy lookup by ID/date + section/line search keyed by claim taxonomy). Verified citations against a source-text registry. Per-case persisted drafts bound to human review. LLM optional: Null default + one OpenAI-compatible provider with configurable base_url, never classifying. CLI review interaction (minimal HTML page conditional on the day-5 freeze), fields.py + rules-as-config with generated tests, change-request log with scope freeze, evals with measured counts, a strategy bake-off built alongside each component (scored output always from the compliant default), redacted traces/logs, CI, local Docker baseline + one cloud. Sized for 3 associate FDEs over 10 days + 2-3 optional days."
+name: Card Dispute Copilot Plan, Version 3.6
+overview: "Deterministic-core dispute intake copilot for the Lumen Bank capstone. Rules own every scored field. Bounded mock-API tool client. Deterministic retrieval (policy lookup by ID/date + section/line search keyed by claim taxonomy). Verified citations against a source-text registry. Per-case persisted drafts bound to human review. LLM optional: Null default + one OpenAI-compatible provider with configurable base_url, never classifying. CLI review interaction (minimal HTML page conditional on the day-5 freeze), fields.py + rules-as-config with generated tests, change-request log with scope freeze, evals with measured counts, a strategy bake-off built alongside each component (scored output always from the compliant default), redacted traces/logs, CI, local Docker baseline + one cloud. Sized for 3 associate FDEs over 10 days + 2-3 optional days."
 todos:
   - id: skeleton-deps
     content: "Create src/dispute_copilot package. Packaging: pyproject.toml currently has package = false and dependencies = [], so add [build-system], set package = true / src layout and a console script `dispute-copilot`; add deps (fastapi, uvicorn, httpx, jinja2, pydantic, pyyaml, pytest, hypothesis for one named deadline-arithmetic property test; optional extra openai); uv lock; .gitignore; Makefile (incl. regen-gold); DECISIONS.md and docs/CHANGES.md started day 1; fields.py with CONTRACT_VERSION created day 1 and imported by every module"
@@ -9,7 +9,7 @@ todos:
     content: "Implement adapters/: ToolClient (Http + Fake; max 3 attempts on 503; latency; startup health check -> MockUnavailable), CaseSystem (Http + Fake; maps review fields review_id/draft_hash/hash/draft and record fields id/record_id/existing_record_id), Corpus (File + InMemory; configurable data root via --data-dir / DATA_DIR; scans policies/*.md and documents by Source ID header; never reads dataset.json)"
     status: pending
   - id: retrieval
-    content: "Implement retrieval/: PolicyResolver (deterministic lookup by ID + effective dates from scenario Reported date; out of range -> assumption branch) and deterministic section/line search keyed by claim taxonomy (finds the exact policy/procedure/document line per claim key). BM25 only in days 6-8 if a rephrased fixture defeats line search"
+    content: "Implement retrieval/: PolicyResolver (deterministic lookup by ID + effective dates from scenario Reported date; out of range -> assumption branch) and deterministic section/line search keyed by claim taxonomy (finds the exact policy/procedure/document line per claim key). BM25 and hybrid built as non-blocking bake-off columns in days 6-8; they enter the default only if a rephrased fixture defeats label search"
     status: pending
   - id: rules-engine
     content: "Implement rules/: documents.py parses only labeled lines, ignoring prose instructions; Authorization: is read from the intake and follow-ups only (customer statements), attachments contribute Attachment status: only, a missing Authorization: line counts as not supplied; conflict detection across customer statements; decision_table.yaml + engine.py with per-row generated tests; config/rules/*.yaml (labels, routing, missing, retry, redaction, injection) schema-validated at startup with generated tests; explicit ordered classifier chain unsupported -> conflict -> unauthorized -> duplicate -> service -> ambiguous, first match exits (LLM never classifies); duplicate and service rows accept not supplied (assumptions, Q8) so not-supplied never falls through to ambiguous; service fields read only after service_not_received; missing.py; routing precedence overlays; deadline.py from parsed policy days; facts.py (on tool failure amount/currency null, transaction_id/reported_date still from intake); FixedClock"
@@ -36,7 +36,7 @@ todos:
     content: "Implement reliability/degradation.py: DegradationLedger with closed kinds feeding trace/logs/narrative/routing; HTTP/LLM/poll timeouts and CASE_BUDGET_S; no merchant breaker (merchant failure = context unavailable); no transactions breaker; LLM failure handled per case by Null fallback; run-all sequential"
     status: pending
   - id: tests-fixtures
-    content: "pytest suite: unit (policy boundaries 08-31/09-01, hypothesis property test for deadline arithmetic, ordered chain incl. service text + Authorization: denied -> unauthorized, not-supplied rows 3b/4/5b, attachment Authorization: line ignored, missing Authorization: line = not supplied, boilerplate-field test, labeled-line-only parsing, raw-registry + token-quote rejection, results.json upsert under a lock with two writers, golden byte tests for both serializations, registry non-serialization, fields.py literal gate, config-generated tests, synthetic-V3 policy in a temp data dir, policy-period split disclosure, N-statement conflict, currency pass-through, provider invariance (scored fields identical under Null and two fakes), purge, CaseSystem field mapping, redaction, guard template-prose regressions, clock independence, degradation rows) + integration against subprocess mock with temp --state reset per test (retry counts via audit, D02/D09 both orders with full approval (scored fields identical, narratives differ only in the existing-record disclosure), rerun of D02 after D09 is created, rejected review then revise and re-approve, kill-and-resume from the persisted review handle, changed draft 403, injection D08, leakage grep); hidden-style fixtures dataset + gold evaluated with tools/evaluate.py"
+    content: "pytest suite: unit (policy boundaries 08-31/09-01, hypothesis property test for deadline arithmetic, ordered chain incl. service text + Authorization: denied -> unauthorized, not-supplied rows 3b/4/5b, attachment Authorization: line ignored, missing Authorization: line = not supplied, boilerplate-field test, labeled-line-only parsing, raw-registry + token-quote rejection, results.json upsert under a lock with two writers, golden byte tests for both serializations, registry non-serialization, fields.py literal gate, config-generated tests, synthetic next-version policy in a temp data dir, policy-period split disclosure, N-statement conflict, currency pass-through, provider invariance (scored fields identical under Null and two fakes), purge, CaseSystem field mapping, redaction, guard template-prose regressions, clock independence, degradation rows) + integration against subprocess mock with temp --state reset per test (retry counts via audit, D02/D09 both orders with full approval (scored fields identical, narratives differ only in the existing-record disclosure), rerun of D02 after D09 is created, rejected review then revise and re-approve, kill-and-resume from the persisted review handle, changed draft 403, injection D08, leakage grep); hidden-style fixtures dataset + gold evaluated with tools/evaluate.py"
     status: pending
   - id: ci
     content: "GitHub Actions on every push/PR: uv sync --locked, validate_package, AST lint gates, unit + integration tests, run-all + tools/evaluate.py on dev and hidden-style gold, leakage grep; Null LLM; upload reports"
@@ -60,102 +60,46 @@ todos:
     content: "make bakeoff built alongside sibling components (harness with eval/shadow-eval days 1-5; retrieval with citations; parsing variants + messy fixtures with documents.py/labels.yaml; classification shadow with rules/flags; drafter strategies with the LLM provider; cost/p50/p95 with tracing; full live run + recommendation in day 9-10 demo prep). Isolated mock on 127.0.0.1:8766 with temp --state or fakes; zero POSTs asserted; never writes submissions/; only the default column blocks day 5"
     status: pending
   - id: optional-extras
-    content: "Optional days 11-13 only after core passes (owner: TBD): bake-off extensions beyond the four axes, mutmut, syrupy snapshots, DuckDB metrics/timeline, ULID run IDs, explain command, devcontainer, Docker digest pinning, Prometheus exposition, BM25 if not needed earlier, second cloud, extra LLM providers; pitch items per the Client pitch section"
+    content: "Optional days 11-13 only after core passes (owner: TBD): bake-off extensions beyond the four axes, mutmut, syrupy snapshots, DuckDB metrics/timeline, ULID run IDs, explain command, devcontainer, Docker digest pinning, Prometheus exposition, second cloud, extra LLM providers; pitch items per the Client pitch section"
     status: pending
 isProject: false
 ---
 
-# Card Dispute Intake and Evidence Copilot (plan v3.4)
+# Card Dispute Copilot Plan, Version 3.6
 
-## Changelog (all versions)
+## Options for the client to choose from
 
-### v3.4 (this version; there is no v3.3)
+Our recommendation is the default that ships. Every alternative is either a flag that can be switched mid-build (with a `docs/CHANGES.md` row and, where marked, sign-off) or a roadmap item. Where the bake-off measures an option, the choice is backed by `reports/bakeoff.md` or `reports/deployment_comparison.md`.
 
-- **Strategy bake-off** (`make bakeoff`, `reports/bakeoff.md`), modelled on his W6 chunker comparison. It compares four axes: retrieval, drafter, classification shadow and parsing on messy variants. It is built alongside each sibling component in days 1–10. Only the default column blocks day 5; the full live run is in day 9–10 demo prep. It is read-only against an isolated mock or fakes, and scored output always comes from the compliant default. The remaining `course_tech_additions.md` items are folded in. Timeline, team table, exit criteria and diagrams are updated, and `v3.4_compliance.md` is added.
-  - **Tracing:** all 14 core spans and the internal sub-spans record `start`, `end` and `duration_ms`. `metrics.json` gains a per-span latency breakdown, and a test asserts that every span has a duration.
-  - **Logging standard:** one JSON logger with `run_id`, `case_id`, `span`, `level` and `event` fields, redacted, a level policy, a test that every module uses it, and a log leak scan.
-  - **New "deployment" bake-off axis:** local Docker vs AWS ECS vs Azure Container Apps, with the mock loopback-only in each. It writes `reports/deployment_comparison.md` with a rule-based recommendation per client scenario. It runs within the day 9–10 cloud work, is non-blocking and doesn't need a cloud model.
+| Decision | Options (trade-off) | Recommendation (why) | Sign-off |
+|---|---|---|---|
+| LLM role | **None**: fully deterministic, zero model risk, plainer prose · **Prose only**: better narrative, scored fields untouched · **Prose + shadow classifier**: measures LLM agreement with the rules, no output effect · **Assist classifier**: may fill stages the rules leave empty; adds classification risk | **Prose only**, with the shadow classifier available in the bake-off. Readable drafts at no cost to scored accuracy; shadow data informs a later assist decision | Facilitator (Q1) for any model; client + facilitator for assist |
+| Model provider and location | **None (Null)**: no dependency, works offline · **Cohort cloud endpoint** (OpenAI-compatible `base_url`): best quality, data leaves the boundary · **On-prem Ollama**: data stays in, smaller model, slower | **Null by default, cohort endpoint when Q1 approves**; Ollama shown as the regulated-client option. The system is complete without a model; one `base_url` switch changes provider | Facilitator (Q1) |
+| Deployment target | **Local Docker**: assessed baseline, air-gap capable · **AWS ECS Fargate**: managed, IAM/VPC setup · **Azure Container Apps**: managed, simpler exec, managed identity | **Local Docker as the assessed path plus one cloud** (whichever access lands first). Reproducible today; the deployment bake-off compares the rest | Facilitator (Q2: is the mock allowed in the cloud) |
+| Citation retrieval | **Exact label**: deterministic, exact quotes · **BM25**: tolerant of rephrasing, ranking noise · **Hybrid**: label first, BM25+RRF for the rest | **Exact label**. Matches the evaluator's exact-substring check; BM25 and hybrid stay as bake-off columns and go into the default only if a rephrased fixture defeats label search | None (all quotes still verified) |
+| Drafter | **Templates**: deterministic, cheap, plainer · **LLM**: fluent, costs tokens, needs the guard and repair | **Templates by default, LLM when approved**. Scored fields are identical either way (provider-invariance test) | Facilitator (Q1) for LLM |
+| Parsing strictness | **Strict labels**: zero false reads, brittle to messy input · **Label aliases** (`labels.yaml`): recovers casing and synonyms, every alias reviewed | **Aliases from a reviewed list**. Hidden cases may be messier; the messy-variant bake-off proves it, and attachments still can't set authorization | None (D change, logged) |
+| Reviewer model | **Single approver** (the mock's model) · **Two-approver** for high-value disputes: separation of duties, needs identity and a mock change | **Single approver now, two-approver as roadmap**. The mock supports one approval; production identity is excluded | Client (roadmap) |
+| UI | **CLI only**: satisfies the human-review interaction, zero UI risk · **Conditional HTML page**: friendlier demo, more surface | **CLI as the interaction of record; HTML only if the day-5 freeze is green**. Polished UI isn't scored | None |
+| Case update or reopen | **Out of scope** (create-only) · **Phase 2** with its own approval and hash contract | **Out of scope now, phase 2 pitched**. The brief makes updates a stretch task needing a separately agreed contract | Client + facilitator |
+| MCP exposure | **None** · **Stdio MCP server** over read-only tools and draft-only `run` (roadmap) | **None now, stdio roadmap**. REST already meets the brief; MCP adds reuse but never approve or create | Client (roadmap) |
+| Observability depth | **Baseline**: 14 spans, JSON logs, N/median/max · **Full**: plus sub-spans, per-span metrics, bake-off p95 · **External**: OTel exporter and dashboards | **Full** (in plan). It costs little and answers the latency and cost questions; the OTel exporter is a swap later | None; external stack = client |
+| New dispute type | **None** · **Phase 2** type (e.g. "item not as described") with new procedure text and a contract bump | **Phase 2 only, after new procedure text is supplied**. The contract enumerates five classifications; we never invent policy | Client + facilitator |
 
-### v3.2
+## What to present
 
-- **HTML page is conditional everywhere.** It is built only after the day-5 freeze is green (days 6–8, owner named in the team table). It is the first thing dropped if anything slips. It is removed from the day-5 exit criteria, and the diagrams draw it as optional. The CLI plus operator commands are the human review interaction of record.
-- **Registry non-serialization boundary.** The raw citation registry, which holds the merchant `private_token` and other restricted values, is never serialized into traces, logs, HTML, reports or debug dumps. It is enforced in four places: a `SourceRegistry` type that refuses JSON/pickle/`repr`, a trace/log serializer allowlist, a lint gate and a leakage test (see Critical-gate safeguards).
-- **Run-order dependence documented.** The read-only `GET /v1/records/{case_id}` in `run` means the D02 and D09 *narratives* depend on which case was created first. Scored fields never do. This is covered by the rerun test and both D09 order tests.
-- **Cosmetic and accuracy fixes:**
-  - `runtime.py reset` now reads `runtime.py reset --confirm`, with "stop clients first", as the README requires.
-  - The frontmatter name and title are aligned.
-  - ADR count updated (12).
-  - The duplicate optional-extras items (MCP, record update) now point at the pitch section.
-  - The demo step 0 uses the real reset command.
-  - The out-of-range note now says the procedure line is cited.
-- **Change control:**
-  - `docs/CHANGES.md` is a change-request log, and any non-trivial change needs a mini-ADR.
-  - A scope-freeze rule applies: after day 5, only data/config or small changes are accepted.
-- **Single field map:** `CONTRACT_VERSION` and `fields.py` are the one place every module imports field names, enums and allowed identifiers from.
-- **More rules as config** (`config/rules/*.yaml`), each with generated tests:
-  - label aliases and casing
-  - routing order
-  - missing-info identifiers and questions
-  - retryable status codes
-  - redaction patterns
-  - injection patterns
-- **`make regen-gold`:** regenerates *our* hidden-style gold into a candidate file and prints a reviewed diff. It never overwrites the supplied `feedback/dev_gold.json`, and nothing is committed without a human sign-off.
-- **New sections:** "Client pitch / roadmap" and "Anticipated mid-build change requests". The cheap seams from the latter are folded into the body and the tests:
-  - atomic and locked result writes
-  - persisted review handles
-  - serialization golden test
-  - policy-boundary disclosure
-  - currency pass-through
-  - per-case purge
-  - draft versioning for reject/edit loops
-  - provider-invariance test
-  - N-statement conflict test
-- **Compliance pass** against BRIEF, README and docs. The results are in `v3.2_compliance.md`, and the conflicts found are fixed here (see the end of that file).
-- **Course-tech seams:** off-by-default `FEATURE_*` flags (propose → verify → shadow) and a `make shadow-eval` harness, plus compliant ports from his W8/W9 repos. The default behaviour is unchanged (see `course_tech_additions.md`).
-- All diagrams are updated: the config layer, `fields.py`, the conditional HTML, the registry boundary, the change log and the seams.
+1. Value and boundaries: deterministic rules own scored fields, a human approves every write (2 min).
+2. Normal case D01 end to end: draft, citations, trace, teammate approves, `record_id`, audit (5 min).
+3. Ambiguous case D05: five evidence groups, `manual_review`, null deadline (4 min).
+4. Assessor-chosen failure or attack: D07 outage, D08 injection, or D09 redelivery (5 min).
+5. Live change, D-class via config (3 min).
+6. Bake-off tables (extended session, 6 min):
+   - retrieval axis: label vs BM25 vs hybrid
+   - parsing axis on the messy set
+   - drafter axis: templates vs LLM, scored fields identical
+   - deployment comparison: local vs cloud, latency, cold start, cost (or "not run")
+7. "Options for the client to choose from" table, then limitations and roadmap (1–2 min).
 
-### v3.1 (corrections after plan review)
-
-- The overview diagram applies outage and date-gap overlays *after* classification and deadline (D07 keeps `unauthorized` / `2026-10-31`). The classifier is drawn as first-match-exits.
-- `not supplied` never falls through to `ambiguous`. Rows 3b, 4 and 5b cover it, and a missing `Authorization:` line means `not supplied` (Q8).
-- Attachments contribute `Attachment status:` only and can never touch authorization.
-- Raw tool payloads, token included, are registered so substring checks match the evaluator. The Redactor rejects quotes that contain restricted values.
-- A duplicate or unexpected `case_id` fails the whole evaluator file. So `run` upserts, and hidden-style results use their own file.
-- A read-only ledger lookup in `run` is used for disclosure only. The authoritative pre-check stays in `create-record`.
-- An unreachable mock is a hard abort. Per-case isolation applies only after the health check passes.
-- Docker uses a shared read-only data volume, and the mock owns the state volume. In ECS, the task role carries `ssmmessages:*` and the service sets `enableExecuteCommand`.
-
-### v3 (changes from v2)
-
-- **Draft persistence:** per-case draft file. `submit-review` loads it, and `create-record` re-fetches the draft from the review and never regenerates it. Reset state before assessed or demo runs.
-- **Pinned API shapes:**
-  - `POST /v1/reviews` returns `{review_id, status, draft_hash}`.
-  - `GET /v1/reviews/{id}` returns `id, case_id, draft` (a compact JSON *string*), `hash, status, reviewer`.
-  - Records use `id` / `record_id` / `existing_record_id`.
-- **Record ID** is the case's logical key (`dispute-double-02` for D02/D09). It is always read from the API.
-- **Duplicate pre-check** lives in `create-record`, after approval (403 is checked before 409).
-- **Two serializations:** compact canonical for the hash, default-separator `sort_keys` for citation source text.
-- **Null facts:** only `amount`/`currency`. `transaction_id`/`reported_date` stay from the intake.
-- **Out-of-range date:** an assumption branch (Q7).
-- **Scope:** Null plus one OpenAI-compatible provider, deterministic line search (BM25 only if needed), one cloud.
-- **Should-fix items:**
-  - explicit chain order
-  - `rejected` is terminal
-  - create only after approval
-  - configurable data root
-  - source-text registry
-  - AST lint gates
-  - narrower guard
-  - packaging
-  - no merchant breaker
-  - placeholders for names and dates
-- **Minor:** one hypothesis test, an optional negative-evidence section, and five D05 groups.
-- **Additional:**
-  - labeled-line parsing
-  - N/median/max metrics
-  - every case written
-  - TRANSACTIONS required only on tool success
-  - unfound quotes dropped and disclosed
 
 ## Verified facts this plan depends on (from `tools/runtime.py`, `tools/evaluate.py`, `pyproject.toml`)
 
@@ -359,7 +303,7 @@ flowchart TD
 
 - **Policy lookup is deterministic.** `retrieval/policy.py` parses every `policies/*.md` for `Effective from`, `Effective through` and `<Type> deadline days`, then picks by the scenario's `Reported date`, never today's date. A similarity search could surface the wrong version; D11 must select V1 by date.
 - **Days 3–5: deterministic section/line search keyed by claim taxonomy.** `retrieval/search.py` maps each claim key (see the citation plan) to the line pattern that supports it in a specific source (e.g. the procedure's `Use <type> ...` sentence, the policy's `<Type> deadline days:` line). Source IDs are preserved, and the line is then verified as a substring in the registry. No chunk offsets unless traces or HTML actually use them.
-- **BM25 only in days 6–8, and only if** a rephrased hidden-style fixture defeats line search. The fallback is still the same exact-substring check.
+- **BM25 and hybrid (days 6–8, non-blocking)** are bake-off columns behind `search.py`. They become the default only if a rephrased hidden-style fixture defeats label search. Either way, the same exact-substring check applies.
 - **Why no vector DB:** the corpus is small and fixed, exact quotes and stable source IDs are what gets scored, deterministic search is explainable, and it reuses the version-supersession and leak-check lessons from the RAG repo.
 
 ## Repository layout
@@ -386,8 +330,8 @@ flowchart TD
 |---|---|---|
 | Days 1–2 | `<YYYY-MM-DD>`–`<YYYY-MM-DD>` | Packaging fix, skeleton, adapters, corpus with data root, policy resolver, contract, per-case draft file, `run --case CARD-D01`, `run-all`. Evaluate passes D01. DECISIONS.md. Q1–Q9 asked. Bake-off harness skeleton + report template (with the eval harness). |
 | Days 3–5 | `<…>` | Ordered chain and decision table, claim-taxonomy line search, registry and citations, review/create with the pinned shapes, versioned drafts and persisted review handles, config layer, D05 and D12 shown, **12/12 must-ship freeze**. Bake-off: default column wired (blocking); messy-fixture generator, flag plumbing (non-blocking) |
-| Days 6–8 | `<…>` | D07/D10 retry, D02/D09 both orders with full approval, D08 injection and redaction, out-of-range branch, LLM provider and guard, traces/logs/metrics, hidden-style and combined-failure fixtures (BM25 only if needed), seam tests, bake-off columns for BM25/hybrid, drafter (cloud/Ollama), classification shadow, cost and p50/p95 (all non-blocking), feedback → fixture stubs, CI green, Week 10 checkpoint; API + HTML page **only if** the freeze is green |
-| Days 9–10 | `<…>` | Local Docker fresh-clone rehearsal, one-cloud deploy (timeboxed), RUNBOOK, LIMITATIONS, demo script, CONTRIBUTIONS, live change, full bake-off live run + recommendation + synthetic-V3 demo (moved from days 6–8), deployment axis + `deployment_comparison.md` (non-blocking) |
+| Days 6–8 | `<…>` | D07/D10 retry, D02/D09 both orders with full approval, D08 injection and redaction, out-of-range branch, LLM provider and guard, traces/logs/metrics, hidden-style and combined-failure fixtures (BM25/hybrid as bake-off columns), seam tests, bake-off columns for BM25/hybrid, drafter (cloud/Ollama), classification shadow, cost and p50/p95 (all non-blocking), feedback → fixture stubs, CI green, Week 10 checkpoint; API + HTML page **only if** the freeze is green |
+| Days 9–10 | `<…>` | Local Docker fresh-clone rehearsal, one-cloud deploy (timeboxed), RUNBOOK, LIMITATIONS, demo script, CONTRIBUTIONS, live change, full bake-off live run + recommendation + synthetic next-version demo, deployment axis + `deployment_comparison.md` (non-blocking) |
 | Optional 11–13 | `<…>` | Core fixes first, then the optional extras (owner: `<TBD>`). The bake-off is **not** here; it is built in days 1–10 |
 
 ## Adapters and fallbacks at every external boundary
@@ -655,7 +599,7 @@ On day 9, a non-author does a fresh-clone rehearsal of the uv path and the Docke
 
 **RUNBOOK.md:** start, health, **reset before assessed/demo runs**, approve/reject/audit (local and cloud), recovery per failure type, mid-demo reset recovery, jq recipes.
 
-## Config layer and single field map (v3.2)
+## Config layer and single field map
 
 - **`src/dispute_copilot/fields.py`** is the only place that defines:
   - `CONTRACT_VERSION` (starts at `"1.0"`)
@@ -678,21 +622,21 @@ On day 9, a non-author does a fresh-clone rehearsal of the uv path and the Docke
   Guard rails: config can tune *how* rules are expressed. It cannot switch off a critical gate. The loader rejects anything that adds an approve path, raises the retry cap, adds a non-allowed missing identifier, or lets the LLM set a scored field.
 - **`make regen-gold`:** runs the pipeline over `tests/fixtures/hidden_style/` into `reports/candidate_gold.json` and prints a field-by-field diff against `tests/fixtures/hidden_style/gold.json`. A human checks every changed field against the procedure and policy text, then copies it over in a commit referencing a `docs/CHANGES.md` entry. It **never** touches `feedback/dev_gold.json`, and CI never runs it. Our gold is authored by hand first, and regen only proposes changes, so the gold is never just "whatever the code says".
 
-## Change control (v3.2)
+## Change control
 
 - **`docs/CHANGES.md`**, the change-request log. One row per client or team change: `CR-nn | date | requested by | what | class (D/S/R) | brief impact | decision | commit/PR | tests touched`.
 - **Mini-ADR rule:** any change classed S or R, or anything touching scored fields, the approval or hash path, redaction or the contract, gets a 5-line ADR in `DECISIONS.md`: context, decision, alternatives, brief check, rollback. D changes need only the CHANGES.md row.
 - **Scope freeze after day 5:** only D changes (data/config/fixtures/templates) and small S changes (≤ ½ day, behind an existing seam, with tests) are accepted. Anything R goes to the roadmap. If the client insists, it is traded against a named item on the days 6–10 list, recorded in CHANGES.md with what was dropped. Stretch work (for example case updates) also follows the brief: it is agreed only after core behavior passes.
 - **Classes:** **D** = data/config only, no code. **S** = small code change behind an existing seam. **R** = redesign or a new contract.
 
-## Anticipated mid-build change requests (v3.2)
+## Anticipated mid-build change requests
 
 **How these were derived:** each item starts from a real weakness of the current build, read from the brief, the docs, `tools/runtime.py` and our own design choices, and asks what a technically sharp client would notice. They are ranked by likelihood. **Rating:** D = data/config only, S = small code change behind an existing seam, R = redesign or a new contract. **Action:** *Seam now* means a cheap seam that is already in the plan body and tests below. *Pitch* means raise it with the client first, as roadmap. *Sign-off* means it would change a brief rule, so it can't be done without written client and facilitator agreement.
 
 | # | Likely ask | Problem in the current build | Sensible design response | Rating | Action |
 |---|---|---|---|---|---|
 | 1 | "Add a field to the output" (confidence, priority, `days_open`, `policy_version`) | The contract is fixed; ad-hoc field names scattered across modules would drift | Add it once in `fields.py`, bump `CONTRACT_VERSION`, and keep it as an *additional* field (allowed by OUTPUT_CONTRACT and inspected for leakage). A required-field set test guards the six scored fields | S | **Seam now** (`fields.py`, contract-version test) |
-| 2 | "A new policy version takes effect from 2027-01-01" / "change the day counts" | Policy logic must not be code; a reported date in 2027 currently hits the out-of-range branch | Drop in `CARD-POLICY-V3.md`; the resolver parses effective dates and days. A core test with a synthetic V3 in a temp data dir (moved from optional into core) | D | **Seam now** (synthetic-V3 test) + demo in pitch |
+| 2 | "A new policy version takes effect from 2027-01-01" / "change the day counts" | Policy logic must not be code; a reported date in 2027 currently hits the out-of-range branch | Drop in `CARD-POLICY-NEXT.md`; the resolver parses effective dates and days. A core test with a synthetic next-version in a temp data dir | D | **Seam now** (synthetic next-version test) + demo in pitch |
 | 3 | "What about a transaction in August reported in September?" | Selection by `Reported date` is correct per policy, but the client may expect transaction date, and nothing currently surfaces the split | Keep reported-date selection (POLICY-V1/V2 say so explicitly). Record the transaction date when the tool provides it and add a narrative and trace disclosure when it falls in another policy period. Selecting by transaction date would contradict the policy text | S (disclosure) / R (selection change) | **Seam now** (disclosure + boundary fixture); selection change = **Sign-off** |
 | 4 | "The reviewer rejected it. Now what?" / "Let the reviewer edit" | `rejected` is terminal, with no defined way to produce a corrected draft; overwriting `drafts/CASE.json` would lose what was reviewed | Draft versioning: `drafts/CASE/vN.json`, and `revise CASE` produces vN+1 and needs a **new** review. Reviewer edits are never applied in place: an edited draft is a new draft with a new hash and a new approval (procedure: "Changed drafts require new approval") | S | **Seam now** (versioned drafts, reject→revise→approve test) |
 | 5 | "Mock was restarted / laptop died mid-review" | `review_id` is only in process memory or stdout; `wait-approval`/`create-record` cannot resume; idempotency must survive restarts | Persist `submissions/reviews/CASE.json` (`review_id`, `draft_hash`, draft version). The key is derived from server state only (case, review_id, server hash), so a restart replays the same key → 200, never a second record. Mock counters survive restart by design (API.md) | S | **Seam now** (persisted handle; kill-and-resume integration test) |
@@ -719,7 +663,7 @@ On day 9, a non-author does a fresh-clone rehearsal of the uv path and the Docke
 ### Seams added to the plan body for this section
 
 - `fields.py` + `CONTRACT_VERSION` (#1)
-- synthetic-V3 core test (#2)
+- synthetic next-version core test (#2)
 - policy-period split disclosure (#3)
 - versioned drafts + `revise` (#4)
 - persisted review handles (#5)
@@ -737,14 +681,14 @@ On day 9, a non-author does a fresh-clone rehearsal of the uv path and the Docke
 
 All of these fit the days 3–8 plan without moving the day-5 freeze. Numbers 4, 5 and 6 belong to the review/create work in days 3–5. The rest belong to days 6–8.
 
-## Client pitch / roadmap (v3.2)
+## Client pitch / roadmap
 
 Raise these before the client does. Each item says what it is worth to the client, how it fits the build, and whether the brief allows it.
 
 | Pitch | Value to Lumen Bank | Fit | Brief status |
 |---|---|---|---|
 | **Explain-this-decision view** (`dispute-copilot explain CASE`, CLI first) | The reviewer sees which table row fired, which labeled lines and quotes drove it, and what was ruled out | S; reads the trace, no new logic | OK. CLI/text, not polished UI |
-| **Policy-version readiness demo** | Drop in a synthetic V3 policy file and show deadlines change with zero code | D; core test already exists | OK. Synthetic policy is a test fixture, never an assessed source or an invented real rule |
+| **Policy-version readiness demo** | Drop in a synthetic next-version policy file and show deadlines change with zero code | D; core test already exists | OK. Synthetic policy is a test fixture, never an assessed source or an invented real rule |
 | **Two-approver (four-eyes) roadmap** for high-value disputes | Separation of duties | R; the mock supports only one approval | **Roadmap only.** Needs production identity (excluded) and a mock/contract change |
 | **Ops dashboard** (queue depth, pending reviews, degradations, tool attempts) | Run-time visibility | S on top of `reports/metrics.json` + audit; OTel exporter swap | **Roadmap.** Polished UI excluded from scoring; a metrics endpoint is fine |
 | **Model-optional** (none / cloud / on-prem via `base_url`) | No vendor lock; works with no model at all | D; already built | OK. A cloud or on-prem model in the assessed demo needs cohort approval (Q1) |
@@ -756,9 +700,9 @@ Raise these before the client does. Each item says what it is worth to the clien
 
 **Rule:** no pitch item is built before the core passes 12/12 and the critical gates hold. Each accepted pitch gets a CHANGES.md row and, if S or R, a mini-ADR.
 
-## Course-tech seams and feature flags (v3.2)
+## Course-tech seams and feature flags
 
-Full analysis: `course_tech_additions.md`. **The default behaviour is unchanged and compliant.** Every LLM-side item is off by default.
+Full analysis: `course_tech_additions.md`. **The default behaviour is compliant.** Every LLM-side item is off by default.
 
 - **Build now** (compliant, ported from his repos):
   - per-step spans with tokens and a cost table (insurance-orchestrator `Tracer`/`TracedLLM`, RAG `model_costs.json`)
@@ -784,12 +728,11 @@ Full analysis: `course_tech_additions.md`. **The default behaviour is unchanged 
   - LLM deadline or policy selection
 - **Roadmap:**
   - MCP server (stdio only, no approve or create; W7 `claims-mcp` pattern)
-  - BM25+RRF ranking behind `search.py` (the W6 RAG repo), quotes still substring-verified
   - LLM-as-judge for narrative (advisory)
   - multi-agent split as flagged stages
   - semantic cache keyed by a facts hash
 
-## Strategy bake-off (v3.4)
+## Strategy bake-off
 
 **Why it exists:** in his W6 RAG project (`scripts/compare_chunkers.py`) Nachiketh ran five chunkers (structural, recursive, parent-child, contextual, table-aware) live on the same question and recommended one. The client liked that. We do the same here, but on the choices that actually matter for this build.
 
@@ -891,27 +834,22 @@ Any column not run (no access, IAM blocked, Q2 says no) is shown as "not run: <r
 | Full live run, recommendation, demo rehearsal | demo prep | 9–10 | n/a (after freeze) |
 | Deployment axis + `reports/deployment_comparison.md` | one-cloud deploy + local Docker rehearsal | 9–10 | **Non-blocking** |
 
-**What was moved to rebalance:**
-- The **synthetic-V3 policy demo** moves from days 6–8 into the day 9–10 demo prep. It shares the bake-off live-run slot.
-- **BM25** is no longer "only if a fixture needs it". It is a non-blocking bake-off column in days 6–8, so the old conditional BM25 work is absorbed rather than added.
-- The **IAM linter** is timeboxed to ½ day in days 9–10, and dropped to the written procedure if cloud access is late.
-- The **API/HTML page** stays conditional and is the first thing dropped. The bake-off view inside it is optional.
-- **Course-tech roadmap items** stay roadmap: the MCP server, LLM-as-judge, semantic cache and multi-agent split.
+**Workload balance:** the synthetic next-version policy demo shares the day 9–10 bake-off live-run slot. BM25 is delivered as a non-blocking bake-off column in days 6–8, not as a separate task. The IAM linter is timeboxed to ½ day in days 9–10, falling back to the written procedure if cloud access is late. The API/HTML page stays conditional and is the first thing dropped. The MCP server, LLM-as-judge, semantic cache and multi-agent split are roadmap.
 
-### Course-tech items folded in (from `course_tech_additions.md`)
+### Course-derived components
 
-Already in the plan:
+These are built alongside the core:
 - spans with tokens and cost
 - `RetryPolicy`
 - pydantic schema with one repair call
-- `httpx.MockTransport` fake
+- `httpx.MockTransport` provider fake
 - IAM linter
 - `CaseState`
 - `narrative_consistency()`
 - the `FEATURE_*` flags
 - `shadow-eval`
 
-Added in v3.4:
+Also part of the plan:
 - **Reviewer feedback → fixture stubs:** `dispute-copilot feedback CASE up|down --note`, stored redacted in `submissions/feedback.jsonl`. `feedback candidates` emits hidden-style fixture stubs that a human completes (W6 RAG `rag.feedback` pattern). Days 6–8, non-blocking.
 - **Point-in-time policy check:** the resolver gets an `as_of` test helper mirroring his RAG `lifecycle.py` (date-targeted version lookup). Same rule: the reported date only.
 - **Roadmap entries:**
@@ -920,7 +858,7 @@ Added in v3.4:
   - MCP stdio server
   - multi-agent split as flagged stages
   - dense vectors only if the corpus grows
-- **Genuinely bad ideas:** kept in `course_tech_additions.md` and referenced from LIMITATIONS.
+- **Genuinely bad ideas** (listed in `course_tech_additions.md`) are recorded in LIMITATIONS as deliberately excluded.
 
 ## Rubric mapping
 
@@ -942,16 +880,16 @@ Names and dates are **placeholders and must be filled in** with the real pod and
 | 1–2 (`<…>`) | Integration: packaging, adapters, health check, D01 slice | Application/retrieval: corpus + data root, policy resolver, contract, draft file | Testing/ops: Makefile, CI skeleton, first evaluate, DECISIONS.md, bake-off harness skeleton |
 | 3–5 (`<…>`) | Application/retrieval: ordered chain, line search, registry, citations, bake-off retrieval default column, flag plumbing | Testing/ops: unit tests, property test, hidden-style fixtures, messy-variant generator (non-blocking), traces | Integration: review/create with pinned shapes, versioned drafts, persisted review handles |
 | 6–8 (`<…>`) | Testing/ops: integration + adversarial suite, metrics with per-span breakdown, logging standard + tests, bake-off cost/p50/p95 columns, hardening checklist | Integration: OpenAI-compatible provider, guard, bake-off drafter columns; API + HTML **only if** the freeze is green | Application/retrieval: D07/D08/D09 both orders, narrative, BM25/hybrid + classification-shadow columns |
-| 9–10 (`<…>`) | Cloud deploy + cloud approval rehearsal + runbook + deployment bake-off axis (non-blocking) | Demo script + bake-off live run and recommendation + limitations/roadmap | Fresh-clone rehearsal + CONTRIBUTIONS.md + synthetic-V3 demo |
+| 9–10 (`<…>`) | Cloud deploy + cloud approval rehearsal + runbook + deployment bake-off axis (non-blocking) | Demo script + bake-off live run and recommendation + limitations/roadmap | Fresh-clone rehearsal + CONTRIBUTIONS.md + synthetic next-version demo |
 
-**Rebalance:** each person picks up one bake-off piece next to the component they already own. In exchange, the synthetic-V3 demo moved to days 9–10, BM25 became a bake-off column (no separate task), and the IAM linter is timeboxed to ½ day. Each person can explain and change the decision table, one adapter and one test. Live-change candidates (5 minutes or less, all D-class via config and logged in CHANGES.md): add a missing-information identifier; change a policy day count in a fixture; add an injection pattern; add a classifier keyword; point the provider `base_url` at another endpoint (or Null) and show the trace change.
+Each person owns the bake-off piece next to the component they build. Each person can explain and change the decision table, one adapter and one test. Live-change candidates (5 minutes or less, all D-class via config and logged in CHANGES.md): add a missing-information identifier; change a policy day count in a fixture; add an injection pattern; add a classifier keyword; point the provider `base_url` at another endpoint (or Null) and show the trace change.
 
 ## Architecture decision records (12, `docs/DECISIONS.md`)
 
 1. Deterministic rules own every scored field. **The LLM never classifies** and drafts prose only from structured facts and verified quotes.
 2. One adapter per boundary. Fallbacks only where the procedure defines them. Hard stops for writes and human boundaries.
 3. Rules as data: policy parameters and the ordered decision table are parsed from files, with generated tests. Rules parse labeled lines only; `Authorization:` comes from customer statements (intake, follow-ups), never from attachments.
-4. Retrieval = deterministic policy lookup + claim-taxonomy line search. BM25 only if a fixture proves the need. No vector DB.
+4. Retrieval = deterministic policy lookup + claim-taxonomy line search. BM25/hybrid measured in the bake-off; default only if a fixture proves the need. No vector DB.
 5. Corpus keyed by `Source ID` under a configurable data root. `dataset.json` is never read.
 6. Draft persisted per case, submitted as-is, re-fetched from the review (`json.loads`) and hash-verified before create. The record ID is always read from the API (`id` / `record_id` / `existing_record_id`).
 7. Two serializations, kept separate: compact canonical for hashing, default-separator `sort_keys` for citation source text.
@@ -967,7 +905,7 @@ Names and dates are **placeholders and must be filled in** with the real pod and
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Hidden intakes rephrased | wrong classification | labeled lines first, ordered chain, rephrased fixtures, `ambiguous` fallback, BM25 held in reserve |
+| Hidden intakes rephrased | wrong classification | labeled lines first, ordered chain, rephrased fixtures, `ambiguous` fallback, BM25/hybrid measured in the bake-off |
 | Over-escalation on `Authorization: not supplied` or a missing line | normal duplicate/service case lands in `manual_review` | rows 3b/4/5b cover `not supplied`; fixtures for each; Q8 |
 | Attachment injects an `Authorization:` line | clean case flipped to `ambiguous` | attachments contribute `Attachment status:` only; dedicated fixture |
 | Boilerplate intake fields misread | wrong type or missing fields | service fields read only after `service_not_received`, unit test |
@@ -1033,7 +971,7 @@ After day 5 the scope-freeze rule applies (only D or small S changes, logged in 
 
 ## Optional days 11–13 (owner: `<TBD>`, only after core passes)
 
-mutmut on `rules/`; syrupy snapshots; DuckDB metrics/timeline; ULID run IDs; `dispute-copilot explain CASE`; `.devcontainer`; Docker digest pinning; synthetic `CARD-POLICY-V3` test; Prometheus `/metrics`; BM25 if not already needed; second cloud; extra LLM providers (Bedrock, Azure OpenAI native, Anthropic); then pitch items agreed with the client (see "Client pitch / roadmap"; MCP wrapper and the record-update flow are there).
+mutmut on `rules/`; syrupy snapshots; DuckDB metrics/timeline; ULID run IDs; `dispute-copilot explain CASE`; `.devcontainer`; Docker digest pinning; Prometheus `/metrics`; second-cloud full deployment beyond the deployment bake-off; extra LLM providers (Bedrock, Azure OpenAI native, Anthropic); then pitch items agreed with the client (see "Client pitch / roadmap"; MCP wrapper and the record-update flow are there).
 
 ## Deliberately excluded
 
