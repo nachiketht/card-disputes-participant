@@ -1,6 +1,6 @@
 ---
-name: Card Dispute Copilot Plan v3.2
-overview: "v3.2: deterministic-core dispute intake copilot for the Lumen Bank capstone. Rules own every scored field. Bounded mock-API tool client. Deterministic retrieval (policy lookup by ID/date + section/line search keyed by claim taxonomy). Verified citations against a source-text registry. Per-case persisted drafts bound to human review. LLM optional: Null default + one OpenAI-compatible provider with configurable base_url, never classifying. CLI review interaction (minimal HTML page conditional on the day-5 freeze), fields.py + rules-as-config with generated tests, change-request log with scope freeze, evals with measured counts, redacted traces/logs, CI, local Docker baseline + one cloud. Sized for 3 associate FDEs over 10 days + 2-3 optional days."
+name: Card Dispute Copilot Plan v3.4
+overview: "v3.4: deterministic-core dispute intake copilot for the Lumen Bank capstone. Rules own every scored field. Bounded mock-API tool client. Deterministic retrieval (policy lookup by ID/date + section/line search keyed by claim taxonomy). Verified citations against a source-text registry. Per-case persisted drafts bound to human review. LLM optional: Null default + one OpenAI-compatible provider with configurable base_url, never classifying. CLI review interaction (minimal HTML page conditional on the day-5 freeze), fields.py + rules-as-config with generated tests, change-request log with scope freeze, evals with measured counts, a strategy bake-off built alongside each component (scored output always from the compliant default), redacted traces/logs, CI, local Docker baseline + one cloud. Sized for 3 associate FDEs over 10 days + 2-3 optional days."
 todos:
   - id: skeleton-deps
     content: "Create src/dispute_copilot package. Packaging: pyproject.toml currently has package = false and dependencies = [], so add [build-system], set package = true / src layout and a console script `dispute-copilot`; add deps (fastapi, uvicorn, httpx, jinja2, pydantic, pyyaml, pytest, hypothesis for one named deadline-arithmetic property test; optional extra openai); uv lock; .gitignore; Makefile (incl. regen-gold); DECISIONS.md and docs/CHANGES.md started day 1; fields.py with CONTRACT_VERSION created day 1 and imported by every module"
@@ -56,17 +56,27 @@ todos:
   - id: facilitator-questions
     content: Raise facilitator questions Q1-Q9 before end of day 1 and record answers in DECISIONS.md
     status: pending
+  - id: bakeoff
+    content: "make bakeoff built alongside sibling components (harness with eval/shadow-eval days 1-5; retrieval with citations; parsing variants + messy fixtures with documents.py/labels.yaml; classification shadow with rules/flags; drafter strategies with the LLM provider; cost/p50/p95 with tracing; full live run + recommendation in day 9-10 demo prep). Isolated mock on 127.0.0.1:8766 with temp --state or fakes; zero POSTs asserted; never writes submissions/; only the default column blocks day 5"
+    status: pending
   - id: optional-extras
-    content: "Optional days 11-13 only after core passes (owner: TBD): mutmut, syrupy snapshots, DuckDB metrics/timeline, ULID run IDs, explain command, devcontainer, Docker digest pinning, Prometheus exposition, BM25 if not needed earlier, second cloud, extra LLM providers; pitch items per the Client pitch section"
+    content: "Optional days 11-13 only after core passes (owner: TBD): bake-off extensions beyond the four axes, mutmut, syrupy snapshots, DuckDB metrics/timeline, ULID run IDs, explain command, devcontainer, Docker digest pinning, Prometheus exposition, BM25 if not needed earlier, second cloud, extra LLM providers; pitch items per the Client pitch section"
     status: pending
 isProject: false
 ---
 
-# Card Dispute Intake and Evidence Copilot (plan v3.2)
+# Card Dispute Intake and Evidence Copilot (plan v3.4)
 
 ## Changelog (all versions)
 
-### v3.2 (this version)
+### v3.4 (this version; there is no v3.3)
+
+- **Strategy bake-off** (`make bakeoff`, `reports/bakeoff.md`), modelled on his W6 chunker comparison. It compares four axes: retrieval, drafter, classification shadow and parsing on messy variants. It is built alongside each sibling component in days 1–10. Only the default column blocks day 5; the full live run is in day 9–10 demo prep. It is read-only against an isolated mock or fakes, and scored output always comes from the compliant default. The remaining `course_tech_additions.md` items are folded in. Timeline, team table, exit criteria and diagrams are updated, and `v3.4_compliance.md` is added.
+  - **Tracing:** all 14 core spans and the internal sub-spans record `start`, `end` and `duration_ms`. `metrics.json` gains a per-span latency breakdown, and a test asserts that every span has a duration.
+  - **Logging standard:** one JSON logger with `run_id`, `case_id`, `span`, `level` and `event` fields, redacted, a level policy, a test that every module uses it, and a log leak scan.
+  - **New "deployment" bake-off axis:** local Docker vs AWS ECS vs Azure Container Apps, with the mock loopback-only in each. It writes `reports/deployment_comparison.md` with a rule-based recommendation per client scenario. It runs within the day 9–10 cloud work, is non-blocking and doesn't need a cloud model.
+
+### v3.2
 
 - **HTML page is conditional everywhere.** It is built only after the day-5 freeze is green (days 6–8, owner named in the team table). It is the first thing dropped if anything slips. It is removed from the day-5 exit criteria, and the diagrams draw it as optional. The CLI plus operator commands are the human review interaction of record.
 - **Registry non-serialization boundary.** The raw citation registry, which holds the merchant `private_token` and other restricted values, is never serialized into traces, logs, HTML, reports or debug dumps. It is enforced in four places: a `SourceRegistry` type that refuses JSON/pickle/`repr`, a trace/log serializer allowlist, a lint gate and a leakage test (see Critical-gate safeguards).
@@ -101,6 +111,7 @@ isProject: false
   - provider-invariance test
   - N-statement conflict test
 - **Compliance pass** against BRIEF, README and docs. The results are in `v3.2_compliance.md`, and the conflicts found are fixed here (see the end of that file).
+- **Course-tech seams:** off-by-default `FEATURE_*` flags (propose → verify → shadow) and a `make shadow-eval` harness, plus compliant ports from his W8/W9 repos. The default behaviour is unchanged (see `course_tech_additions.md`).
 - All diagrams are updated: the config layer, `fields.py`, the conditional HTML, the registry boundary, the change log and the seams.
 
 ### v3.1 (corrections after plan review)
@@ -180,6 +191,7 @@ flowchart TD
     H -->|"yes, draft unchanged"| I["Create case record once, or report the existing one"]
     H -->|"rejected"| J["Stop, nothing written; a revised draft needs a new review"]
     H -->|"still pending"| K["Wait, nothing written yet"]
+    B -.->|"same evidence, read-only"| BO["Strategy bake-off: compare alternatives, recommend; never feeds the scored draft"]
 ```
 
 ## Detailed code flow
@@ -266,12 +278,16 @@ flowchart TD
         E9 -->|"403"| E4b
     end
     S0 -.-> S2
+    BK["bakeoff/: same pipeline per strategy axis; reads only, outputs to reports/bakeoff"] -.-> S2
+    BK -.-> S3
+    BK -.-> S4
     S0 -.-> S3
     S0 -.-> S4
     S2 -.-> T["observability: allowlisted span and log fields, redacted; REG never serialized"]
     S3 -.-> T
     S4 -.-> T
     S5 -.-> T
+    T --> TM["every span: start, end, duration_ms; one JSON logger: run_id, case_id, span, level, event; metrics.json per-span breakdown"]
 ```
 
 ## Guiding design decision
@@ -310,7 +326,14 @@ flowchart TD
     MockSvc --> State[("mock --state SQLite: reviews, records, keys, calls, audit")]
     Human["Teammate: runtime.py approve / reject / reset --confirm"] -->|"writes the state file directly, no HTTP"| State
     WF -.-> Obs["observability/: allowlisted serializer; registry blocked"]
+    Flags[["FEATURE_* flags: off by default; shadow writes reports/shadow.json only"]] -.->|"proposer, verified by rules"| Rules
+    Flags -.-> Drafter
+    Bake[["make bakeoff: strategies via flags; isolated mock :8766 or fakes; zero POSTs"]] -.->|"reruns per strategy"| WF
+    Bake -.-> BakeOut[("reports/bakeoff.md + bakeoff/*/results.json, never submissions/")]
+    BakeOut -.->|"optional view"| API
+    Bake -.->|"AXIS=deployment"| Dep[["local Docker vs AWS ECS vs Azure Container Apps; mock loopback in each; reports/deployment_comparison.md"]]
     Gov[["docs/CHANGES.md + DECISIONS.md mini-ADRs"]] -.->|"governs edits to"| Cfg
+    Gov -.-> Flags
 ```
 
 ## Workflow (tool-dependent branching)
@@ -350,6 +373,7 @@ flowchart TD
 - `src/dispute_copilot/reliability/`: `idempotency.py` (key; uses `serialization.hash_canonical()`), `degradation.py`
 - `src/dispute_copilot/`: `fields.py` (`CONTRACT_VERSION`, names, enums, allowed IDs), `serialization.py` (`hash_canonical()`, `citation_source_text()`), `config.py`, `contract.py`, `drafting.py`, `workflow.py`, `review.py`, `api.py`, `cli.py`, `templates/review.html` (conditional)
 - `config/rules/` (`labels.yaml`, `routing.yaml`, `missing.yaml`, `retry.yaml`, `redaction.yaml`, `injection.yaml`), `config/prices.yaml`
+- `tests/fixtures/messy/` (generated messy variants, never from `dataset.json`), `src/dispute_copilot/bakeoff/` (runner, report, recommendation rules)
 - `tools/lint_gates.py`; `.github/workflows/ci.yml`; `Dockerfile`, `docker-compose.yml`, `deploy/<cloud>/`, `Makefile`
 - `tests/unit/`, `tests/integration/` (subprocess mock, temp `--state`), `tests/fixtures/hidden_style/`
 - `docs/`: `ARCHITECTURE.md`, `CHANGES.md`, `DECISIONS.md`, `THREAT_MODEL.md`, `RUNBOOK.md`, `LIMITATIONS.md`, `CONTRIBUTIONS.md`, `REVIEW_CHECKLIST.md`, `HARDENING_CHECKLIST.md`, `DEMO_SCRIPT.md`
@@ -360,11 +384,11 @@ flowchart TD
 
 | Phase | Dates (fill in) | Goal |
 |---|---|---|
-| Days 1–2 | `<YYYY-MM-DD>`–`<YYYY-MM-DD>` | Packaging fix, skeleton, adapters, corpus with data root, policy resolver, contract, per-case draft file, `run --case CARD-D01`, `run-all`. Evaluate passes D01. DECISIONS.md. Q1–Q9 asked. |
-| Days 3–5 | `<…>` | Ordered chain and decision table, claim-taxonomy line search, registry and citations, review/create with the pinned shapes, versioned drafts and persisted review handles, config layer, D05 and D12 shown, **12/12 must-ship freeze** |
-| Days 6–8 | `<…>` | D07/D10 retry, D02/D09 both orders with full approval, D08 injection and redaction, out-of-range branch, LLM provider and guard, traces/logs/metrics, hidden-style and combined-failure fixtures (BM25 only if needed), seam tests, CI green, Week 10 checkpoint; API + HTML page **only if** the freeze is green |
-| Days 9–10 | `<…>` | Local Docker fresh-clone rehearsal, one-cloud deploy (timeboxed), RUNBOOK, LIMITATIONS, demo script, CONTRIBUTIONS, live change |
-| Optional 11–13 | `<…>` | Core fixes first, then the optional extras (owner: `<TBD>`) |
+| Days 1–2 | `<YYYY-MM-DD>`–`<YYYY-MM-DD>` | Packaging fix, skeleton, adapters, corpus with data root, policy resolver, contract, per-case draft file, `run --case CARD-D01`, `run-all`. Evaluate passes D01. DECISIONS.md. Q1–Q9 asked. Bake-off harness skeleton + report template (with the eval harness). |
+| Days 3–5 | `<…>` | Ordered chain and decision table, claim-taxonomy line search, registry and citations, review/create with the pinned shapes, versioned drafts and persisted review handles, config layer, D05 and D12 shown, **12/12 must-ship freeze**. Bake-off: default column wired (blocking); messy-fixture generator, flag plumbing (non-blocking) |
+| Days 6–8 | `<…>` | D07/D10 retry, D02/D09 both orders with full approval, D08 injection and redaction, out-of-range branch, LLM provider and guard, traces/logs/metrics, hidden-style and combined-failure fixtures (BM25 only if needed), seam tests, bake-off columns for BM25/hybrid, drafter (cloud/Ollama), classification shadow, cost and p50/p95 (all non-blocking), feedback → fixture stubs, CI green, Week 10 checkpoint; API + HTML page **only if** the freeze is green |
+| Days 9–10 | `<…>` | Local Docker fresh-clone rehearsal, one-cloud deploy (timeboxed), RUNBOOK, LIMITATIONS, demo script, CONTRIBUTIONS, live change, full bake-off live run + recommendation + synthetic-V3 demo (moved from days 6–8), deployment axis + `deployment_comparison.md` (non-blocking) |
+| Optional 11–13 | `<…>` | Core fixes first, then the optional extras (owner: `<TBD>`). The bake-off is **not** here; it is built in days 1–10 |
 
 ## Adapters and fallbacks at every external boundary
 
@@ -516,15 +540,33 @@ The HTML page is **conditional** (built only after the day-5 freeze is green). I
 | L4 adversarial | injection variants, token variants, outage variants, boundary dates, chain-order fixture | hidden-style fixtures |
 | L5 operational | N, median and max of per-case and per-tool latency, attempts, tokens, downgrades, with run location and date | `reports/metrics.json` |
 | L6 human | clarity, uncertainty visible, drafts marked | `docs/REVIEW_CHECKLIST.md` |
+| L7 strategy bake-off | each strategy axis vs the compliant default on the 12 dev cases (+ messy set): evaluate score, gate failures, citation accuracy, grounding, cost, p50/p95 with N | `reports/bakeoff.md`, `reports/bakeoff.json` |
 
-Figures appear in docs only from these artifacts, as counts, with N, run location and date. No percentiles beyond median and max. Cost = tokens × a committed price table, otherwise none is reported (never a hardcoded `0.0`).
+Figures appear in docs only from these artifacts, as counts, with N, run location and date. No percentiles beyond median and max, except p50/p95 in the bake-off report, printed with N. Cost = tokens × a committed price table, otherwise none is reported (never a hardcoded `0.0`).
 
 ## Observability
 
-- **Traces:** one redacted file per case, with a fixed span set (`load_case`, `tool.transactions`, `tool.merchant`, `policy.select`, `classify`, `routing`, `deadline`, `citations`, `draft`, `guard`, `validate_contract`, `review.submit`, `review.wait`, `record.create`). They hold attempts with status and latency, untrusted flags, degradations, dropped citations, LLM provider/model/tokens, and review/record outcome with the API's ID field. `run_id` is sent as `X-Run-Id`.
-- **Logs:** JSON lines with a `RedactingFilter`. Payloads, prose, prompts and completions are never logged.
+- **Traces:** one redacted file per case.
+  - **14 core spans:** `load_case`, `tool.transactions`, `tool.merchant`, `policy.select`, `classify`, `routing`, `deadline`, `citations`, `draft`, `guard`, `validate_contract`, `review.submit`, `review.wait`, `record.create`.
+  - **Internal sub-spans:** `health.check`, `ledger.lookup`, `tool.attempt` (one per attempt), `corpus.load`, `documents.parse`, `classify.stage` (one per chain stage), `retrieval.search`, `registry.verify`, `support.check`, `llm.call`, `llm.repair`, `redact`, `write.draft`, `results.upsert`, `bakeoff.strategy`.
+  - **Every span** records `start` and `end` (monotonic `perf_counter_ns`, plus a wall-clock ISO start for correlation, never read by rules), `duration_ms`, `status`, `parent`, `attempt`, and `tokens_in`/`tokens_out`/`cost` for LLM spans (the insurance-orchestrator `Tracer.step` pattern). A span that raises still closes with its duration and `status=error`.
+  - **Contents:** attempts with status and latency, untrusted flags, degradations, dropped citations, LLM provider/model, and the review/record outcome with the API's ID field. `run_id` is sent as `X-Run-Id`.
+  - **Tests:** `test_every_span_has_duration` runs D01, D07 (retries) and D08 (injection) and asserts that every span in the trace has `start`, `end` and `duration_ms ≥ 0`, with `end ≥ start`, and that all 14 core spans are present (review and record spans in the integration run). It also asserts that a child's duration ≤ its parent's.
+- **Logging standard (one logger):**
+  - `observability/logging.py` exposes `get_logger(__name__)`, which is the only logger allowed. It writes JSON lines with the fields `ts`, `level`, `event` (from the event catalog), `run_id`, `case_id` (null at startup), `span` (the current span name, from a contextvar), `module` and optional `attrs`. A `RedactingFilter` passes every record through the existing `Redactor`, and the allowlisted serializer rejects the `SourceRegistry`.
+  - It never logs payloads, document prose, prompts, completions, `private_token` or `CUST-` values.
+  - **Level policy:**
+    - `DEBUG`: span internals, off by default, still redacted.
+    - `INFO`: catalog events (`run.started`, `classify.decided`, `record.outcome`, …).
+    - `WARNING`: degradations (`tool.retry`, `citation.dropped`, `llm.downgraded`, `guard.rejected`, `untrusted.flagged`).
+    - `ERROR`: a case-level failure (`tool.exhausted`, contract invalid, `record.outcome` 403).
+    - `CRITICAL`: a run-level abort (`health.failed`, leakage detected).
+  - **Tests:**
+    - `test_all_modules_use_get_logger`: an AST scan fails on `print(`, `logging.getLogger` or `logging.basicConfig` under `src/`, except in `observability/logging.py` and the CLI's user-facing output.
+    - `test_log_schema`: every line parses and has the required fields.
+    - `test_log_leak_scan`: runs D08 at `DEBUG` and greps the logs for `private_token`, `SYNTHETIC-PRIVATE`, `CUST-` and registry source text.
 - **15 core events:** `run.started`, `run.finished`, `health.failed`, `tool.retry`, `tool.exhausted`, `policy.selected`, `policy.unresolved`, `classify.decided`, `routing.decided`, `citation.dropped`, `untrusted.flagged`, `llm.downgraded`, `guard.rejected`, `review.decided`, `record.outcome`.
-- **Metrics:** `dispute-copilot metrics` writes N, median and max per measure, plus counts, `run_ids`, git SHA, run location and date.
+- **Metrics:** `dispute-copilot metrics` writes N, median and max per measure, plus counts, `run_ids`, git SHA, run location and date. It includes a **per-span latency breakdown** (`spans.<name>: {N, median_ms, max_ms}`) and per-case totals. p95 appears only in the bake-off reports, always next to N.
 
 ## Graceful degradation matrix
 
@@ -561,6 +603,7 @@ There is no circuit breaker on transactions or merchant. The LLM is handled per 
    - `SourceRegistry` access outside `evidence/`, and passing it to any serializer
    - contract field-name or enum string literals outside `fields.py`
    - config loader bypass (rules reading YAML directly)
+   - any write to `submissions/` or any review/record call from `bakeoff/`
 
    Allowlist: `tests/` and the operator-command boundary (e.g. `wait-approval` reading status `approved`).
 3. `pytest tests/unit`.
@@ -595,7 +638,7 @@ Before the Week 10 proctored capstone progress review (date `<YYYY-MM-DD>`), fil
 
 On day 9, a non-author does a fresh-clone rehearsal of the uv path and the Docker path.
 
-**Cloud: ONE cloud, days 9–10 timebox.** AWS and Azure access is expected this week (week of 2026-10-19). Deploy to whichever lands first, and write a procedure for the other.
+**Cloud: ONE cloud, days 9–10 timebox** (plus the non-blocking deployment bake-off axis, which measures local vs the deployed cloud and, if time allows, the second cloud). AWS and Azure access is expected this week (week of 2026-10-19). Deploy to whichever lands first, and write a procedure for the other.
 - **AWS ECS Fargate:**
   - Push to ECR. App and mock are two containers in one task (`awsvpc` shares localhost). The data root is baked into the image or mounted from EFS at the same path for both containers; the mock's `--state` is on an ephemeral or EFS volume mounted into the mock container only.
   - The task role has the app's runtime permissions **plus** the four ECS Exec actions (`ssmmessages:CreateControlChannel`, `CreateDataChannel`, `OpenControlChannel`, `OpenDataChannel`); without them `execute-command` fails. The execution role covers ECR pull, logs and secret retrieval only.
@@ -713,6 +756,172 @@ Raise these before the client does. Each item says what it is worth to the clien
 
 **Rule:** no pitch item is built before the core passes 12/12 and the critical gates hold. Each accepted pitch gets a CHANGES.md row and, if S or R, a mini-ADR.
 
+## Course-tech seams and feature flags (v3.2)
+
+Full analysis: `course_tech_additions.md`. **The default behaviour is unchanged and compliant.** Every LLM-side item is off by default.
+
+- **Build now** (compliant, ported from his repos):
+  - per-step spans with tokens and a cost table (insurance-orchestrator `Tracer`/`TracedLLM`, RAG `model_costs.json`)
+  - `RetryPolicy`/`run_step` with typed retryable errors and capped jitter (insurance-orchestrator `retry.py`)
+  - pydantic narrative schema with one repair call
+  - `httpx.MockTransport` provider fake, with no default model ID (risk-agent-deploy)
+  - an IAM policy linter over `deploy/aws/*.json`
+  - a single-writer `CaseState` (insurance-orchestrator `CaseRecord`)
+  - a deterministic `narrative_consistency()` check
+- **Off-by-default flags** (`FEATURE_<NAME>=off|shadow|assist`, CI = `off`; each change logged in CHANGES.md with a mini-ADR):
+  - `LLM_CLASSIFY`: proposer stage. It may only fill a stage that returned `None`, its evidence line must be in the registry, and it never overrides a rules match. It crosses ADR 1, so it needs client sign-off before `assist`.
+  - `LLM_REFLECT`: flags only.
+  - `LLM_INJECTION_FLAG`: flags only. Revisit after W10.
+- **Shadow harness:** `make shadow-eval` prints per-field agreement counts and every disagreement against the rules baseline. It writes `reports/shadow.json`. Proposals never reach `results.json` in `shadow` mode.
+- **Never flaggable:**
+  - approve path
+  - hash binding
+  - 3-attempt cap
+  - loopback-only mock
+  - `dataset.json` prohibition
+  - Redactor
+  - registry non-serialization
+  - LLM deadline or policy selection
+- **Roadmap:**
+  - MCP server (stdio only, no approve or create; W7 `claims-mcp` pattern)
+  - BM25+RRF ranking behind `search.py` (the W6 RAG repo), quotes still substring-verified
+  - LLM-as-judge for narrative (advisory)
+  - multi-agent split as flagged stages
+  - semantic cache keyed by a facts hash
+
+## Strategy bake-off (v3.4)
+
+**Why it exists:** in his W6 RAG project (`scripts/compare_chunkers.py`) Nachiketh ran five chunkers (structural, recursive, parent-child, contextual, table-aware) live on the same question and recommended one. The client liked that. We do the same here, but on the choices that actually matter for this build.
+
+**Why not chunking:** the evidence here is short labeled lines (`Authorization: denied`, `Unauthorized deadline days: 30`) and small JSON payloads, and the evaluator matches **exact substrings** of the whole source text. Chunking would add nothing to recall on a 3-policy corpus, and any normalisation would risk breaking exact quotes. So the bake-off compares these four strategy axes instead:
+
+| Axis | Strategies | Default (compliant, scored) | Flag / seam |
+|---|---|---|---|
+| Citation line retrieval | exact label match · BM25 · hybrid (label first, BM25+RRF for the rest; W6 RAG repo pattern) | exact label | `RETRIEVAL_STRATEGY=label\|bm25\|hybrid` behind `search.py candidates()`. Every candidate still goes through the registry substring check and support predicates |
+| Narrative drafter | templates · cloud LLM (OpenAI-compatible `base_url`) · local Ollama (W9 lab) | templates (Null) | `LLM_PROVIDER=null\|openai\|ollama`; the pydantic schema plus one repair call, then the guard, then the Redactor, then `narrative_consistency()` |
+| Deployment | local Docker (Null or Ollama) · AWS ECS Fargate · Azure Container Apps, with the mock loopback-only inside each | local Docker (assessed path) | `DEPLOY_TARGET=local\|aws\|azure`; see "Deployment axis" below |
+| Classification | rules only · rules + LLM proposer in shadow | rules only | `FEATURE_LLM_CLASSIFY=off\|shadow` (`assist` is never used in the bake-off and needs client sign-off) |
+| Document parsing | strict labels · label aliases (`labels.yaml`) | the strict/alias set signed off in config | `PARSER_MODE=strict\|aliases`, run on **messy variants we generate** (casing, extra spaces, `Auth:` / `Authorisation:`, reordered lines, a CRLF line ending, an injected attachment label) from our own `tests/fixtures/messy/`. Never generated from `dataset.json` |
+
+**`make bakeoff`:**
+- **How it runs:** it reuses the feature flags and the `make shadow-eval` harness. It runs every strategy combination one axis at a time (the others stay at default) over the 12 dev cases, plus the messy set for the parsing axis.
+- **Mock isolation:** it starts its **own** mock on another loopback port (`127.0.0.1:8766`) with a temp `--state`, and runs `reset --confirm` between strategies, because tool counters are cumulative and D07/D10 depend on them. Or it uses the Fake adapters (`BAKEOFF_ADAPTERS=fake`). It never touches the assessed `--state`.
+- **Read-only:** it **never** calls `submit-review`, `create-record`, `POST /v1/reviews` or `POST /v1/records`. The harness asserts there are zero POSTs in its audit and fails if there are any.
+- **Separate outputs:** each strategy's outputs go to `reports/bakeoff/<axis>/<strategy>/results.json`, scored with `tools/evaluate.py` against `feedback/dev_gold.json`. `submissions/results.json` and every draft and review come **only** from the compliant default strategy. A lint and test check fails if the bake-off code path can write to `submissions/`.
+- **Report:** `reports/bakeoff.md` plus `reports/bakeoff.json`. It is rendered in the conditional HTML page if that page was built (read-only, redacted).
+
+**Comparison columns** (per strategy, N = 12 dev cases, plus the messy set for parsing):
+- `evaluate.py` score (count/12)
+- critical-gate failures (leakage grep, commitment guard, fabricated or unverified quotes, any POST attempt)
+- citation accuracy (verified quotes ÷ emitted, plus support-predicate passes)
+- grounding passes (required groups present, D05 five groups, D07 no TRANSACTIONS)
+- agreement with the rules baseline (classification axis)
+- cost (tokens × `config/prices.yaml`; `null` if there is no table; Ollama = $0 API bill, with latency shown separately, as noted in his RAG README)
+- p50 and p95 latency per case
+
+With N = 12, p95 is effectively the max. The report prints N next to every percentile. This is the one place the plan reports p95; elsewhere it stays at median and max.
+
+**The recommendation is generated by deterministic rules, not by an LLM:**
+- A strategy is **disqualified** if it has any critical-gate failure, or a lower evaluate score than the default.
+- Among the rest, rank by citation accuracy, then grounding passes, then cost, then p95.
+- The text explains why, citing the rows.
+- Any recommendation that crosses ADR 1 or the brief (e.g. LLM classification in `assist`) is labelled "**requires client sign-off; default unchanged**".
+
+**Client demo script (6 minutes, from DEMO_SCRIPT.md):**
+1. "Here is how we chose each strategy." Open `reports/bakeoff.md`.
+2. Rerun one axis live: `make bakeoff AXIS=retrieval`. It takes about 1 minute on fakes.
+3. Show the table: exact label 12/12 with 0 gate failures, BM25 and hybrid scores, and why label wins on exact-substring grounding.
+4. Show the parsing axis on the messy set: aliases recover the variants, and the injected attachment label is still ignored.
+5. Show the drafter axis: templates vs LLM. Scored fields are identical (the provider-invariance test); only prose, cost and latency differ.
+6. Close: "Scored output always comes from the compliant default; any switch is a flag plus a CHANGES.md entry."
+
+**Live flow: "rerun it when he asks for an LLM on X":**
+1. Log the request as a CHANGES.md row (class S; mini-ADR if it crosses ADR 1 or the brief).
+2. Run `make bakeoff AXIS=<x> STRATEGIES=default,<llm-variant>` with the provider `base_url` set (cloud only with cohort approval, Q1; or local Ollama).
+3. Show the table and the generated recommendation. If the variant passes every gate and does no worse than the default, offer `shadow` mode in the real runs for a week of comparison. `assist` only with written sign-off.
+4. `submissions/results.json` is untouched throughout.
+
+### Deployment axis (on-prem vs cloud)
+
+- **Same input everywhere:** the same image and the same 12 dev cases.
+- **Targets:**
+  - **Local Docker** (the on-prem stand-in): drafter Null, or Ollama for the on-prem model case (W9 lab).
+  - **AWS ECS Fargate:** drafter Null.
+  - **Azure Container Apps:** drafter Null.
+- **The mock stays loopback-only** (`127.0.0.1`) inside each task/app, with no ingress, consistent with the loopback rule and Q2. If Q2 says the mock may not run in the cloud, the cloud column runs the app against Fakes and is labelled so.
+- **No cloud model** is used without Q1 approval. A cloud drafter column is "not run" until approved, so cloud runs measure the platform, not a model.
+- **The bake-off still never writes reviews or records**, and each target uses its own temp `--state`.
+
+| Measure | How it is obtained |
+|---|---|
+| Per-span and per-case latency (N, median, p95, max) | the traces from each target, collected with `make bakeoff AXIS=deployment TARGET=…` |
+| Cold start | time from task/app start to the first healthy `/health` plus the first case finished, measured over 3 cold starts |
+| Cost per case and per month | `config/prices.yaml` entries (Fargate vCPU/GB-hour, Container Apps vCPU/GiB-second, NAT/endpoints, logs) × measured runtime; the monthly figure assumes a stated case volume; **`null` if a price entry is missing**, never estimated from memory |
+| Setup effort | measured hours from CHANGES.md/RUNBOOK timestamps plus the number of manual steps in the RUNBOOK |
+| Ops effort | count of runbook procedures per target (approve, reset, logs, recovery) |
+| Data residency and privacy | where data, traces and logs live (laptop disk, region, Log Analytics workspace); what leaves the boundary |
+| Security and IAM surface | number of roles and policies, permissions (from `deploy/*/iam*.json` via the IAM linter), exec access path, secrets store |
+| Scalability | qualitative, from the platform (tasks/replicas); not load-tested, and the report says so |
+| Offline / air-gapped | can it run with no egress (local yes; cloud needs VPC endpoints/private registry), and a model option (Ollama) |
+
+**Output:** `reports/deployment_comparison.md`. Its recommendations come from fixed rules, one per client scenario:
+- *Regulated, data must stay on-prem or air-gapped:* local/on-prem container with Null or Ollama.
+- *AWS-standard bank:* ECS if it ran green with no gate failures.
+- *Azure-standard bank:* Container Apps, likewise.
+- *Lowest ops effort:* the target with the fewest runbook procedures among those with no gate failures.
+- *Lowest measured cost per case:* only if every cost cell is non-null.
+
+Any column not run (no access, IAM blocked, Q2 says no) is shown as "not run: <reason>", and the report never fills the gap with assumptions.
+
+**Schedule:** the deployment axis runs inside the day 9–10 cloud work and is **non-blocking**:
+- Local is always run.
+- The first cloud is part of the existing cloud task.
+- The second cloud is run only if access and the timebox allow. Otherwise it is "not run" and the written procedure stands.
+
+### Bake-off pieces built alongside their sibling components (days 1–10)
+
+| Piece | Built with | Day block | Blocks day-5 exit? |
+|---|---|---|---|
+| Bake-off harness skeleton, `reports/bakeoff.md` template, isolated mock port + temp state, no-POST assertion | eval + shadow-eval harness (`make evaluate`, `make shadow-eval`) | 1–2 (skeleton), 3–5 (wired) | **Default column only** (the default strategy must score 12/12 in the table). Other columns are non-blocking |
+| Retrieval strategies (label, BM25, hybrid) | `search.py`, registry, citations | 3–5 (label = default), 6–8 (BM25/hybrid) | Label: yes (it is the default). BM25/hybrid: **non-blocking** |
+| Parsing variants + messy fixtures generator | `documents.py` + `labels.yaml` | 3–5 | Strict/alias default parsing: yes. Messy-set column: **non-blocking** |
+| Classification shadow column | rules engine + feature flags | 3–5 (flag plumbing, `off`), 6–8 (shadow proposer) | **Non-blocking** |
+| Drafter strategies (templates, cloud, Ollama) | LLM provider + templates | 6–8 | Templates: already default. LLM columns: **non-blocking** |
+| Cost and p50/p95 columns | tracing spans + `prices.yaml` | 6–8 | **Non-blocking** |
+| Full live run, recommendation, demo rehearsal | demo prep | 9–10 | n/a (after freeze) |
+| Deployment axis + `reports/deployment_comparison.md` | one-cloud deploy + local Docker rehearsal | 9–10 | **Non-blocking** |
+
+**What was moved to rebalance:**
+- The **synthetic-V3 policy demo** moves from days 6–8 into the day 9–10 demo prep. It shares the bake-off live-run slot.
+- **BM25** is no longer "only if a fixture needs it". It is a non-blocking bake-off column in days 6–8, so the old conditional BM25 work is absorbed rather than added.
+- The **IAM linter** is timeboxed to ½ day in days 9–10, and dropped to the written procedure if cloud access is late.
+- The **API/HTML page** stays conditional and is the first thing dropped. The bake-off view inside it is optional.
+- **Course-tech roadmap items** stay roadmap: the MCP server, LLM-as-judge, semantic cache and multi-agent split.
+
+### Course-tech items folded in (from `course_tech_additions.md`)
+
+Already in the plan:
+- spans with tokens and cost
+- `RetryPolicy`
+- pydantic schema with one repair call
+- `httpx.MockTransport` fake
+- IAM linter
+- `CaseState`
+- `narrative_consistency()`
+- the `FEATURE_*` flags
+- `shadow-eval`
+
+Added in v3.4:
+- **Reviewer feedback → fixture stubs:** `dispute-copilot feedback CASE up|down --note`, stored redacted in `submissions/feedback.jsonl`. `feedback candidates` emits hidden-style fixture stubs that a human completes (W6 RAG `rag.feedback` pattern). Days 6–8, non-blocking.
+- **Point-in-time policy check:** the resolver gets an `as_of` test helper mirroring his RAG `lifecycle.py` (date-targeted version lookup). Same rule: the reported date only.
+- **Roadmap entries:**
+  - LLM-as-judge for narrative quality (`make judge`, local larger model, advisory, never in CI)
+  - semantic cache keyed by a hash of structured facts plus quotes (never free text; restricted data never cached to disk)
+  - MCP stdio server
+  - multi-agent split as flagged stages
+  - dense vectors only if the corpus grows
+- **Genuinely bad ideas:** kept in `course_tech_additions.md` and referenced from LIMITATIONS.
+
 ## Rubric mapping
 
 | Dimension (points) | Evidence |
@@ -730,12 +939,12 @@ Names and dates are **placeholders and must be filled in** with the real pod and
 
 | Days (dates) | Nachiketh | Teammate 2 | Teammate 3 |
 |---|---|---|---|
-| 1–2 (`<…>`) | Integration: packaging, adapters, health check, D01 slice | Application/retrieval: corpus + data root, policy resolver, contract, draft file | Testing/ops: Makefile, CI skeleton, first evaluate, DECISIONS.md |
-| 3–5 (`<…>`) | Application/retrieval: ordered chain, line search, registry, citations | Testing/ops: unit tests, property test, hidden-style fixtures, traces | Integration: review/create with pinned shapes, versioned drafts, persisted review handles |
-| 6–8 (`<…>`) | Testing/ops: integration + adversarial suite, metrics, hardening checklist | Integration: OpenAI-compatible provider, guard; API + HTML **only if** the freeze is green | Application/retrieval: D07/D08/D09 both orders, narrative |
-| 9–10 (`<…>`) | Cloud deploy + cloud approval rehearsal + runbook | Demo script + limitations/roadmap | Fresh-clone rehearsal + CONTRIBUTIONS.md |
+| 1–2 (`<…>`) | Integration: packaging, adapters, health check, D01 slice | Application/retrieval: corpus + data root, policy resolver, contract, draft file | Testing/ops: Makefile, CI skeleton, first evaluate, DECISIONS.md, bake-off harness skeleton |
+| 3–5 (`<…>`) | Application/retrieval: ordered chain, line search, registry, citations, bake-off retrieval default column, flag plumbing | Testing/ops: unit tests, property test, hidden-style fixtures, messy-variant generator (non-blocking), traces | Integration: review/create with pinned shapes, versioned drafts, persisted review handles |
+| 6–8 (`<…>`) | Testing/ops: integration + adversarial suite, metrics with per-span breakdown, logging standard + tests, bake-off cost/p50/p95 columns, hardening checklist | Integration: OpenAI-compatible provider, guard, bake-off drafter columns; API + HTML **only if** the freeze is green | Application/retrieval: D07/D08/D09 both orders, narrative, BM25/hybrid + classification-shadow columns |
+| 9–10 (`<…>`) | Cloud deploy + cloud approval rehearsal + runbook + deployment bake-off axis (non-blocking) | Demo script + bake-off live run and recommendation + limitations/roadmap | Fresh-clone rehearsal + CONTRIBUTIONS.md + synthetic-V3 demo |
 
-Each person can explain and change the decision table, one adapter and one test. Live-change candidates (5 minutes or less, all D-class via config and logged in CHANGES.md): add a missing-information identifier; change a policy day count in a fixture; add an injection pattern; add a classifier keyword; point the provider `base_url` at another endpoint (or Null) and show the trace change.
+**Rebalance:** each person picks up one bake-off piece next to the component they already own. In exchange, the synthetic-V3 demo moved to days 9–10, BM25 became a bake-off column (no separate task), and the IAM linter is timeboxed to ½ day. Each person can explain and change the decision table, one adapter and one test. Live-change candidates (5 minutes or less, all D-class via config and logged in CHANGES.md): add a missing-information identifier; change a policy day count in a fixture; add an injection pattern; add a classifier keyword; point the provider `base_url` at another endpoint (or Null) and show the trace change.
 
 ## Architecture decision records (12, `docs/DECISIONS.md`)
 
@@ -775,6 +984,7 @@ Each person can explain and change the decision table, one adapter and one test.
 | Fresh setup fails | deployment points | packaging fixed day 1, day-9 clean clone, CI on every push |
 | Leakage via HTML or logs | critical gate | single Redactor, CI leakage grep |
 | Over-escalation | normal-case points lost | table forces `ready_for_review` when evidence is complete |
+| Bake-off pollutes assessed state or results | audit shows extra reads; wrong results.json | isolated mock port + temp `--state` or fakes, zero-POST assertion, lint ban on writing `submissions/` |
 | Scope creep | missed freeze | must-ship line, scope-freeze rule, optional list with an owner |
 
 ## Must-ship line (freeze end of day 5, `<YYYY-MM-DD>`)
@@ -797,13 +1007,13 @@ After day 5 the scope-freeze rule applies (only D or small S changes, logged in 
 
 ## Phase exit criteria
 
-- **Day 2:** `uv sync --locked` installs the package. `make mock && make run CASE=CARD-D01` writes `submissions/drafts/CARD-D01/v1.json` and passes evaluate for D01. `MockUnavailable` path shown. ADRs 1–4 drafted. Q1–Q9 asked.
-- **Day 5:** 12/12 dev. Ordered-table tests green. Serialization tests green. D01 created end to end (approve → `record_id`). D05 and D12 through review submission. AST lint gates pass in CI. Config-generated tests and the `fields.py` gate are green. (No HTML criterion: the page is conditional.)
+- **Day 2:** `uv sync --locked` installs the package. The tracer and `get_logger` skeleton are in place, so spans and logs exist from the first slice. `make mock && make run CASE=CARD-D01` writes `submissions/drafts/CARD-D01/v1.json` and passes evaluate for D01. `MockUnavailable` path shown. ADRs 1–4 drafted. Q1–Q9 asked.
+- **Day 5:** 12/12 dev. Ordered-table tests green. Serialization tests green. D01 created end to end (approve → `record_id`). D05 and D12 through review submission. AST lint gates pass in CI. Config-generated tests and the `fields.py` gate are green. (No HTML criterion: the page is conditional.) `make bakeoff AXIS=default` reproduces 12/12 with 0 gate failures and 0 POSTs. **Non-blocking:** the other bake-off columns and the messy set.
 - **Day 8:**
   - After a reset, `reports/audit.json` shows D07 3 attempts, D10 2 attempts, no unapproved writes, and D09 with no second record.
   - D02/D09 both orders green. Rejected test green. Hidden-style fixtures pass. Leakage and guard tests green.
-  - Metrics (N, median, max) from real runs. Hardening checklist filled. Registry-leak, rerun, kill-and-resume and golden serialization tests green. HTML renders the redacted draft, **if built**.
-- **Day 10:** a non-author goes from fresh clone to demo in under 15 minutes. Runbook followed verbatim, including the reset. One cloud deployed with approval rehearsed, or the procedure documented. Demo rehearsed twice.
+  - Metrics (N, median, max) from real runs, including the per-span breakdown. Span-duration, log-schema, every-module-logger and log leak tests green. Hardening checklist filled. Registry-leak, rerun, kill-and-resume and golden serialization tests green. HTML renders the redacted draft, **if built**. Bake-off: all four axes produce rows (non-default columns may be marked "not run" with a reason; non-blocking).
+- **Day 10:** a non-author goes from fresh clone to demo in under 15 minutes. Runbook followed verbatim, including the reset. One cloud deployed with approval rehearsed, or the procedure documented. Full `make bakeoff` run on the demo machine. `reports/deployment_comparison.md` produced, with local measured and cloud columns measured or "not run: <reason>" (non-blocking). with The `reports/bakeoff.md` recommendation is reviewed by the team. Demo rehearsed twice, including the bake-off segment and the "LLM on X" rerun.
 
 ## Demo plan (20 minutes)
 
@@ -819,7 +1029,7 @@ After day 5 the scope-freeze rule applies (only D or small S changes, logged in 
    - D08 injection: flagged, no token in the output.
    - D09 redelivery, after D02 is created: approve D09 too; create-record reports the existing ID `dispute-double-02` from the API with no second write.
 5. Live change (3 min).
-6. Limitations and roadmap (1 min).
+6. Limitations and roadmap (1 min). Optional extended session: the 6-minute bake-off segment (see Strategy bake-off).
 
 ## Optional days 11–13 (owner: `<TBD>`, only after core passes)
 
