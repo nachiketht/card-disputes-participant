@@ -1,0 +1,41 @@
+{
+  "case_id": "CARD-D01",
+  "classification": "unauthorized",
+  "routing": "ready_for_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-D01",
+    "amount": 117,
+    "currency": "XCR",
+    "reported_date": "2026-10-01"
+  },
+  "missing_information": [],
+  "deadline": "2026-10-31",
+  "citations": [
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Unauthorized deadline days: 30"
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D01-INTAKE",
+      "quote": "I found a card purchase at Morrow Supplies for 117 crowns. I do not recognize it and need help checking it."
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-D01-TRANSACTIONS",
+      "quote": "\"amount\": 117"
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Draft for human review: unauthorized complaint for TX-D01, reported 2026-10-01. Merchant display name from the tool: Morrow Supplies. Recommended routing: ready_for_review. The supplied training-policy deadline is 2026-10-31. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}
