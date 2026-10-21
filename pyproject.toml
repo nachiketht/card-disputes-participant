@@ -1,8 +1,35 @@
 [project]
 name = "fde-card-disputes-training"
 version = "1.0.0"
-description = "Fictional Associate FDE capstone simulator and fixtures"
+description = "Fictional Associate FDE capstone simulator and dispute intake copilot"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "fastapi",
+    "httpx",
+    "hypothesis",
+    "jinja2",
+    "pydantic",
+    "pytest",
+    "pyyaml",
+    "uvicorn",
+]
+
+[project.optional-dependencies]
+openai = ["openai"]
+
+[project.scripts]
+dispute-copilot = "dispute_copilot.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [tool.uv]
-package = false
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dispute_copilot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

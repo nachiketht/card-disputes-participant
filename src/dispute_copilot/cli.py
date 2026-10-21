@@ -1,0 +1,143 @@
+"""Operator commands. Drafting, review submission, and record creation are separate.
+
+The process exits before writing a file when the mock health check fails.
+A case this checkpoint cannot draft is reported and skipped. The process does
+not approve a review.
+"""
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
+import httpx
+
+from dispute_copilot.adapters.case_system import HttpCaseSystem
+from dispute_copilot.adapters.corpus import FileCorpus
+from dispute_copilot.adapters.tools import HttpToolClient
+from dispute_copilot.config import Settings
+from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable, OutsideCheckpoint, ToolFailed
+from dispute_copilot.fields import CASE_ID, CLASSIFICATION, DEADLINE, FACTS, POLICY_IDS, ROUTING
+from dispute_copilot.review import create_record, submit_review
+from dispute_copilot.storage import write_draft
+from dispute_copilot.workflow import prepare
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _parser()
+    args = parser.parse_args(argv)
+    case_id = getattr(args, "case", None)
+    if args.command != "run-all" and not isinstance(case_id, str):
+        print("case id is required", file=sys.stderr)
+        return 1
+    if not _safe_case(case_id if isinstance(case_id, str) else None):
+        print("case id must be a single path segment", file=sys.stderr)
+        return 1
+    settings = Settings.from_sources(args.mock_url, args.data_dir, args.submissions)
+    try:
+        corpus = FileCorpus(settings.data_dir)
+    except (OSError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    with httpx.Client(base_url=settings.mock_base_url, timeout=10.0, trust_env=False) as http:
+        tools = HttpToolClient(http)
+        ledger = HttpCaseSystem(http)
+        try:
+            tools.health()
+        except MockUnavailable as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        try:
+            if args.command == "run":
+                return _run_one(case_id, settings, corpus, tools, ledger)
+            if args.command == "run-all":
+                return _run_all(settings, corpus, tools, ledger)
+            if args.command == "submit-review":
+                handle = submit_review(case_id, settings.submissions_dir, ledger)
+                print(json.dumps(handle, indent=2))
+                return 0
+            outcome = create_record(case_id, settings.submissions_dir, ledger)
+            print(json.dumps(outcome, indent=2))
+            return 0
+        except MockUnavailable as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        except FileNotFoundError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        except (OutsideCheckpoint, ToolFailed, CopilotError, CreateRejected) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+
+
+def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem) -> int:
+    draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger)
+    path = write_draft(settings.submissions_dir, case_id, draft)
+    print(json.dumps(_summary(draft, path), indent=2))
+    return 0
+
+
+def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem) -> int:
+    written = []
+    skipped = []
+    for case in tools.list_cases():
+        case_id = case.get(CASE_ID)
+        if not isinstance(case_id, str) or not _safe_case(case_id):
+            skipped.append({CASE_ID: case_id, "reason": "case id is not usable"})
+            continue
+        try:
+            draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, case=case)
+        except MockUnavailable:
+            raise
+        except (OutsideCheckpoint, ToolFailed, CopilotError) as exc:
+            skipped.append({CASE_ID: case_id, "reason": str(exc)})
+            continue
+        path = write_draft(settings.submissions_dir, case_id, draft)
+        written.append(_summary(draft, path))
+    print(json.dumps({"written": written, "not_written": skipped}, indent=2))
+    return 0 if not skipped else 2
+
+
+def _summary(draft: dict, path: Path) -> dict:
+    return {
+        "draft": str(path),
+        CASE_ID: draft[CASE_ID],
+        CLASSIFICATION: draft[CLASSIFICATION],
+        ROUTING: draft[ROUTING],
+        POLICY_IDS: draft[POLICY_IDS],
+        DEADLINE: draft[DEADLINE],
+        FACTS: draft[FACTS],
+    }
+
+
+def _safe_case(case_id: str | None) -> bool:
+    if case_id is None:
+        return True
+    if not case_id or case_id in {".", ".."}:
+        return False
+    return "/" not in case_id and "\\" not in case_id
+
+
+def _parser() -> argparse.ArgumentParser:
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--mock-url", default=argparse.SUPPRESS)
+    common.add_argument("--data-dir", type=Path, default=argparse.SUPPRESS)
+    common.add_argument("--submissions", type=Path, default=argparse.SUPPRESS)
+    parser = argparse.ArgumentParser(prog="dispute-copilot")
+    parser.add_argument("--mock-url", default=os.environ.get("MOCK_BASE_URL"))
+    parser.add_argument("--data-dir", type=Path, default=None)
+    parser.add_argument("--submissions", type=Path, default=None)
+    commands = parser.add_subparsers(dest="command", required=True)
+    run = commands.add_parser("run", parents=[common])
+    run.add_argument("case", metavar="CASE")
+    commands.add_parser("run-all", parents=[common])
+    submit = commands.add_parser("submit-review", parents=[common])
+    submit.add_argument("case", metavar="CASE")
+    create = commands.add_parser("create-record", parents=[common])
+    create.add_argument("case", metavar="CASE")
+    return parser
+
+
+if __name__ == "__main__":
+    sys.exit(main())

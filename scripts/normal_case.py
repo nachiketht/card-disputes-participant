@@ -1,4 +1,7 @@
-"""Thin normal case for CARD-D01 only.
+"""Thin one-file demonstration for CARD-D01 only.
+
+The installed command dispute-copilot is the package this slice is growing into.
+This script stays as the original single-file path.
 
 Days 1–2 slice. One unauthorized complaint, template text, no other case types.
 

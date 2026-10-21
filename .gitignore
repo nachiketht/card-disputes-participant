@@ -1,9 +1,11 @@
-# Local mock case database. The committed seed stays tracked; runtime sidecars do not.
-.state/*
-!.state/mock.sqlite
+# Local mock case database. Do not commit a state file that contains approvals.
+.state/
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
+
+# Submission write lock
+submissions/.write.lock
 
 # Generated evaluation and runtime artifacts. Summary reports stay committable.
 reports/traces/
