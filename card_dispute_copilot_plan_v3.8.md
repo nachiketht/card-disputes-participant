@@ -1,5 +1,5 @@
 ---
-name: Card Dispute Copilot Plan, Version 3.7
+name: Card Dispute Copilot Plan, Version 3.8
 overview: "Deterministic-core dispute intake copilot for the Lumen Bank capstone. Rules own every scored field. Bounded mock-API tool client. Deterministic retrieval (policy lookup by ID/date + section/line search keyed by claim taxonomy). Verified citations against a source-text registry. Per-case persisted drafts bound to human review. LLM optional: Null default + one OpenAI-compatible provider with configurable base_url, never classifying. CLI review interaction (minimal HTML page conditional on the day-5 freeze), fields.py + rules-as-config with generated tests, change-request log with scope freeze, evals with measured counts, a strategy bake-off built alongside each component (scored output always from the compliant default), redacted traces/logs, CI, local Docker baseline + one cloud. Sized for 3 associate FDEs over 10 days + 2-3 optional days."
 todos:
   - id: skeleton-deps
@@ -21,19 +21,25 @@ todos:
     content: "Implement workflow.py and cli.py: `run` writes the draft atomically to a versioned per-case file (submissions/drafts/<case_id>/vN.json) and UPSERTS it under a file lock by case_id into submissions/results.json (evaluate.py fails the whole submission on a duplicate or unexpected case_id); `run` also does a read-only GET /v1/records/<case_id> so the narrative can disclose an existing record (authoritative pre-check stays in create-record; this makes D02/D09 narratives, never scored fields, depend on run order); startup health failure is a hard abort with no file, after that `run-all` always writes every requested case (per-case error isolation -> manual_review result with disclosure); hidden-style results go to their own submission file with their own --data-dir; --mock-url and --data-dir on all commands; 12/12 on tools/evaluate.py with no hardcoded case IDs; `run` does not submit a review; `dispute-copilot no-reply CASE` sets routing to manual_review without reading the wall clock or today's date, writes draft vN+1, and needs a new review"
     status: pending
   - id: review-create
-    content: "Implement review.py: submit-review loads the exact latest draft version and POSTs /v1/reviews (persist review_id, draft_hash to submissions/reviews/<case_id>.json so wait/create resume after restart); revise CASE writes vN+1 and requires a new review; wait-approval (--timeout, capped backoff; pending -> exit pending; rejected -> terminal, exit non-zero, no create); create-record order: GET /v1/records/{case_id} pre-check first (row with id -> report it, no POST); when amount is above 100000 XCR, amount is null, or currency is not XCR, require a second mock review of the same draft hash approved by a different reviewer via the runtime CLI (the app never approves; both reviews approved, hashes equal, reviewers differ) before any POST; re-fetch GET /v1/reviews/{id}; json.loads the draft string; verify status approved and the compact-canonical hash equals the server hash; POST that server draft, never the local file; Idempotency-Key is dc- plus sha256 of v1|case_id|review_id|server_hash (include the second review id when two reviews are required) -> 201 record_id / 200 replay / 409 existing_record_id / 403 stop; never regenerates the draft. The days 1-2 CARD-D01 script follows this order for the single-review case. D01 is under the threshold, so that script does not implement the second review"
+    content: "Implement review.py: submit-review loads the exact latest draft version and POSTs /v1/reviews (persist review_id, draft_hash to submissions/reviews/<case_id>.json so wait/create resume after restart); revise CASE writes vN+1 and requires a new review; wait-approval (--timeout, capped backoff; pending -> exit pending; rejected -> terminal, exit non-zero, no create); create-record order: GET /v1/records/{case_id} pre-check first (row with id -> report it, no POST); re-fetch both reviews immediately before the POST; call the pure function approvals_satisfied(reviews, amount, config) and nothing else, fail closed, the mock does not know; a false result means no POST, and a POST anyway counts against the gate; on true, json.loads the server draft and POST that draft, never the local file; Idempotency-Key is dc- plus sha256 of v1|case_id|review_id|server_hash (include the second review id when two reviews are required) -> 201 record_id / 200 replay / 409 existing_record_id / 403 stop; never regenerates the draft. Amount exactly 100000 XCR needs one approval. Amount 100000.01 XCR, a null amount, or a currency other than XCR needs two. The days 1-2 CARD-D01 script does the pre-check, the re-fetch, the hash check, and the server draft for the single-review case. D01 is under the threshold, so that script does not call approvals_satisfied. The function lands in days 6-8"
     status: pending
   - id: mcp-wrapper
     content: "Thin MCP wrapper. Transport is stdio only, with no network port. Tools are read-only: the tool list excludes approve and create, and a test fails if a call can write. Days 6-8. Owner: Teammate 2. Test owner: Nachiketh. Does not move the day-5 freeze."
     status: pending
   - id: second-approval
-    content: "Second mock review of the same draft hash when amount is above 100000 XCR, amount is null, or currency is not XCR. A different reviewer approves through the runtime CLI. The app never approves. create-record checks both reviews approved, hashes equal, and reviewers differ. Threshold and currency XCR live in config/rules/approval.yaml. Owner: Teammate 2. Test owner: Nachiketh. Day-8 exit. Compliance row. Demo labels this as the pod's own design."
+    content: "App-enforced and mock-unaware. One pure function approvals_satisfied(reviews, amount, config), called only by create-record, fails closed. Re-fetch both reviews immediately before POST. No POST when the check fails, and a POST anyway counts against the gate. Tests: amount exactly 100000, 100000.01, null amount, same reviewer twice, one review rejected, mismatched hashes, a review from another case, a pending review, plus a property test. Threshold and currency XCR live in config/rules/approval.yaml. Owner: Teammate 2. Backup: Nachiketh. Test owner: Nachiketh. Day-8 exit. Pitch: app-enforced, mock-unaware; server-side enforcement is the production version. Demo labels this as the pod's own design."
     status: pending
   - id: ask-once
     content: "First scored draft stays request_information (D04 and D12 unchanged). The question is a draft; the operator sends it and the app does not. A reply is loaded as a FOLLOWUP document and the case is rerun, writing draft vN+1 that needs a new review. dispute-copilot no-reply CASE routes to manual_review and does not read the wall clock or today's date; that path also writes vN+1 and needs a new review. Events followup.question_drafted, followup.reply_loaded, followup.no_reply. Fixture tests/fixtures/ask_once/. Owner: Nachiketh. Day-5 exit."
     status: pending
   - id: state-file
-    content: "Required fix, not done yet. .state/mock.sqlite is tracked. Stop tracking it with git rm --cached and keep the path covered by .gitignore. Runs use --state .state/run.sqlite. Do not commit any state file that contains approvals. Owner: Teammate 3. Day-2 exit."
+    content: "Day 1. .state/mock.sqlite is tracked. Stop tracking it with git rm --cached and keep the path covered by .gitignore. Runs use --state .state/run.sqlite. Do not commit any state file that contains approvals. Pre-commit and CI reject any file under .state/. Owner: Teammate 3. Backup: Nachiketh."
+    status: pending
+  - id: unseen-cases
+    content: "Low parser confidence always routes to manual_review and never guesses a type. Test that. Mutation fixture generator over the dev documents: label casing, whitespace, reordered lines, synonyms, missing lines, noise, non-ASCII. Each variant reaches the correct result or a safe manual_review. Each case records parser confidence, exact vs alias match, and warns when alias use spikes. Alias registry in config/rules/labels.yaml with a reason for every entry, logged in CHANGES.md. Owner: Nachiketh. Backup: Teammate 2. Day-5 exit."
+    status: pending
+  - id: process-discipline
+    content: "Pre-commit hook and CI reject any file under .state/, contract field names outside fields.py, approve calls, dataset.json reads, and leaked values. Branch protection on initial-build and main requires CI and one teammate review. PR template asks D, S, or R, and CI fails an R PR without a linked CHANGES.md entry. make check runs the full local suite. make daily checks 12/12, zero gate failures, and that the change log is current. Owner: Teammate 3. Backup: Nachiketh. Day-1 exit for the hook, the template, branch protection, and untracking .state/mock.sqlite."
     status: pending
   - id: llm-layer
     content: "Implement llm/: LLMProvider Protocol; NullProvider (default, CI) + ONE OpenAIProvider (OpenAI-compatible client, configurable base_url/model/key; can point at the cohort endpoint or on-prem Ollama/vLLM, matching the Week 9 lab), chosen after facilitator Q1; Protocol proven with a second fake provider in tests; drafter input = structured facts + verified quotes only; failure -> Null template; guard.py on the customer-message section for commitment constructions"
@@ -42,16 +48,16 @@ todos:
     content: "CONDITIONAL (days 6-8, only if the day-5 freeze is green; first thing dropped): api.py FastAPI (health, run, drafts, submit-review, create-record; no approve route) and a minimal Jinja review page that renders only the redacted draft, never the registry"
     status: pending
   - id: observability
-    content: "Implement observability/: tracing (fixed span set, run_id, X-Run-Id header, per-case redacted trace file), JSON-lines logging with RedactingFilter and an allowlisted field serializer (SourceRegistry rejected) and a 19-event catalog, in-process metrics aggregated by `dispute-copilot metrics` into reports/metrics.json as N, median, max per measure plus run location/date and git SHA; results reported as counts (e.g. 12/12); cost only from tokens x committed price table"
+    content: "Implement observability/: tracing (fixed span set, run_id, X-Run-Id header, per-case redacted trace file), JSON-lines logging with RedactingFilter and an allowlisted field serializer (SourceRegistry rejected) and a 21-event catalog, in-process metrics aggregated by `dispute-copilot metrics` into reports/metrics.json as N, median, max per measure plus run location/date and git SHA; results reported as counts (e.g. 12/12); cost only from tokens x committed price table"
     status: pending
   - id: degradation
     content: "Implement reliability/degradation.py: DegradationLedger with closed kinds feeding trace/logs/narrative/routing; HTTP/LLM/poll timeouts and CASE_BUDGET_S; no merchant breaker (merchant failure = context unavailable); no transactions breaker; LLM failure handled per case by Null fallback; run-all sequential"
     status: pending
   - id: tests-fixtures
-    content: "pytest suite: unit (policy boundaries 08-31/09-01, hypothesis property test for deadline arithmetic, ordered chain incl. service text + Authorization: denied -> unauthorized, not-supplied rows 3b/4/5b, attachment Authorization: line ignored, missing Authorization: line = not supplied, boilerplate-field test, labeled-line-only parsing, raw-registry + token-quote rejection, results.json upsert under a lock with two writers, golden byte tests for both serializations, registry non-serialization, fields.py literal gate, config-generated tests, synthetic next-version policy in a temp data dir, policy-period split disclosure, N-statement conflict, currency pass-through, provider invariance (scored fields identical under Null and two fakes), purge, CaseSystem field mapping, redaction, guard template-prose regressions, clock independence, degradation rows) + integration against subprocess mock with temp --state reset per test (retry counts via audit, D02/D09 both orders with full approval (scored fields identical, narratives differ only in the existing-record disclosure), rerun of D02 after D09 is created, rejected review then revise and re-approve, kill-and-resume from the persisted review handle, changed draft 403, injection D08, leakage grep); hidden-style fixtures dataset + gold evaluated with tools/evaluate.py; MCP tool list excludes approve and create and calls are read-only; second approval same hash and different reviewer, including a null amount; ask-once fixture tests/fixtures/ask_once (no-reply without a clock, follow-up rerun writes vN+1 and needs a new review, D04 and D12 first drafts unchanged)"
+    content: "pytest suite: unit (policy boundaries 08-31/09-01, hypothesis property test for deadline arithmetic, ordered chain incl. service text + Authorization: denied -> unauthorized, not-supplied rows 3b/4/5b, attachment Authorization: line ignored, missing Authorization: line = not supplied, boilerplate-field test, labeled-line-only parsing, raw-registry + token-quote rejection, results.json upsert under a lock with two writers, golden byte tests for both serializations, registry non-serialization, fields.py literal gate, config-generated tests, synthetic next-version policy in a temp data dir, policy-period split disclosure, N-statement conflict, currency pass-through, provider invariance (scored fields identical under Null and two fakes), purge, CaseSystem field mapping, redaction, guard template-prose regressions, clock independence, degradation rows) + integration against subprocess mock with temp --state reset per test (retry counts via audit, D02/D09 both orders with full approval (scored fields identical, narratives differ only in the existing-record disclosure), rerun of D02 after D09 is created, rejected review then revise and re-approve, kill-and-resume from the persisted review handle, changed draft 403, injection D08, leakage grep); hidden-style fixtures dataset + gold evaluated with tools/evaluate.py; MCP tool list excludes approve and create and calls are read-only; approvals_satisfied cases for amount exactly 100000, 100000.01, null amount, same reviewer twice, one review rejected, mismatched hashes, a review from another case, a pending review, plus a property test, and a test that no POST happens when the check fails; mutation fixtures over dev documents (casing, whitespace, reordered lines, synonyms, missing lines, noise, non-ASCII) each correct or manual_review; low parser confidence routes to manual_review; ask-once fixture tests/fixtures/ask_once (no-reply without a clock, follow-up rerun writes vN+1 and needs a new review, D04 and D12 first drafts unchanged)"
     status: pending
   - id: ci
-    content: "GitHub Actions on every push/PR: uv sync --locked, validate_package, AST lint gates, unit + integration tests, run-all + tools/evaluate.py on dev and hidden-style gold, leakage grep; Null LLM; upload reports"
+    content: "GitHub Actions on every push/PR, and the same steps via make check locally: uv sync --locked, validate_package, pre-commit gates (no file under .state/, no contract field names outside fields.py, no approve calls, no dataset.json reads, no leaked values), unit + integration tests, run-all + tools/evaluate.py, leakage grep. CI also runs LLM off vs fake LLM on, and the cloud job against the real mock vs the fake. An R PR without a linked CHANGES.md entry fails. make daily is the short check: 12/12, zero gate failures, change log current. Branch protection on initial-build and main: required CI and one teammate review."
     status: pending
   - id: week10-checkpoint
     content: "Before the Week 10 proctored capstone progress review: fill docs/HARDENING_CHECKLIST.md mapping SLOs, retries/backoff, idempotency, graceful degradation, secrets/least privilege, prompt injection, logging/metrics/alerts to code + test + artifact"
@@ -63,10 +69,10 @@ todos:
     content: "Days 9-10 timebox, ONE cloud (whichever access lands first; access expected this week, week of 2026-10-19): ECS Fargate (ECR, app+mock containers in one task, task vs execution role, task role also carries the four ssmmessages:* actions and the service sets enableExecuteCommand so ECS Exec into the mock container works, private subnet, NAT or VPC endpoints for ECR/logs/SSM, Secrets Manager) or Azure Container Apps (ACR, one app with two containers, managed identity, Key Vault); rehearse cloud approval via ECS Exec / az containerapp exec running runtime.py approve with the same --state; written procedure for the other cloud"
     status: pending
   - id: docs-demo
-    content: Write ARCHITECTURE.md, CHANGES.md (change-request log), DECISIONS.md (12 ADRs + the MCP, second-approval, and ask-once mini-ADRs in this plan, plus assumptions marked pending confirmation), and the docs/CHANGES.md rows CR-01 through CR-04 from the change-control section, THREAT_MODEL.md, LIMITATIONS.md + roadmap, CONTRIBUTIONS.md, REVIEW_CHECKLIST.md, DEMO_SCRIPT.md; export reports/dev.json, hidden_style.json, audit.json, metrics.json
+    content: Write ARCHITECTURE.md, CHANGES.md (change-request log), DECISIONS.md (12 ADRs plus mini-ADRs for the MCP wrapper, the second approval, ask-once, the Q1 default, the Q2 default, unseen cases, and process discipline, plus assumptions marked pending confirmation), and the docs/CHANGES.md rows CR-01 through CR-05 from the change-control section, THREAT_MODEL.md, LIMITATIONS.md + roadmap, CONTRIBUTIONS.md, REVIEW_CHECKLIST.md, DEMO_SCRIPT.md; export reports/dev.json, hidden_style.json, audit.json, metrics.json
     status: pending
   - id: facilitator-questions
-    content: Raise facilitator questions Q1-Q9 before end of day 1 and record answers in DECISIONS.md
+    content: On day 1, send Q1 and Q2 in writing with a deadline of day 3 and a stated default: no reply means no LLM and the mock stays local. The default path already passes. Record the answer or the default as ADRs. Ask Q3-Q9 the same day. CI runs both Q1 answers (LLM off vs fake LLM on) and both Q2 answers (cloud against the real mock vs against the fake).
     status: pending
   - id: bakeoff
     content: "make bakeoff built alongside sibling components (harness with eval/shadow-eval days 1-5; retrieval with citations; parsing variants + messy fixtures with documents.py/labels.yaml; classification shadow with rules/flags; drafter strategies with the LLM provider; cost/p50/p95 with tracing; full live run + recommendation in day 9-10 demo prep). Isolated mock on 127.0.0.1:8766 with temp --state or fakes; zero POSTs asserted; never writes submissions/; only the default column blocks day 5"
@@ -77,7 +83,7 @@ todos:
 isProject: false
 ---
 
-# Card Dispute Copilot Plan, Version 3.7
+# Card Dispute Copilot Plan, Version 3.8
 
 ## Options for the client to choose from
 
@@ -90,8 +96,8 @@ Our recommendation is the default that ships. Every alternative is either a flag
 | Deployment target | **Local Docker**: assessed baseline, air-gap capable · **AWS ECS Fargate**: managed, IAM/VPC setup · **Azure Container Apps**: managed, simpler exec, managed identity | **Local Docker as the assessed path plus one cloud** (whichever access lands first). Reproducible today; the deployment bake-off compares the rest | Facilitator (Q2: is the mock allowed in the cloud) |
 | Citation retrieval | **Exact label**: deterministic, exact quotes · **BM25**: tolerant of rephrasing, ranking noise · **Hybrid**: label first, BM25+RRF for the rest | **Exact label**. Matches the evaluator's exact-substring check; BM25 and hybrid stay as bake-off columns and go into the default only if a rephrased fixture defeats label search | None (all quotes still verified) |
 | Drafter | **Templates**: deterministic, cheap, plainer · **LLM**: fluent, costs tokens, needs the guard and repair | **Templates by default, LLM when approved**. Scored fields are identical either way (provider-invariance test) | Facilitator (Q1) for LLM |
-| Parsing strictness | **Strict labels**: zero false reads, brittle to messy input · **Label aliases** (`labels.yaml`): recovers casing and synonyms, every alias reviewed | **Aliases from a reviewed list**. Hidden cases may be messier; the messy-variant bake-off proves it, and attachments still can't set authorization | None (D change, logged) |
-| Reviewer model | **One reviewer** under the threshold · **Second mock review** of the same draft hash when the amount is above 100000 XCR, when the amount is null, or when the currency is not XCR | **Both, by amount.** A different person approves the second review through the runtime CLI. The app never approves. create-record checks that both reviews are approved, the hashes are equal, and the reviewers differ. Threshold and currency XCR live in config/rules. Null amount fails safe. This is the pod's own design. Scored fields do not change, so the day-5 freeze does not move | Finalized (pod) |
+| Parsing strictness | **Strict labels**: zero false reads, brittle to messy input · **Label aliases** (`labels.yaml`): recovers casing and synonyms, every alias reviewed, and low confidence routes to `manual_review` | **Aliases from a reviewed list, and never a guess.** Low parser confidence routes to `manual_review`. A mutation generator varies the dev documents. Each alias has a reason in config and a CHANGES.md row. Attachments still cannot set authorization | None (D change, logged) |
+| Reviewer model | **One reviewer** at exactly 100000 XCR · **Second mock review** of the same draft hash at 100000.01 XCR, when the amount is null, or when the currency is not XCR | **App-enforced, mock-unaware.** `approvals_satisfied(reviews, amount, config)` is pure, fails closed, and is called only by create-record. Both reviews are re-fetched immediately before the POST. A failed check does not POST. The mock does not know. Server-side enforcement is the production version. This is the pod's own design. Scored fields do not change, so the day-5 freeze does not move | Finalized (pod) |
 | UI | **CLI only**: satisfies the human-review interaction, zero UI risk · **Conditional HTML page**: friendlier demo, more surface | **CLI as the interaction of record; HTML only if the day-5 freeze is green**. Polished UI isn't scored | None |
 | Case update or reopen | **Out of scope** (create-only) · **Phase 2** with its own approval and hash contract | **Out of scope now, phase 2 pitched**. The brief makes updates a stretch task needing a separately agreed contract | Client + facilitator |
 | MCP exposure | **Thin MCP wrapper**, stdio only · **None** | **Thin MCP wrapper.** Transport is stdio only, with no network port. Tools are read-only: no approve tool and no create tool. Tests check the tool list and that calls cannot write. Scheduled in days 6-8. The service still owns scored fields and writes | Finalized (pod) |
@@ -104,7 +110,7 @@ Our recommendation is the default that ships. Every alternative is either a flag
 1. Value and boundaries: deterministic rules own scored fields, a human approves every write (2 min).
 2. Normal case D01 end to end: draft, citations, trace, teammate approves, `record_id`, audit (5 min).
 3. Ambiguous case D05: five evidence groups, `manual_review`, null deadline (4 min).
-4. Assessor-chosen failure or attack: D07 outage, D08 injection, or D09 redelivery (5 min). If D07 is shown, a null amount needs both approvals; say that rule is the pod's own design.
+4. Assessor-chosen failure or attack: D07 outage, D08 injection, or D09 redelivery (5 min). If D07 is shown, a null amount needs both approvals. Say the rule is app-enforced, mock-unaware, and the pod's own design. Server-side enforcement is the production version.
 5. Live change, D-class via config (3 min).
 6. Bake-off tables (extended session, 6 min):
    - retrieval axis: label vs BM25 vs hybrid
@@ -132,7 +138,9 @@ Our recommendation is the default that ships. Every alternative is either a flag
 flowchart TD
     Z["Config layer: fields.py, config rules, and policy files"] -.-> D
     A["Customer complaint arrives"] --> B["Gather evidence: documents, transactions, merchant"]
-    B --> C["Pick policy version by reported date"]
+    B --> PC{"Parser confidence"}
+    PC -->|"low, never a guess"| M
+    PC -->|"exact or reviewed alias"| C["Pick policy version by reported date"]
     C --> D{"Classify the dispute, rules only, first match wins"}
     D -->|"unauthorized, duplicate, or service not received"| E["Find missing information and compute deadline"]
     D -->|"ambiguous or unsupported"| M["Route: manual_review"]
@@ -155,10 +163,9 @@ flowchart TD
     NR2 --> H
     H -->|"rejected"| J["Stop. A revised draft needs a new review."]
     H -->|"still pending"| K["Wait. Nothing is written yet."]
-    H -->|"yes, draft unchanged"| HV{"Amount above 100000 XCR, amount null, or currency not XCR?"}
-    HV -->|"yes"| SEC["Second review of the same draft hash by a different reviewer"]
-    SEC --> I["Create the record once, or report the existing one"]
-    HV -->|"no"| I
+    H -->|"yes, draft unchanged"| AS["Re-fetch the reviews, then approvals_satisfied. Fail closed. The mock does not know."]
+    AS -->|"not satisfied"| NP["No POST. A POST here counts against the gate."]
+    AS -->|"satisfied"| I["Create the record once, or report the existing one"]
     B -.-> BO["Strategy bake-off, read only, never feeds the scored draft"]
 ```
 
@@ -180,8 +187,12 @@ flowchart TD
     subgraph S2["Evidence"]
         A5 --> L1["case_system.py lookup: GET /v1/records/CASE read-only; existing id noted for narrative only, run-order dependent"]
         L1 --> B1["adapters/corpus.py FileCorpus: policies/*.md and all documents by Source ID"]
-        B1 --> B2["rules/documents.py: labeled lines via label aliases; Authorization: from intake + all follow-ups, Attachment status: from attachments"]
-        B2 --> B3{"HttpToolClient.transactions: attempt 1..3, retryable codes from config"}
+        B1 --> B2["rules/documents.py: labeled lines; each alias has a reason"]
+        B2 --> PC2{"parser confidence: exact, reviewed alias, or low"}
+        PC2 -->|"low"| PLOW["ambiguous and manual_review, never a guessed type"]
+        PC2 -->|"exact or reviewed alias"| B3
+        PLOW --> C12
+        B3{"HttpToolClient.transactions: attempt 1..3, retryable codes from config"}
         B3 -->|"503, attempts left"| B3
         B3 -->|"503 x3"| B4["amount/currency null; transaction_id and reported_date kept from intake; manual_review overlay; no TRANSACTIONS citation"]
         B3 -->|"200"| B5["transaction facts, currency passed through verbatim"]
@@ -242,15 +253,10 @@ flowchart TD
         E2 -->|"rejected"| E4["stop, no create; a revision is vN+1 and a new review"]
         E2 -->|"approved"| E7{"GET records pre-check: row with id?"}
         E7 -->|"yes"| E8["report the existing id, no POST"]
-        E7 -->|"no"| EA{"amount above 100000 XCR, amount null, or currency not XCR?"}
-        EA -->|"yes"| EB["second review of the same draft hash; a different reviewer uses the runtime CLI"]
-        EB --> EC{"both approved, hashes equal, reviewers differ?"}
-        EC -->|"no"| E4b["stop, nothing written"]
-        EC -->|"yes"| E5
-        EA -->|"no"| E5["re-fetch the review and json.loads the draft string"]
-        E5 --> E6{"status approved and compact hash equals the server hash?"}
-        E6 -->|"no"| E4b
-        E6 -->|"yes"| E9["POST the server draft; key from case, review id, and server hash"]
+        E7 -->|"no"| E5["re-fetch both reviews immediately before POST; json.loads each draft"]
+        E5 --> EC{"approvals_satisfied(reviews, amount, config), fail closed"}
+        EC -->|"no"| E4b["stop, no POST; a POST here fails the gate"]
+        EC -->|"yes"| E9["POST the server draft; the mock does not enforce the second review"]
         E9 -->|"201"| E10["report record_id"]
         E9 -->|"200"| E11["replay the same record"]
         E9 -->|"409"| E12["report existing_record_id"]
@@ -278,7 +284,7 @@ Everything the rubric scores numerically is specified exactly in `CARD-PROCEDURE
 The pod locked these three. They override the matching rows in "Options for the client to choose from".
 
 1. **Thin MCP wrapper (stdio only).** A thin wrapper sits on the service so later callers use the same copilot. Transport is stdio only. There is no network port. The wrapper does not own classification or scored fields. Its tool list has no approve tool and no create tool, and tests fail if either name is advertised or if a call can write. Owner: Teammate 2, days 6-8. Test owner: Nachiketh. It does not move the day-5 freeze.
-2. **Second review above 100000 XCR, and when the amount is null.** create-record asks for a second mock review of the same draft hash, approved by a different reviewer through the runtime CLI. The app never approves. Before POST, both reviews are approved, the hashes are equal, and the reviewers differ. The mock POST still cites one review id; the app will not call it until the second review passes. Threshold `100000` and currency `XCR` live in `config/rules/approval.yaml`. A null amount (D07, tool outage) requires both approvals, and so does a currency other than XCR, so the XCR threshold is not applied to an unknown or different currency. Owner: Teammate 2. Test owner: Nachiketh. Day-8 exit. This is the pod's own design. Scored fields stay on the procedure, so the day-5 freeze does not move.
+2. **Second review, app-enforced and mock-unaware.** The mock stores one approval per review and does not know that a second review is required. `create-record` is the only caller of the pure function `approvals_satisfied(reviews, amount, config)`. It fails closed: any missing, pending, rejected, mismatched, cross-case, or same-reviewer input returns false, and an exception is treated as false. Amount exactly 100000 XCR needs one approval. Amount 100000.01 XCR needs two. A null amount, or a currency other than XCR, needs two. Both reviews are re-fetched immediately before the POST. If the function returns false, there is no POST, and a POST anyway counts against the gate. A different reviewer approves the second review through the runtime CLI. The app never approves. Threshold and currency live in `config/rules/approval.yaml`. Owner: Teammate 2. Backup: Nachiketh. Test owner: Nachiketh. Day-8 exit. This is the pod's own design. The production version is server-side enforcement. Scored fields stay on the procedure, so the day-5 freeze does not move.
 3. **Ask once, then `manual_review`.** When required information is missing, the first scored draft stays `request_information` with the missing-field questions, so D04 and D12 stay on the evaluator's expected routing. The question is a draft for the reviewer. The operator sends it. The app never sends it. A reply is loaded as a FOLLOWUP document and the case is rerun: that writes draft vN+1 and needs a new review. No reply is the operator command `dispute-copilot no-reply CASE`, which sets routing to `manual_review`, writes draft vN+1, and needs a new review. The command does not read the wall clock or today's date. Events: `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`. Fixture: `tests/fixtures/ask_once/`. Owner: Nachiketh. Day-5 exit.
 
 ## Architecture
@@ -322,6 +328,8 @@ flowchart TD
     MCP["MCP wrapper: stdio only, no network port, read-only tools"] -.->|"no approve and no create"| WF
     NoReply["Operator: dispute-copilot no-reply CASE"] --> CLI
     Rev2["Second reviewer: runtime CLI approve, same hash, different person"] -->|"writes the state file, no HTTP"| State
+    Appr["approvals_satisfied: pure, fail closed, called only by create-record"] -->|"not satisfied means no POST"| Review
+    Hooks["pre-commit and CI reject .state files, approve calls, dataset.json reads, leaked values, and contract names outside fields.py. An R PR needs a CHANGES.md row"] -.-> Gov
     Gov[["docs/CHANGES.md + DECISIONS.md mini-ADRs"]] -.->|"governs edits to"| Cfg
     Gov -.-> Flags
 ```
@@ -334,18 +342,19 @@ flowchart TD
 4. `GET transactions`: at most 3 attempts on a 503. On persistent failure: `amount`/`currency` null, `transaction_id`/`reported_date` kept from the intake, `manual_review`, and no TRANSACTIONS citation (D07). A transient failure (D10) proceeds normally. Because counters are cumulative per case, reset state before assessed runs.
 5. `GET merchant`: untrusted data. The raw payload (token included) is registered for citation checks; `private_token` is never copied into facts, prompt, narrative or logs, and the Redactor rejects any quote containing it. Injection is flagged (D08). A failure means "context unavailable". There is no breaker.
 6. Classify with the ordered chain (see the decision table), first match exits. The service fields are read only after `service_not_received`.
-7. Routing precedence and deadline exactly per the procedure. The deadline is still computed under `manual_review` for supported types (D07 `2026-10-31`). When required fields are missing, ask once. The first scored draft stays `request_information` (D04, D12 unchanged) and the question is part of that draft. The operator sends the question. The app never sends it. A reply is loaded as a FOLLOWUP document and the case is rerun: that writes draft vN+1 and needs a new review. It does not loop back into the first evidence pass. No reply is `dispute-copilot no-reply CASE`, which sets routing to `manual_review`, writes draft vN+1, and needs a new review, without reading the wall clock or today's date. Events: `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`.
+7. Routing precedence and deadline exactly per the procedure. The deadline is still computed under `manual_review` for supported types (D07 `2026-10-31`). Low parser confidence routes to `manual_review` with classification `ambiguous` and never guesses a type. Each case records parser confidence as an exact match or an alias match, and a run warns when alias use spikes. When required fields are missing, ask once. The first scored draft stays `request_information` (D04, D12 unchanged) and the question is part of that draft. The operator sends the question. The app never sends it. A reply is loaded as a FOLLOWUP document and the case is rerun: that writes draft vN+1 and needs a new review. It does not loop back into the first evidence pass. No reply is `dispute-copilot no-reply CASE`, which sets routing to `manual_review`, writes draft vN+1, and needs a new review, without reading the wall clock or today's date. Events: `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`.
 8. Citations come from the source-text registry and are raw-substring verified. A quote that isn't found is dropped and disclosed.
 9. Draft (template, or LLM from facts and verified quotes), then guard, then redaction, then contract validation. Write `submissions/drafts/<case_id>/vN.json` atomically and **upsert** under a file lock by `case_id` into `results.json` (a duplicate `case_id` is an evaluator format error). `run-all` always writes every requested case once the health check has passed. Hidden-style fixtures write to their own submission file.
 10. `run` writes the draft and does not submit it. `submit-review` POSTs that exact latest draft version and persists `review_id`/`draft_hash` to `submissions/reviews/<case_id>.json`. `wait-approval` polls: `pending` exits as pending, `rejected` is terminal for that review (`revise` creates vN+1, which needs a new review), `approved` continues. The app never approves. The days 1-2 CARD-D01 script uses the same split: `run`, then `submit-review`, then `create`.
 11. `create-record` is allowed only after approval, whatever the routing (pending Q9). Order:
     - Pre-check `GET /v1/records/{case_id}` first. A row with `id` is reported and nothing is posted.
-    - When the amount is above 100000 XCR, the amount is null, or the currency is not XCR, require a second mock review of the same draft hash, approved by a different reviewer through the runtime CLI. The app never approves. Both reviews must be approved, the hashes must be equal, and the reviewers must differ. The POST still cites one review id. The app will not call POST until the second review passes.
-    - Re-fetch `GET /v1/reviews/{id}` and `json.loads` the draft string. Status must be `approved`. The compact-canonical hash must equal the server hash on that review.
+    - Re-fetch every required review immediately before the POST, including both reviews when two are required. `json.loads` each draft string.
+    - Call `approvals_satisfied(reviews, amount, config)` and nothing else. The function is pure and fails closed. Amount exactly 100000 XCR is satisfied by one approved review. Amount 100000.01 XCR, a null amount, or a currency other than XCR requires two approved reviews of the same hash by different reviewers, both for this case. A pending review, a rejected review, the same reviewer twice, mismatched hashes, or a review from another case returns false. The app never approves. The mock does not know about the second review; the POST still cites one review id.
+    - If the function returns false, do not POST. A test asserts that no POST happened. A POST that slips through counts against the gate.
     - POST that server draft, never the local file. The idempotency key is `dc-` plus the sha256 of `v1|{case_id}|{review_id}|{server_hash}`. When a second review is required, that material also includes the second review id.
     - 201 means `record_id`, 200 means replay, 409 means `existing_record_id`, 403 means stop.
     - Always report the record ID from the API (for D02/D09 that is `dispute-double-02`).
-    - The days 1-2 CARD-D01 script implements the pre-check, the re-fetch, the hash check, the server draft, and the single-review key. D01 is under the threshold, so the second review is not in that script. It lands in `create-record` in days 6-8.
+    - The days 1-2 CARD-D01 script implements the pre-check, the re-fetch, the hash check, the server draft, and the single-review key. D01 is under the threshold, so the second review is not in that script. `approvals_satisfied` lands in `create-record` in days 6-8.
 
 ## Retrieval layer
 
@@ -365,8 +374,8 @@ flowchart TD
 - `src/dispute_copilot/reliability/`: `idempotency.py` (key; uses `serialization.hash_canonical()`), `degradation.py`
 - `src/dispute_copilot/`: `fields.py` (`CONTRACT_VERSION`, names, enums, allowed IDs), `serialization.py` (`hash_canonical()`, `citation_source_text()`), `config.py`, `contract.py`, `drafting.py`, `workflow.py`, `review.py`, `api.py`, `cli.py`, `mcp_server.py` (stdio only, days 6-8), `templates/review.html` (conditional)
 - `config/rules/` (`labels.yaml`, `routing.yaml`, `missing.yaml`, `retry.yaml`, `redaction.yaml`, `injection.yaml`, `approval.yaml`), `config/prices.yaml`
-- `tests/fixtures/messy/` (generated messy variants, never from `dataset.json`), `src/dispute_copilot/bakeoff/` (runner, report, recommendation rules)
-- `tools/lint_gates.py`; `.github/workflows/ci.yml`; `Dockerfile`, `docker-compose.yml`, `deploy/<cloud>/`, `Makefile`
+- `tests/fixtures/messy/` (generated messy variants, never from `dataset.json`), `tests/fixtures/mutations/` (generator over the dev documents: label casing, whitespace, reordered lines, synonyms, missing lines, noise, non-ASCII; never from `dataset.json`), `src/dispute_copilot/bakeoff/` (runner, report, recommendation rules)
+- `tools/lint_gates.py`; `.githooks/pre-commit` (same gates as CI); `.github/workflows/ci.yml`; `.github/pull_request_template.md` (asks D, S, or R, and a `CR-nn` for class R); `Dockerfile`, `docker-compose.yml`, `deploy/<cloud>/`, `Makefile` (`make check`, `make daily`)
 - `tests/unit/`, `tests/integration/` (subprocess mock, temp `--state`), `tests/fixtures/hidden_style/`, `tests/fixtures/ask_once/` (intake with authorization not supplied, a FOLLOWUP that supplies `Authorization: denied`, and the expected routes: v1 `request_information`, rerun v2 with a new review, no-reply v2 `manual_review`; not taken from `dataset.json`)
 - `docs/`: `ARCHITECTURE.md`, `CHANGES.md`, `DECISIONS.md`, `THREAT_MODEL.md`, `RUNBOOK.md`, `LIMITATIONS.md`, `CONTRIBUTIONS.md`, `REVIEW_CHECKLIST.md`, `HARDENING_CHECKLIST.md`, `DEMO_SCRIPT.md`
 - `submissions/drafts/<case_id>/vN.json`, `submissions/reviews/<case_id>.json`, `submissions/results.json`; `reports/` (`traces/`, `logs/`, `dev.json`, `hidden_style.json`, `audit.json`, `metrics.json`, `summary.md`)
@@ -376,9 +385,9 @@ flowchart TD
 
 | Phase | Dates (fill in) | Goal |
 |---|---|---|
-| Days 1–2 | `<YYYY-MM-DD>`–`<YYYY-MM-DD>` | Packaging fix, skeleton, adapters, corpus with data root, policy resolver, contract, per-case draft file, `run` then `submit-review` for CARD-D01, `run-all`. The D01 `create` command pre-checks records, re-fetches the review, checks the server hash, and posts the server draft. Evaluate passes D01. DECISIONS.md. Q1–Q9 asked. Bake-off harness skeleton + report template (with the eval harness). State-file fix (owner Teammate 3): stop tracking `.state/mock.sqlite`, runs use `--state .state/run.sqlite`, no committed approvals. |
-| Days 3–5 | `<…>` | Ordered chain and decision table, claim-taxonomy line search, registry and citations, review/create with the pinned shapes (pre-check first, server draft, server hash), versioned drafts and persisted review handles, config layer, ask-once command and `tests/fixtures/ask_once/` (owner Nachiketh), D05 and D12 shown with the first draft still `request_information`, **12/12 must-ship freeze**. Bake-off: default column wired (blocking); messy-fixture generator, flag plumbing (non-blocking) |
-| Days 6–8 | `<…>` | D07/D10 retry, D02/D09 both orders with full approval, D08 injection and redaction, out-of-range branch, LLM provider and guard, traces/logs/metrics, hidden-style and combined-failure fixtures (BM25/hybrid as bake-off columns), seam tests, bake-off columns for BM25/hybrid, drafter (cloud/Ollama), classification shadow, cost and p50/p95 (all non-blocking), feedback → fixture stubs, CI green, Week 10 checkpoint; API + HTML page **only if** the freeze is green. MCP wrapper, stdio only (owner Teammate 2; tests Nachiketh). Second review for amount above 100000 XCR or a null amount (owner Teammate 2; tests Nachiketh), including the D07 fail-safe. |
+| Days 1–2 | `<YYYY-MM-DD>`–`<YYYY-MM-DD>` | Day 1: untrack `.state/mock.sqlite` (owner Teammate 3, backup Nachiketh), pre-commit hook, PR template, branch protection on `initial-build` and `main`, and Q1 plus Q2 sent in writing with a day-3 deadline and the stated default (no LLM, mock stays local). Packaging fix, skeleton, adapters, corpus with data root, policy resolver, contract, per-case draft file, `run` then `submit-review` for CARD-D01, `run-all`. The D01 `create` command pre-checks records, re-fetches the review, checks the server hash, and posts the server draft. Evaluate passes D01. DECISIONS.md. Q3–Q9 asked. `make check` and `make daily`. Bake-off harness skeleton. |
+| Days 3–5 | `<…>` | Day 3: if Q1 or Q2 has no reply, record the default as the ADR (no LLM, mock stays local). Ordered chain and decision table, claim-taxonomy line search, registry and citations, review/create with the pinned shapes (pre-check first, server draft, server hash), versioned drafts and persisted review handles, config layer, alias registry with a reason per entry, parser confidence, mutation fixture generator (owner Nachiketh, backup Teammate 2), ask-once command and `tests/fixtures/ask_once/`, D05 and D12 shown with the first draft still `request_information`, **12/12 must-ship freeze**. Bake-off: default column wired (blocking); flag plumbing (non-blocking). |
+| Days 6–8 | `<…>` | D07/D10 retry, D02/D09 both orders with full approval, D08 injection and redaction, out-of-range branch, LLM provider and guard, traces/logs/metrics, hidden-style and combined-failure fixtures (BM25/hybrid as bake-off columns), seam tests, bake-off columns for BM25/hybrid, drafter (cloud/Ollama), classification shadow, cost and p50/p95 (all non-blocking), feedback → fixture stubs, CI green, Week 10 checkpoint; API + HTML page **only if** the freeze is green. MCP wrapper, stdio only (owner Teammate 2, backup Nachiketh; tests Nachiketh). `approvals_satisfied` in create-record (owner Teammate 2, backup Nachiketh), including exactly 100000, 100000.01, null amount, and the no-POST test. |
 | Days 9–10 | `<…>` | Local Docker fresh-clone rehearsal, one-cloud deploy (timeboxed), RUNBOOK, LIMITATIONS, demo script, CONTRIBUTIONS, live change, full bake-off live run + recommendation + synthetic next-version demo, deployment axis + `deployment_comparison.md` (non-blocking) |
 | Optional 11–13 | `<…>` | Core fixes first, then the optional extras (owner: `<TBD>`). The bake-off is **not** here; it is built in days 1–10 |
 
@@ -407,9 +416,9 @@ Rule: **degrade for evidence, hard-stop for writes and human boundaries.**
 ## Critical-gate safeguards
 
 - No approve path. AST lint gates check routes and function names in `api.py`/`review.py`, with an allowlist for `tests/` and the operator-command boundary, so `wait-approval` doesn't trip it.
-- The draft is persisted per case and submitted as-is. `create-record` pre-checks `GET /v1/records/{case_id}` first, then re-fetches the review, runs `json.loads` on the draft string, and posts that server draft only when status is `approved` and the compact hash equals the server hash. If the hash does not match, nothing is written. A changed draft needs a new review. The local file is not the POST body.
+- The draft is persisted per case and submitted as-is. `create-record` pre-checks `GET /v1/records/{case_id}` first, re-fetches the reviews immediately before the POST, and calls `approvals_satisfied`. On true it runs `json.loads` on the server draft and posts that draft. On false it does not POST. A changed draft needs a new review. The local file is not the POST body.
 - No duplicate record: the records pre-check runs before the POST, then 409 → `existing_record_id`, plus a stable idempotency key from the case, the review id, and the server hash.
-- High or unknown value: amount above 100000 XCR, a null amount, or a currency other than XCR needs a second approved review of the same hash by a different reviewer. The app never approves.
+- High or unknown value is app-enforced and mock-unaware. `approvals_satisfied` fails closed and is the only check. Amount exactly 100000 XCR needs one approval. Amount 100000.01 XCR, a null amount, or a currency other than XCR needs two. Both reviews are re-fetched immediately before POST. A failed check does not POST. The app never approves. Server-side enforcement is the production version.
 - Redaction at every egress, and a CI leakage grep for `SYNTHETIC-PRIVATE` and `CUST-`. The registry holds the raw merchant payload (token included) so substring checks match the evaluator; the Redactor rejects any quote containing a restricted value, so the token can never ride out inside a citation.
 - Untrusted prose is never in the prompt and never acted on by rules (only labeled lines are parsed). Attachments contribute `Attachment status:` only, so an injected `Authorization:` line in an attachment cannot flip a clean case into `ambiguous`.
 - Citations are verified raw substrings in the registry. A tool failure never yields a TRANSACTIONS citation, and there are no fallback quotes.
@@ -420,9 +429,12 @@ Rule: **degrade for evidence, hard-stop for writes and human boundaries.**
 
 | Control | Requirement | Owner | Evidence |
 |---|---|---|---|
-| Dual control above 100000 XCR | Two approved reviews of the same draft hash, different reviewers, before create. A null amount, or a currency other than XCR, fails safe to the same rule. Threshold and currency live in `config/rules/approval.yaml`. The app never approves. The demo labels this as the pod's own design. | Teammate 2 (build), Nachiketh (test) | `test_second_approval_same_hash_different_reviewer`, `test_null_amount_requires_both_approvals`; day-8 exit |
-| Read-only MCP | Stdio only, no network port. The tool list has no approve tool and no create tool. Calls cannot write. | Teammate 2 (build), Nachiketh (test) | `test_mcp_tool_list_excludes_approve_and_create`, `test_mcp_calls_are_read_only`; day-8 exit |
-| One question, then `manual_review` | The question is a draft. The operator sends it. `no-reply` does not read the wall clock. A rerun writes draft vN+1 and needs a new review. D04 and D12 first drafts stay `request_information`. | Nachiketh | `tests/fixtures/ask_once/`, `test_no_reply_routes_manual_review_without_clock`, `test_followup_rerun_writes_next_draft_and_new_review`; day-5 exit |
+| Dual control, app-enforced, mock-unaware | `approvals_satisfied(reviews, amount, config)` is pure, fails closed, and is called only by create-record. Both reviews are re-fetched immediately before POST. Exactly 100000 XCR needs one approval. 100000.01 XCR, a null amount, or a non-XCR currency needs two different reviewers and equal hashes. Same reviewer twice, a rejected review, a pending review, mismatched hashes, or another case's review fails closed. No POST when the check fails. The mock does not know. Production enforcement is server-side. The demo labels the current rule as the pod's own design. | Teammate 2 (build), Nachiketh (backup and test) | boundary tests, property test, `test_no_post_when_approvals_unsatisfied`; day-8 exit |
+| Read-only MCP | Stdio only, no network port. The tool list has no approve tool and no create tool. Calls cannot write. | Teammate 2 (build), Nachiketh (backup and test) | `test_mcp_tool_list_excludes_approve_and_create`, `test_mcp_calls_are_read_only`; day-8 exit |
+| One question, then `manual_review` | The question is a draft. The operator sends it. `no-reply` does not read the wall clock. A rerun writes draft vN+1 and needs a new review. D04 and D12 first drafts stay `request_information`. | Nachiketh (backup Teammate 3) | `tests/fixtures/ask_once/`, `test_no_reply_routes_manual_review_without_clock`, `test_followup_rerun_writes_next_draft_and_new_review`; day-5 exit |
+| Unseen assessor cases | Low parser confidence routes to `manual_review` and never guesses a type. Mutation variants of the dev documents (casing, whitespace, reordered lines, synonyms, missing lines, noise, non-ASCII) each match the correct result or a safe `manual_review`. Confidence is recorded as exact or alias. Alias spikes warn. Every alias has a reason in config and a CHANGES.md row. | Nachiketh (backup Teammate 2) | `test_low_parser_confidence_routes_manual_review`, `test_mutation_variants_are_correct_or_manual_review`; day-5 exit |
+| Q1 and Q2 defaults | Written on day 1 with a day-3 deadline. No reply means no LLM and the mock stays local. The default path already passes. CI runs both answers. The outcome is an ADR. | Nachiketh (backup Teammate 3) | day-3 exit; CI matrix |
+| Process discipline | Pre-commit and CI reject `.state/` files, contract names outside `fields.py`, approve calls, `dataset.json` reads, and leaked values. `initial-build` and `main` require CI and one teammate review. An R PR without a CHANGES.md entry fails CI. `make check` is the full local run. `make daily` checks 12/12, zero gate failures, and a current change log. | Teammate 3 (backup Nachiketh) | day-1 exit |
 
 ## Deterministic decision table
 
@@ -523,7 +535,7 @@ sequenceDiagram
     alt rejected or pending
         App-->>Op: stop or exit pending, no create
     else approved
-        alt amount above 100000 XCR, amount null, or currency not XCR
+        alt amount 100000.01 XCR or higher, amount null, or currency not XCR
             App->>Mock: POST reviews with the same draft hash
             Rev2->>Mock: runtime CLI approve, different reviewer
             App->>App: both approved, hashes equal, reviewers differ
@@ -533,33 +545,37 @@ sequenceDiagram
         alt row with id
             App-->>Op: report existing id, no POST
         else no record
-            App->>Mock: GET reviews by review_id
-            Mock-->>App: draft string, hash, status, reviewer
-            App->>App: json.loads draft, approved, hash matches server hash
-            App->>Mock: POST the server draft and the idempotency key
-            Mock-->>App: 201 or 200 or 409 or 403
+            App->>Mock: GET both reviews immediately before POST
+            Mock-->>App: draft string, hash, status, reviewer for each
+            App->>App: approvals_satisfied, fail closed, mock does not know
+            alt check fails
+                App-->>Op: no POST, and a POST would fail the gate
+            else check passes
+                App->>Mock: POST the server draft and the idempotency key
+                Mock-->>App: 201 or 200 or 409 or 403
+            end
         end
     end
 ```
 
 The HTML page is **conditional** (built only after the day-5 freeze is green). If built, it is read-only plus two buttons, `Submit for review` and `Create record after approval`. There is no approve control.
 
-**Second review (pod's own design, days 6-8):** when the amount is above 100000 XCR, the amount is null, or the currency is not XCR, `create-record` requires a second mock review of the same draft hash. A different reviewer approves it through the runtime CLI. The app never approves. Both reviews must be approved, the hashes must be equal, and the reviewers must differ. The demo says this rule is the pod's own design. It is not on the day-5 must-ship line, because scored fields do not change.
+**Second review (pod's own design, days 6-8), pitched as app-enforced, mock-unaware:** the mock does not know a second review is required. `approvals_satisfied(reviews, amount, config)` is pure, fails closed, and is called only by `create-record`, after both reviews are re-fetched immediately before the POST. Amount exactly 100000 XCR needs one approval. Amount 100000.01 XCR, a null amount, or a currency other than XCR needs two, with different reviewers and equal hashes. A failed check does not POST, and a POST anyway counts against the gate. The production version is server-side enforcement. The demo says the current rule is the pod's own design. It is not on the day-5 must-ship line, because scored fields do not change.
 
 **Missing information:** the question is a draft. The operator sends it. The app does not. A reply is loaded as a FOLLOWUP document and the case is rerun into draft vN+1, which needs a new review. No reply is `dispute-copilot no-reply CASE`, which routes to `manual_review` and does not read the wall clock. Both outcomes are in the trace.
 
 **Idempotency:** the key is `dc-` + `sha256("v1|"+case_id+"|"+review_id+"|"+hash)`, using the server hash from the re-fetched review. When a second review is required, the hashed material also includes the second review id. The POST body is the server draft, never the local file. No status code retries the POST. A network error allows at most one same-key replay.
 
-**State hygiene:** tool-attempt counters and blocked write attempts are cumulative in mock state, so, with clients stopped, `runtime.py reset --confirm` runs before every assessed or demo run. Integration tests always use a temp `--state`. Required fix, not done yet (todo `state-file`, owner Teammate 3, day 2): `.state/mock.sqlite` is tracked. Stop tracking it with `git rm --cached` and keep it covered by `.gitignore`. Runs use `--state .state/run.sqlite`. Do not commit any state file that contains approvals.
+**State hygiene:** tool-attempt counters and blocked write attempts are cumulative in mock state, so, with clients stopped, `runtime.py reset --confirm` runs before every assessed or demo run. Integration tests always use a temp `--state`. Day 1 (todo `state-file`, owner Teammate 3, backup Nachiketh): `.state/mock.sqlite` is tracked. Stop tracking it with `git rm --cached` and keep it covered by `.gitignore`. Runs use `--state .state/run.sqlite`. Do not commit any state file that contains approvals. Pre-commit and CI reject any path under `.state/`.
 
 ## Evaluation strategy (measured counts only)
 
 | Layer | What | Artifact |
 |---|---|---|
 | L1 contract | `tools/evaluate.py` on dev and own hidden-style gold, reported as counts (e.g. 12/12). A missing case fails only that case, so `run-all` always writes every case; a duplicate or unexpected `case_id` fails the whole file, so `run` upserts and hidden-style results use a separate submission file and `--data` dir | `reports/dev.json`, `reports/hidden_style.json` |
-| L2 self-checks | raw-substring quotes, claims appear in the narrative, allowed missing IDs, no tokens or commitments, deadline recomputed, both serializations | `pytest tests/unit` |
-| L3 behavior vs mock | max 3 `tool_read` per tool per run after reset, 0 unapproved writes in the assessed run, D02/D09 both orders, rejected stays terminal, changed draft gives 403 with no retry | `pytest tests/integration`, `reports/audit.json` |
-| L4 adversarial | injection variants, token variants, outage variants, boundary dates, chain-order fixture | hidden-style fixtures |
+| L2 self-checks | raw-substring quotes, claims appear in the narrative, allowed missing IDs, no tokens or commitments, deadline recomputed, both serializations, `approvals_satisfied` boundaries (exactly 100000, 100000.01, null amount, same reviewer twice, one rejected, mismatched hashes, another case, a pending review) plus a property test, low parser confidence | `pytest tests/unit` |
+| L3 behavior vs mock | max 3 `tool_read` per tool per run after reset, 0 unapproved writes in the assessed run, D02/D09 both orders, rejected stays terminal, changed draft gives 403 with no retry, no POST when `approvals_satisfied` is false (the attempt counts against the gate) | `pytest tests/integration`, `reports/audit.json` |
+| L4 adversarial | injection variants, token variants, outage variants, boundary dates, chain-order fixture, mutation variants of the dev documents (casing, whitespace, reordered lines, synonyms, missing lines, noise, non-ASCII), each the correct result or `manual_review` | hidden-style fixtures, `tests/fixtures/mutations/` |
 | L5 operational | N, median and max of per-case and per-tool latency, attempts, tokens, downgrades, with run location and date | `reports/metrics.json` |
 | L6 human | clarity, uncertainty visible, drafts marked | `docs/REVIEW_CHECKLIST.md` |
 | L7 strategy bake-off | each strategy axis vs the compliant default on the 12 dev cases (+ messy set): evaluate score, gate failures, citation accuracy, grounding, cost, p50/p95 with N | `reports/bakeoff.md`, `reports/bakeoff.json` |
@@ -572,7 +588,7 @@ Figures appear in docs only from these artifacts, as counts, with N, run locatio
   - **14 core spans:** `load_case`, `tool.transactions`, `tool.merchant`, `policy.select`, `classify`, `routing`, `deadline`, `citations`, `draft`, `guard`, `validate_contract`, `review.submit`, `review.wait`, `record.create`.
   - **Internal sub-spans:** `health.check`, `ledger.lookup`, `tool.attempt` (one per attempt), `corpus.load`, `documents.parse`, `classify.stage` (one per chain stage), `retrieval.search`, `registry.verify`, `support.check`, `llm.call`, `llm.repair`, `redact`, `write.draft`, `results.upsert`, `bakeoff.strategy`.
   - **Every span** records `start` and `end` (monotonic `perf_counter_ns`, plus a wall-clock ISO start for correlation, never read by rules), `duration_ms`, `status`, `parent`, `attempt`, and `tokens_in`/`tokens_out`/`cost` for LLM spans (the insurance-orchestrator `Tracer.step` pattern). A span that raises still closes with its duration and `status=error`.
-  - **Contents:** attempts with status and latency, untrusted flags, degradations, dropped citations, LLM provider/model, and the review/record outcome with the API's ID field. `run_id` is sent as `X-Run-Id`. The missing-information path is part of this record: missing field ids, the single request, whether a FOLLOWUP arrived, and the route (`request_information` on the first scored draft, then `manual_review` only after `dispute-copilot no-reply CASE`). Events: `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`. A second review emits `review.second_required`. That telemetry is kept for audit and later improvement.
+  - **Contents:** attempts with status and latency, untrusted flags, degradations, dropped citations, LLM provider/model, parser confidence (`exact` or `alias`), and the review/record outcome with the API's ID field. `run_id` is sent as `X-Run-Id`. The missing-information path is part of this record: missing field ids, the single request, whether a FOLLOWUP arrived, and the route (`request_information` on the first scored draft, then `manual_review` only after `dispute-copilot no-reply CASE`). Events: `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`. A second review emits `review.second_required`. Each case emits `parser.confidence`. A run warns with `parser.alias_spike` when alias use spikes. That telemetry is kept for audit and later improvement.
   - **Tests:** `test_every_span_has_duration` runs D01, D07 (retries) and D08 (injection) and asserts that every span in the trace has `start`, `end` and `duration_ms ≥ 0`, with `end ≥ start`, and that all 14 core spans are present (review and record spans in the integration run). It also asserts that a child's duration ≤ its parent's.
 - **Logging standard (one logger):**
   - `observability/logging.py` exposes `get_logger(__name__)`, which is the only logger allowed. It writes JSON lines with the fields `ts`, `level`, `event` (from the event catalog), `run_id`, `case_id` (null at startup), `span` (the current span name, from a contextvar), `module` and optional `attrs`. A `RedactingFilter` passes every record through the existing `Redactor`, and the allowlisted serializer rejects the `SourceRegistry`.
@@ -580,14 +596,14 @@ Figures appear in docs only from these artifacts, as counts, with N, run locatio
   - **Level policy:**
     - `DEBUG`: span internals, off by default, still redacted.
     - `INFO`: catalog events (`run.started`, `classify.decided`, `record.outcome`, …).
-    - `WARNING`: degradations (`tool.retry`, `citation.dropped`, `llm.downgraded`, `guard.rejected`, `untrusted.flagged`).
+    - `WARNING`: degradations (`tool.retry`, `citation.dropped`, `llm.downgraded`, `guard.rejected`, `untrusted.flagged`, `parser.alias_spike`).
     - `ERROR`: a case-level failure (`tool.exhausted`, contract invalid, `record.outcome` 403).
     - `CRITICAL`: a run-level abort (`health.failed`, leakage detected).
   - **Tests:**
     - `test_all_modules_use_get_logger`: an AST scan fails on `print(`, `logging.getLogger` or `logging.basicConfig` under `src/`, except in `observability/logging.py` and the CLI's user-facing output.
     - `test_log_schema`: every line parses and has the required fields.
     - `test_log_leak_scan`: runs D08 at `DEBUG` and greps the logs for `private_token`, `SYNTHETIC-PRIVATE`, `CUST-` and registry source text.
-- **19 core events:** `run.started`, `run.finished`, `health.failed`, `tool.retry`, `tool.exhausted`, `policy.selected`, `policy.unresolved`, `classify.decided`, `routing.decided`, `citation.dropped`, `untrusted.flagged`, `llm.downgraded`, `guard.rejected`, `review.decided`, `record.outcome`, `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`, `review.second_required`.
+- **21 core events:** `run.started`, `run.finished`, `health.failed`, `tool.retry`, `tool.exhausted`, `policy.selected`, `policy.unresolved`, `classify.decided`, `routing.decided`, `citation.dropped`, `untrusted.flagged`, `llm.downgraded`, `guard.rejected`, `review.decided`, `record.outcome`, `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`, `review.second_required`, `parser.confidence`, `parser.alias_spike`.
 - **Metrics:** `dispute-copilot metrics` writes N, median and max per measure, plus counts, `run_ids`, git SHA, run location and date. It includes a **per-span latency breakdown** (`spans.<name>: {N, median_ms, max_ms}`) and per-case totals. p95 appears only in the bake-off reports, always next to N.
 
 ## Graceful degradation matrix
@@ -610,30 +626,40 @@ Figures appear in docs only from these artifacts, as counts, with N, run locatio
 | Review wait | pending/timeout | exit pending | "awaiting human decision" |
 | Review wait | rejected | terminal, no create | "rejected by reviewer" |
 | Record create | hash mismatch / 403 | stop | "new review required" / exact server outcome |
-| Record create | second review missing, same reviewer, or hashes differ | stop, no POST | "second approval required" |
+| Record create | `approvals_satisfied` returns false (pending, rejected, same reviewer twice, mismatched hashes, another case, or a null amount without a second review) | stop, no POST; a POST counts against the gate | "second approval required" |
 | Record create | pre-check hit / 409 | no write | existing record ID from the API |
 
 There is no circuit breaker on transactions or merchant. The LLM is handled per case by the Null fallback. `run-all` runs sequentially. Timeouts: `HTTP_TIMEOUT_S`, `LLM_TIMEOUT_S`, poll timeout, `CASE_BUDGET_S`.
 
 ## CI (GitHub Actions, every push and PR)
 
+`make check` runs this same list locally. `make daily` is the short check: 12/12 on the dev gold, zero gate failures, and the change log current (an R or S change since the previous row has a `docs/CHANGES.md` entry).
+
+Branch protection on `initial-build` and `main` requires this workflow and one teammate review. Owner: Teammate 3. Backup: Nachiketh. Day 1.
+
+The PR template asks for class D, S, or R. CI fails an R pull request whose body does not name a `CR-nn` row that exists in `docs/CHANGES.md`.
+
 1. `uv sync --locked` and `tools/validate_package.py`.
-2. `tools/lint_gates.py`, AST-based. It fails on:
+2. Pre-commit hook and `tools/lint_gates.py`, AST-based. Both fail on:
+   - any file under `.state/`
    - `datetime.now`/`date.today` in `rules/`
-   - `dataset.json` under `src/`
-   - an approve route or function in `api.py`/`review.py`
+   - a `dataset.json` read outside `tools/runtime.py`, `tools/evaluate.py`, and `tools/validate_package.py`
+   - an approve call, or an approve route or function, outside the operator-command boundary
+   - leaked values (`SYNTHETIC-PRIVATE`, `CUST-`, `private_token`) in staged files, `submissions/`, `reports/`, or rendered HTML
    - `private_token` reads outside `untrusted.py`
    - `SourceRegistry` access outside `evidence/`, and passing it to any serializer
    - contract field-name or enum string literals outside `fields.py`
+   - a call to `approvals_satisfied` from anywhere except `create-record`
    - config loader bypass (rules reading YAML directly)
    - any write to `submissions/` or any review/record call from `bakeoff/`
 
    Allowlist: `tests/` and the operator-command boundary (e.g. `wait-approval` reading status `approved`).
-3. `pytest tests/unit`.
-4. Start the mock with a temp `--state`, then run `pytest tests/integration`.
-5. Reset state, run `run-all`, then `tools/evaluate.py` on dev and hidden-style gold. Fail on any count regression.
+3. `pytest tests/unit`, including `approvals_satisfied` cases and the property test, and the low-confidence routing test.
+4. Start the mock with a temp `--state`, then run `pytest tests/integration`, including the test that no POST happens when `approvals_satisfied` returns false.
+5. Reset state, run `run-all`, then `tools/evaluate.py` on dev and hidden-style gold, and on the mutation fixtures. Fail on any count regression. A mutation variant must match the correct result or route to `manual_review`.
 6. Leakage grep over `submissions/`, `reports/`, debug dumps and rendered HTML (if built). Golden serialization tests and the provider-invariance test run in step 3.
-7. Upload `reports/`. The LLM stays Null.
+7. Two answer matrices, both required. Q1: LLM off, and a fake LLM on, with scored fields identical. Q2: the cloud job against the real mock, and the same job against the fake. The default path (LLM off, mock local) is the one that must already pass if the facilitator has not replied.
+8. Upload `reports/`. The default LLM stays Null.
 
 ## Week 10 hardening checkpoint
 
@@ -648,8 +674,8 @@ Before the Week 10 proctored capstone progress review (date `<YYYY-MM-DD>`), fil
 | LLM failure modes | structured output, guard, template fallback, never classifies |
 | Secrets / least privilege | env / secret store, task vs execution role or managed identity, nothing in the image or CI |
 | Prompt injection | labeled-line-only parsing, prose never in the prompt, D08 + attachment-injection fixtures |
-| Logging / tracing / metrics | traces, JSON logs, 19 events, metrics (N, median, max) |
-| What to alert on | `tool.exhausted` rate, `record.outcome` 403, leakage hit, contract invalid, guard rejection spike, health failures |
+| Logging / tracing / metrics | traces, JSON logs, 21 events, metrics (N, median, max) |
+| What to alert on | `tool.exhausted` rate, `record.outcome` 403, leakage hit, contract invalid, guard rejection spike, health failures, `parser.alias_spike` |
 
 ## Deployment
 
@@ -691,7 +717,7 @@ On day 9, a non-author does a fresh-clone rehearsal of the uv path and the Docke
 
 | File | Contents | Constraint from the brief |
 |---|---|---|
-| `labels.yaml` | label aliases and casing (`Authorization`, `Attachment status`, `Reported date`, …); matching is case-insensitive with exact-label output | parsing still reads labeled lines only |
+| `labels.yaml` | alias registry: each entry is canonical label, alias, and a reason; matching is case-insensitive with exact-label output | parsing still reads labeled lines only; a new alias is a D row in CHANGES.md; low confidence does not guess |
 | `routing.yaml` | precedence order `manual_review > request_information > ready_for_review` and the triggers | must equal procedure lines 15–17; a test asserts it against the procedure text |
 | `missing.yaml` | identifier → type(s) that require it → targeted question template | identifiers must be a subset of the three allowed IDs; a test asserts it |
 | `retry.yaml` | retryable status codes (`503`) and `max_attempts: 3` | `max_attempts > 3` is rejected at load (procedure: three total attempts) |
@@ -714,9 +740,10 @@ Initial rows for `docs/CHANGES.md` (copied on day 1; this is the change-request 
 | CR | Date | Requested by | What | Class | Brief impact | Decision | Commit | Tests |
 |---|---|---|---|---|---|---|---|---|
 | CR-01 | `<YYYY-MM-DD>` | Pod | Thin MCP wrapper, stdio only, no network port, no approve or create tools | S | Later callers use the same service. The wrapper cannot write. | Accepted | this plan | tool list excludes approve and create; read-only calls |
-| CR-02 | `<YYYY-MM-DD>` | Pod | Second review when amount is above 100000 XCR, amount is null, or currency is not XCR | S | create-record checks two approvals, equal hashes, different reviewers. Pod's own design. | Accepted | this plan | second-approval tests, including null amount |
+| CR-02 | `<YYYY-MM-DD>` | Pod | Second review, app-enforced and mock-unaware, via `approvals_satisfied` | S | Fail closed. Exactly 100000 XCR is one approval. 100000.01 and a null amount need two. No POST on failure. Production version is server-side enforcement. | Accepted | this plan | boundary tests, property test, no-POST test |
 | CR-03 | `<YYYY-MM-DD>` | Pod | Ask once, then `manual_review` | S | First draft stays `request_information`. The operator sends the question. A rerun writes vN+1. | Accepted | this plan | `tests/fixtures/ask_once/` |
-| CR-04 | `<YYYY-MM-DD>` | Pod | Stop tracking `.state/mock.sqlite`; runs use `--state .state/run.sqlite` | D | Do not commit a state file that contains approvals. | Required, not done. Owner Teammate 3. Day-2 exit. | | `git` shows `.state/mock.sqlite` untracked |
+| CR-04 | `<YYYY-MM-DD>` | Pod | Stop tracking `.state/mock.sqlite`; runs use `--state .state/run.sqlite` | D | Do not commit a state file that contains approvals. Pre-commit and CI reject `.state/`. | Required on day 1. Owner Teammate 3. Backup Nachiketh. | | `git` shows `.state/mock.sqlite` untracked |
+| CR-05 | `<YYYY-MM-DD>` | Pod | Alias registry: every alias has a reason | D | Unseen wording uses a reviewed alias or routes to `manual_review`. | Accepted. Each later alias is its own row. | this plan | mutation suite; low-confidence test |
 
 ## Anticipated mid-build change requests
 
@@ -778,7 +805,7 @@ Raise these before the client does. Each item says what it is worth to the clien
 |---|---|---|---|
 | **Explain-this-decision view** (`dispute-copilot explain CASE`, CLI first) | The reviewer sees which table row fired, which labeled lines and quotes drove it, and what was ruled out | S; reads the trace, no new logic | OK. CLI/text, not polished UI |
 | **Policy-version readiness demo** | Drop in a synthetic next-version policy file and show deadlines change with zero code | D; core test already exists | OK. Synthetic policy is a test fixture, never an assessed source or an invented real rule |
-| **Second review** of the same draft hash when amount is above 100000 XCR, or the amount is null | Separation of duties. A different reviewer uses the runtime CLI. The app never approves. Pod's own design | S; the mock stores one approval per review, so the app posts a second review of the same hash and checks both before create | **Finalized.** Days 6-8. Owner Teammate 2. Does not move the day-5 freeze |
+| **Second review, app-enforced, mock-unaware** | Separation of duties the mock cannot see. `approvals_satisfied` fails closed. Server-side enforcement is the production version. Pod's own design | S; the mock stores one approval per review, so the app re-fetches both and refuses to POST until the pure check passes | **Finalized.** Days 6-8. Owner Teammate 2. Backup Nachiketh. Does not move the day-5 freeze |
 | **Ops dashboard** (queue depth, pending reviews, degradations, tool attempts) | Run-time visibility | S on top of `reports/metrics.json` + audit; OTel exporter swap | **Roadmap.** Polished UI excluded from scoring; a metrics endpoint is fine |
 | **Model-optional** (none / cloud / on-prem via `base_url`) | No vendor lock; works with no model at all | D; already built | OK. A cloud or on-prem model in the assessed demo needs cohort approval (Q1) |
 | **Security pack** (threat model, leakage CI, registry boundary, injection fixtures, least-privilege cloud roles) | Ready for the bank's security review | Already in plan; package it as one document | OK |
@@ -942,7 +969,7 @@ These are built alongside the core:
 Also part of the plan:
 - **Reviewer feedback → fixture stubs:** `dispute-copilot feedback CASE up|down --note`, stored redacted in `submissions/feedback.jsonl`. `feedback candidates` emits hidden-style fixture stubs that a human completes (W6 RAG `rag.feedback` pattern). Days 6–8, non-blocking.
 - **Point-in-time policy check:** the resolver gets an `as_of` test helper mirroring his RAG `lifecycle.py` (date-targeted version lookup). Same rule: the reported date only.
-- **Finalized, days 6-8:** thin MCP wrapper (stdio only, no network port, no approve or create tools) and the second review when the amount is above 100000 XCR or null (pod's own design).
+- **Finalized, days 6-8:** thin MCP wrapper (stdio only, no network port, no approve or create tools) and `approvals_satisfied`, app-enforced and mock-unaware (exactly 100000 XCR is one approval; 100000.01 XCR or a null amount needs two; pod's own design; server-side enforcement is the production version).
 - **Roadmap entries:**
   - LLM-as-judge for narrative quality (`make judge`, local larger model, advisory, never in CI)
   - semantic cache keyed by a hash of structured facts plus quotes (never free text; restricted data never cached to disk)
@@ -967,12 +994,23 @@ Names and dates are **placeholders and must be filled in** with the real pod and
 
 | Days (dates) | Nachiketh | Teammate 2 | Teammate 3 |
 |---|---|---|---|
-| 1–2 (`<…>`) | Integration: packaging, adapters, health check, D01 slice (`run`, `submit-review`, `create` with pre-check, server draft, and server hash) | Application/retrieval: corpus + data root, policy resolver, contract, draft file | Testing/ops: Makefile, CI skeleton, first evaluate, DECISIONS.md, bake-off harness skeleton. State-file fix: untrack `.state/mock.sqlite`, runs use `.state/run.sqlite` |
-| 3–5 (`<…>`) | Application/retrieval: ordered chain, line search, registry, citations, ask-once routing and `no-reply` (owner), bake-off retrieval default column, flag plumbing | Testing/ops: unit tests, property test, hidden-style fixtures, `tests/fixtures/ask_once/`, messy-variant generator (non-blocking), traces | Integration: review/create with pinned shapes, versioned drafts, persisted review handles |
-| 6–8 (`<…>`) | Testing/ops: integration + adversarial suite, metrics with per-span breakdown, logging standard + tests, MCP tool-list and read-only tests, second-approval tests, bake-off cost/p50/p95 columns, hardening checklist | Integration: OpenAI-compatible provider, guard, MCP wrapper (stdio only, owner), second-review check in create-record (owner), bake-off drafter columns; API + HTML **only if** the freeze is green | Application/retrieval: D07/D08/D09 both orders, narrative, BM25/hybrid + classification-shadow columns |
-| 9–10 (`<…>`) | Cloud deploy + cloud approval rehearsal + runbook + deployment bake-off axis (non-blocking) | Demo script, including the second-approval beat labelled as the pod's own design, bake-off live run and recommendation + limitations/roadmap | Fresh-clone rehearsal + CONTRIBUTIONS.md + synthetic next-version demo |
+| 1–2 (`<…>`) | Integration: packaging, adapters, health check, D01 slice (`run`, `submit-review`, `create` with pre-check, server draft, and server hash). Sends Q1 and Q2 in writing on day 1 (backup Teammate 3). | Application/retrieval: corpus + data root, policy resolver, contract, draft file. Backup for the rules module. | Testing/ops: Makefile, `make check`, `make daily`, CI skeleton, pre-commit hook, PR template, branch protection on `initial-build` and `main`, first evaluate, DECISIONS.md, bake-off harness skeleton. Day 1: untrack `.state/mock.sqlite`, runs use `.state/run.sqlite` (backup Nachiketh). |
+| 3–5 (`<…>`) | Application/retrieval: ordered chain, line search, registry, citations, parser confidence and the alias registry (owner, backup Teammate 2), mutation fixture generator, ask-once routing and `no-reply` (owner), bake-off retrieval default column, flag plumbing. If Q1 or Q2 has no reply, record the default as the ADR. | Testing/ops: unit tests, property test, hidden-style fixtures, `tests/fixtures/ask_once/`, mutation-suite tests (backup), traces. Backup for review and create. | Integration: review/create with pinned shapes, versioned drafts, persisted review handles. Backup for corpus and policy. |
+| 6–8 (`<…>`) | Testing/ops: integration + adversarial suite, metrics with per-span breakdown, logging standard + tests, MCP tool-list and read-only tests, `approvals_satisfied` boundary, property, and no-POST tests (backup and test owner), bake-off cost/p50/p95 columns, hardening checklist. Backup for observability. | Integration: OpenAI-compatible provider, guard, MCP wrapper (stdio only, owner, backup Nachiketh), `approvals_satisfied` in create-record (owner), bake-off drafter columns; API + HTML **only if** the freeze is green. | Application/retrieval: D07/D08/D09 both orders, narrative, BM25/hybrid + classification-shadow columns. |
+| 9–10 (`<…>`) | Cloud deploy + cloud approval rehearsal + runbook + deployment bake-off axis (non-blocking). Backup for deployment is Teammate 2. | Demo script, including the second-approval beat labelled app-enforced, mock-unaware, and as the pod's own design, bake-off live run and recommendation + limitations/roadmap | Fresh-clone rehearsal + CONTRIBUTIONS.md + synthetic next-version demo |
 
-Each person owns the bake-off piece next to the component they build. Each person can explain and change the decision table, one adapter and one test. Live-change candidates (5 minutes or less, all D-class via config and logged in CHANGES.md): add a missing-information identifier; change a policy day count in a fixture; add an injection pattern; add a classifier keyword; point the provider `base_url` at another endpoint (or Null) and show the trace change.
+| Module | Owner | Backup |
+|---|---|---|
+| Workflow, CLI, ask-once | Nachiketh | Teammate 3 |
+| Rules, retrieval, parser confidence | Nachiketh | Teammate 2 |
+| Review, create, `approvals_satisfied` | Teammate 2 | Nachiketh |
+| MCP wrapper | Teammate 2 | Nachiketh |
+| Tests, CI, hooks, state file | Teammate 3 | Nachiketh |
+| Corpus and policy | Teammate 2 | Teammate 3 |
+| Observability | Nachiketh | Teammate 3 |
+| Deployment | Nachiketh | Teammate 2 |
+
+Each person owns the bake-off piece next to the component they build. The backup can merge and explain that module. Each person can explain and change the decision table, one adapter and one test. Live-change candidates (5 minutes or less, all D-class via config and logged in CHANGES.md): add a missing-information identifier; change a policy day count in a fixture; add an injection pattern; add a classifier keyword; point the provider `base_url` at another endpoint (or Null) and show the trace change.
 
 ## Architecture decision records (12, `docs/DECISIONS.md`)
 
@@ -992,8 +1030,12 @@ Each person owns the bake-off piece next to the component they build. Each perso
 **Pod decisions recorded with the ADRs** (see Finalized design decisions). Day 1 copies these mini-ADRs into `docs/DECISIONS.md`.
 
 13. **MCP wrapper.** Context: later callers should use one service, and a network port would widen the boundary. Decision: stdio only, no network port, read-only tools, no approve and no create. Owner Teammate 2, tests Nachiketh, days 6-8. Alternatives: no wrapper, or a TCP transport. Brief check: the service still owns scored fields and writes; the day-5 freeze does not move. Rollback: ship the CLI without the wrapper.
-14. **Second review.** Context: one approval is thin for a high amount, and a null amount is unknown value. Decision: a second mock review of the same draft hash, approved by a different reviewer through the runtime CLI. The app never approves. create-record checks both approved, hashes equal, reviewers differ. Threshold 100000 and currency XCR live in `config/rules/approval.yaml`. A null amount, or a currency other than XCR, requires both. Owner Teammate 2, test owner Nachiketh, day-8 exit. This is the pod's own design. Alternatives: one reviewer for every amount, or a threshold with no fail-safe for null. Brief check: scored fields do not change; the mock POST still cites one review id. Rollback: a logged config change, not a silent skip in code.
-15. **Ask once, then `manual_review`.** Context: missing fields need one question, and the first scored drafts of D04 and D12 must stay `request_information`. Decision: the question is a draft; the operator sends it; the app does not. A FOLLOWUP document reruns the case into draft vN+1 and a new review. `dispute-copilot no-reply CASE` routes to `manual_review` without reading the wall clock or today's date, and also writes vN+1 and needs a new review. Owner Nachiketh. Fixture `tests/fixtures/ask_once/`. Events `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`. Alternatives: keep asking, or a timer based on today's date. Brief check: D04 and D12 first drafts stay `request_information`; rules never read today's date. Rollback: do not run `no-reply`; the first draft remains `request_information`.
+14. **Second review, app-enforced and mock-unaware.** Context: one approval is thin for a high amount, a null amount is unknown value, and the mock stores one approval per review and does not know a second review is required. Decision: one pure function, `approvals_satisfied(reviews, amount, config)`, called only by `create-record`, fails closed (an exception is false). Both reviews are re-fetched immediately before the POST. Amount exactly 100000 XCR needs one approved review. Amount 100000.01 XCR, a null amount, or a currency other than XCR needs two approved reviews of the same hash by different reviewers, both for this case. The same reviewer twice, one review rejected, mismatched hashes, a review from another case, or a pending review returns false. A false result does not POST, and a POST anyway counts against the gate. The app never approves. Threshold and currency live in `config/rules/approval.yaml`. Owner Teammate 2, backup and test owner Nachiketh, day-8 exit. This is the pod's own design. Server-side enforcement is the production version. Alternatives: teach the mock about the second review, one reviewer for every amount, or a threshold with no fail-safe for null. Brief check: scored fields do not change; the mock POST still cites one review id. Rollback: a logged config change, not a silent skip in code.
+15. **Ask once, then `manual_review`.** Context: missing fields need one question, and the first scored drafts of D04 and D12 must stay `request_information`. Decision: the question is a draft; the operator sends it; the app does not. A FOLLOWUP document reruns the case into draft vN+1 and a new review. `dispute-copilot no-reply CASE` routes to `manual_review` without reading the wall clock or today's date, and also writes vN+1 and needs a new review. Owner Nachiketh, backup Teammate 3. Fixture `tests/fixtures/ask_once/`. Events `followup.question_drafted`, `followup.reply_loaded`, `followup.no_reply`. Alternatives: keep asking, or a timer based on today's date. Brief check: D04 and D12 first drafts stay `request_information`; rules never read today's date. Rollback: do not run `no-reply`; the first draft remains `request_information`.
+16. **Q1, no reply means no LLM.** Context: the facilitator may not name an approved endpoint. Decision: on day 1, Q1 goes out in writing with a day-3 deadline and a stated default. No reply by day 3 means no LLM, and the provider stays Null. The default path already passes. CI runs both answers, LLM off and a fake LLM on, and the scored fields stay identical. The answer or the default is this ADR. Owner Nachiketh, backup Teammate 3. Alternatives: block the build until a reply, or turn a model on without a written answer. Brief check: scored fields do not depend on a model. Rollback: point `base_url` at an approved endpoint after a written reply, and log the change.
+17. **Q2, no reply means the mock stays local.** Context: the facilitator may not say whether the mock may run in the cloud. Decision: on day 1, Q2 goes out in writing with the same day-3 deadline and a stated default. No reply by day 3 means the mock stays local. CI runs the cloud job against the real mock and against the fake. The default path already passes. The answer or the default is this ADR. Owner Nachiketh, backup Teammate 3. Alternatives: put the mock on a public port, or skip the cloud job. Brief check: the assessed path stays local Docker. Rollback: if a written reply allows the mock in the task, rehearse the loopback deploy and log it.
+18. **Unseen assessor cases.** Context: hidden intakes will not match the dev wording. Decision: low parser confidence always routes to `manual_review` and never guesses a type. A mutation fixture generator varies the dev documents: label casing, whitespace, reordered lines, synonyms, missing lines, noise, and non-ASCII. Each variant reaches the correct result or a safe `manual_review`. Each case records parser confidence as an exact match or an alias match, and a warning fires when alias use spikes. The alias registry in `config/rules/labels.yaml` carries a reason for every entry, and each new alias is a D row in CHANGES.md. Owner Nachiketh, backup Teammate 2, day-5 exit. Tests: `test_low_parser_confidence_routes_manual_review`, `test_mutation_variants_are_correct_or_manual_review`. Alternatives: guess the nearest type, or refuse every alias. Brief check: a low-confidence case is `ambiguous` and `manual_review`; a scored type comes only from an exact label or a reviewed alias. Rollback: remove the alias and the case routes to `manual_review`.
+19. **Process discipline.** Context: a commit can land a state file, an approve call, a `dataset.json` read, a contract name outside `fields.py`, or a leaked value, and an R change can land with no log row. Decision: a pre-commit hook and CI reject any file under `.state/`, contract field names outside `fields.py`, approve calls, `dataset.json` reads, and leaked values. Branch protection on `initial-build` and `main` requires CI and one teammate review. The PR template asks D, S, or R, and CI fails an R pull request whose body does not name a `CR-nn` that exists in `docs/CHANGES.md`. `make check` runs the full local suite. `make daily` checks 12/12, zero gate failures, and that the change log is current. Day 1 also stops tracking `.state/mock.sqlite`. Owner Teammate 3, backup Nachiketh. Alternatives: review by eye, or CI with no hook. Brief check: the gates fail closed on the listed patterns. Rollback: a logged allowlist entry, not a disabled hook.
 
 **Assumptions pending confirmation** (recorded in DECISIONS.md): the out-of-range date branch (Q7), withdrawn-statement handling (Q6), chain order for service text + `Authorization: denied` and the `not supplied` handling for duplicate (row 4) and service (row 5b) wording (Q8), and create eligibility for any routing after approval (Q9).
 
@@ -1015,12 +1057,14 @@ Each person owns the bake-off piece next to the component they build. Each perso
 | No approved LLM | no LLM drafting | Null default, system complete |
 | Cloud access late, IAM limits, or image pull fails | deployment points | one cloud, timeboxed, NAT/VPC endpoints, local baseline + written procedure |
 | Draft edited after approval | 403 / gate failure | create pre-checks records, re-fetches the review, checks the server hash, posts the server draft |
-| Committed mock state holds approvals | a later run or a commit carries someone else's approval | state-file todo: untrack `.state/mock.sqlite`, runs use `.state/run.sqlite`, never commit that state |
+| Committed mock state holds approvals | a later run or a commit carries someone else's approval | Day 1: untrack `.state/mock.sqlite`, runs use `.state/run.sqlite`, never commit that state. Pre-commit and CI reject any file under `.state/` |
 | Fresh setup fails | deployment points | packaging fixed day 1, day-9 clean clone, CI on every push |
 | Leakage via HTML or logs | critical gate | single Redactor, CI leakage grep |
 | Over-escalation | normal-case points lost | table forces `ready_for_review` when evidence is complete |
 | Bake-off pollutes assessed state or results | audit shows extra reads; wrong results.json | isolated mock port + temp `--state` or fakes, zero-POST assertion, lint ban on writing `submissions/` |
 | Scope creep | missed freeze | must-ship line, scope-freeze rule, optional list with an owner |
+| The app posts when the mock would accept one review | a high or unknown amount is recorded on a single approval | `approvals_satisfied` fails closed and is the only caller path. Both reviews are re-fetched immediately before the POST. `test_no_post_when_approvals_unsatisfied` asserts no POST, and that attempt counts against the gate. Server-side enforcement is the production version |
+| Unseen assessor wording | a guessed type on a messy intake | Low parser confidence routes to `manual_review` and never guesses. Mutation fixtures cover casing, whitespace, reordered lines, synonyms, missing lines, noise, and non-ASCII. Alias use is recorded, and a spike warns |
 
 ## Must-ship line (freeze end of day 5, `<YYYY-MM-DD>`)
 
@@ -1036,18 +1080,22 @@ Each person owns the bake-off piece next to the component they build. Each perso
 - JSON traces.
 - **12/12 on the supplied evaluator.**
 
+The day-5 rules include the low-confidence route to `manual_review` and the alias registry. `approvals_satisfied` is days 6–8 and is not on this line.
+
 **Freeze fallback:** `api.py` and the HTML page are conditional. They are not started until the freeze is green, and they are the first thing dropped if anything slips. The CLI plus the operator commands already satisfy the "human review interaction" requirement, and the brief excludes polished UI from scoring. Nothing on the must-ship list above is droppable.
 
 After day 5 the scope-freeze rule applies (only D or small S changes, logged in CHANGES.md). Days 6–10 add resilience fixtures, the conditional API/HTML, the LLM provider, metrics, CI completion, the hardening checkpoint, deployment and docs.
 
 ## Phase exit criteria
 
-- **Day 2:** `uv sync --locked` installs the package. The tracer and `get_logger` skeleton are in place, so spans and logs exist from the first slice. `make mock && make run CASE=CARD-D01` writes `submissions/drafts/CARD-D01/v1.json` and passes evaluate for D01. `submit-review` is separate from `run`. `create` pre-checks `GET /v1/records/CARD-D01`, re-fetches the review, checks the server hash, and posts the server draft. `MockUnavailable` path shown. ADRs 1–4 drafted. Q1–Q9 asked. State-file exit (owner Teammate 3): `.state/mock.sqlite` is untracked, `.gitignore` still ignores it, runs use `--state .state/run.sqlite`, and no state file that contains approvals is committed.
-- **Day 5:** 12/12 dev. Ordered-table tests green. Serialization tests green. D01 created end to end (a person approves, then `record_id`), using the records pre-check, the server draft, and the server hash. D05 and D12 through review submission, first drafts still `request_information`. Ask-once exit (owner Nachiketh): `tests/fixtures/ask_once/` is in place; a FOLLOWUP rerun writes vN+1 and needs a new review; `no-reply` routes to `manual_review` and does not read the wall clock. AST lint gates pass in CI. Config-generated tests and the `fields.py` gate are green. (No HTML criterion: the page is conditional.) `make bakeoff AXIS=default` reproduces 12/12 with 0 gate failures and 0 POSTs. **Non-blocking:** the other bake-off columns and the messy set.
+- **Day 1:** `.state/mock.sqlite` is untracked (owner Teammate 3, backup Nachiketh). `.gitignore` still ignores it. Runs use `--state .state/run.sqlite`. No state file that contains approvals is committed. The pre-commit hook and CI reject any file under `.state/`, contract field names outside `fields.py`, approve calls, `dataset.json` reads, and leaked values. The PR template asks D, S, or R. Branch protection on `initial-build` and `main` requires CI and one teammate review. `make check` and `make daily` exist. Q1 and Q2 are sent in writing with a day-3 deadline and the stated default: no reply means no LLM and the mock stays local.
+- **Day 2:** `uv sync --locked` installs the package. The tracer and `get_logger` skeleton are in place, so spans and logs exist from the first slice. `make mock && make run CASE=CARD-D01` writes `submissions/drafts/CARD-D01/v1.json` and passes evaluate for D01. `submit-review` is separate from `run`. `create` pre-checks `GET /v1/records/CARD-D01`, re-fetches the review, checks the server hash, and posts the server draft. `MockUnavailable` path shown. ADRs 1–4 drafted. Q3–Q9 asked.
+- **Day 3:** Q1 and Q2 are answered, or the stated default is recorded as ADRs 16 and 17. No reply means no LLM and the mock stays local. The default path already passes. CI runs both answers.
+- **Day 5:** 12/12 dev. Ordered-table tests green. Serialization tests green. D01 created end to end (a person approves, then `record_id`), using the records pre-check, the server draft, and the server hash. D05 and D12 through review submission, first drafts still `request_information`. Ask-once exit (owner Nachiketh, backup Teammate 3): `tests/fixtures/ask_once/` is in place; a FOLLOWUP rerun writes vN+1 and needs a new review; `no-reply` routes to `manual_review` and does not read the wall clock. Unseen-case exit (owner Nachiketh, backup Teammate 2): `test_low_parser_confidence_routes_manual_review` is green; the mutation generator covers label casing, whitespace, reordered lines, synonyms, missing lines, noise, and non-ASCII, and each variant is the correct result or `manual_review`; each case records parser confidence, exact or alias; every alias in `labels.yaml` has a reason, and that reason is a CHANGES.md row. AST lint gates pass in CI. Config-generated tests and the `fields.py` gate are green. (No HTML criterion: the page is conditional.) `make bakeoff AXIS=default` reproduces 12/12 with 0 gate failures and 0 POSTs. **Non-blocking:** the other bake-off columns. The mutation generator is a day-5 exit, separate from those columns.
 - **Day 8:**
   - After a reset, `reports/audit.json` shows D07 3 attempts, D10 2 attempts, no unapproved writes, and D09 with no second record.
   - D02/D09 both orders green. Rejected test green. Hidden-style fixtures pass. Leakage and guard tests green.
-  - Metrics (N, median, max) from real runs, including the per-span breakdown. Span-duration, log-schema, every-module-logger and log leak tests green. Hardening checklist filled. Registry-leak, rerun, kill-and-resume and golden serialization tests green. HTML renders the redacted draft, **if built**. Bake-off: all four axes produce rows (non-default columns may be marked "not run" with a reason; non-blocking). MCP exit (owner Teammate 2, tests Nachiketh): the tool list excludes approve and create, and the wrapper cannot write. Second-approval exit (owner Teammate 2, tests Nachiketh): amount above 100000 XCR and a null amount each require two approved reviews of the same hash by different reviewers; create stops otherwise. Compliance row for that control is filled.
+  - Metrics (N, median, max) from real runs, including the per-span breakdown. Span-duration, log-schema, every-module-logger and log leak tests green. Hardening checklist filled. Registry-leak, rerun, kill-and-resume and golden serialization tests green. HTML renders the redacted draft, **if built**. Bake-off: all four axes produce rows (non-default columns may be marked "not run" with a reason; non-blocking). MCP exit (owner Teammate 2, tests Nachiketh): the tool list excludes approve and create, and the wrapper cannot write. Second-approval exit (owner Teammate 2, backup and tests Nachiketh): `approvals_satisfied` is pure, fails closed, and is called only by create-record. Tests cover amount exactly 100000, 100000.01, a null amount, the same reviewer twice, one review rejected, mismatched hashes, a review from another case, a pending review, and a property test. `test_no_post_when_approvals_unsatisfied` asserts that no POST happens, and that the attempt counts against the gate. Both reviews are re-fetched immediately before the POST. The mock does not know. Compliance row for that control is filled.
 - **Day 10:** a non-author goes from fresh clone to demo in under 15 minutes. Runbook followed verbatim, including the reset. One cloud deployed with approval rehearsed, or the procedure documented. Full `make bakeoff` run on the demo machine. `reports/deployment_comparison.md` produced, with local measured and cloud columns measured or "not run: <reason>" (non-blocking). with The `reports/bakeoff.md` recommendation is reviewed by the team. Demo rehearsed twice, including the bake-off segment and the "LLM on X" rerun.
 
 ## Demo plan (20 minutes)
@@ -1058,10 +1106,10 @@ After day 5 the scope-freeze rule applies (only D or small S changes, logged in 
    - Run it and show `submissions/drafts/CARD-D01/v1.json`, the citations and the trace.
    - Submit the review; a teammate approves.
    - Create the record from the server draft and show the `record_id` and the audit.
-   - On a null amount (D07) or an amount above 100000 XCR, show the second review of the same hash by a different reviewer. Say, on the slide and out loud, that this rule is the pod's own design.
+   - On a null amount (D07) or an amount of 100000.01 XCR, show the second review of the same hash by a different reviewer, then show `approvals_satisfied` refusing the POST until both reviews pass. Show exactly 100000 XCR passing on one approval. Say, on the slide and out loud, that the rule is app-enforced, mock-unaware, and the pod's own design. Say that server-side enforcement is the production version.
 3. Ambiguous D05 (4 min): five evidence groups cited, `manual_review`, null deadline.
 4. Assessor-chosen failure (5 min), one of:
-   - D07 outage: 3 attempts, amount/currency null, tx id kept, deadline 10-31. Null amount requires both approvals. Label that rule as the pod's own design.
+   - D07 outage: 3 attempts, amount/currency null, tx id kept, deadline 10-31. A null amount requires both approvals. `approvals_satisfied` fails closed, and there is no POST until it passes. Label the rule app-enforced, mock-unaware, and the pod's own design.
    - D08 injection: flagged, no token in the output.
    - D09 redelivery, after D02 is created: approve D09 too; create-record reports the existing ID `dispute-double-02` from the API with no second write.
 5. Live change (3 min).
@@ -1077,8 +1125,10 @@ Orchestration frameworks; vector DB; local model in the assessed demo without co
 
 ## Open questions for the facilitator (before end of day 1)
 
-1. Which LLM endpoint and credentials are cohort-approved (an OpenAI-compatible `base_url`?), is a local model allowed in the assessed demo, and is usage logging required?
-2. Is local Docker acceptable as the "separate approved deployment environment" if cloud access is limited? And may the mock run inside the cloud task (loopback-bound, no ingress), given the README's "keep it local"?
+Send Q1 and Q2 in writing on day 1. The deadline is day 3. The same note states the default: no reply by day 3 means no LLM and the mock stays local. The default path already passes. Record the answer or the default as ADRs 16 and 17. Ask Q3 through Q9 the same day.
+
+1. Which LLM endpoint and credentials are cohort-approved (an OpenAI-compatible `base_url`?), is a local model allowed in the assessed demo, and is usage logging required? Default if there is no reply by day 3: no LLM. The provider stays Null. CI still runs LLM off and a fake LLM on, with scored fields identical.
+2. Is local Docker acceptable as the "separate approved deployment environment" if cloud access is limited? And may the mock run inside the cloud task (loopback-bound, no ingress), given the README's "keep it local"? Default if there is no reply by day 3: the mock stays local. CI still runs the cloud job against the real mock and against the fake.
 3. Confirm the 70/100 pass bar and that all six critical gates apply.
 4. Will the assessor use a non-default `--state` path, and do they reset state before the assessed run?
 5. For `duplicate_charge` when the second transaction is missing from the tool result, is disclosure plus `ready_for_review` acceptable, or should it be `manual_review`?
