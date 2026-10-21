@@ -9,10 +9,14 @@ Assumptions used here:
   The report day is day zero. Weekends do not shift the date.
 - Amount and currency come from the transactions tool for the named id.
 - Merchant text is read and then ignored except the display name.
+- run writes the draft only. submit-review posts that saved draft.
+- create pre-checks the record, re-fetches the review, checks the server hash,
+  and posts the server draft. The key comes from the case, the review id, and that hash.
 - This process never approves a review. A person runs tools/runtime.py approve.
 """
 
 import argparse
+import hashlib
 import json
 import sys
 import urllib.error
@@ -126,6 +130,19 @@ def cite(claim, source_id, quote, source_text):
     return {"claim": claim, "source_id": source_id, "quote": quote}
 
 
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def digest(value):
+    return hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
+def idempotency_key(case_id, review_id, server_hash):
+    material = f"v1|{case_id}|{review_id}|{server_hash}"
+    return "dc-" + hashlib.sha256(material.encode()).hexdigest()
+
+
 def build_draft(data_dir, base_url):
     status, health = request("GET", f"{base_url}/health")
     if status != 200 or health.get("status") != "ok":
@@ -205,7 +222,16 @@ def cmd_run(args):
     DRAFT_PATH.parent.mkdir(parents=True, exist_ok=True)
     DRAFT_PATH.write_text(json.dumps(draft, indent=2) + "\n")
     RESULTS_PATH.write_text(json.dumps([draft], indent=2) + "\n")
+    print(json.dumps({
+        "draft": str(DRAFT_PATH.relative_to(ROOT)),
+        "next": "submit-review posts this saved draft. This script will not approve it.",
+    }, indent=2))
 
+
+def cmd_submit_review(args):
+    if not DRAFT_PATH.is_file():
+        sys.exit("Run the case first.")
+    draft = json.loads(DRAFT_PATH.read_text())
     status, review = request(
         "POST",
         f"{args.base_url}/v1/reviews",
@@ -217,34 +243,58 @@ def cmd_run(args):
     REVIEW_PATH.write_text(json.dumps({
         "review_id": review["review_id"],
         "draft_hash": review["draft_hash"],
-        "idempotency_key": f"create-{CASE_ID}-v1",
     }, indent=2) + "\n")
     print(json.dumps({
-        "draft": str(DRAFT_PATH.relative_to(ROOT)),
         "review_id": review["review_id"],
+        "draft_hash": review["draft_hash"],
         "status": review["status"],
         "next": "A person approves this review. This script will not.",
     }, indent=2))
 
 
 def cmd_create(args):
-    if not REVIEW_PATH.is_file() or not DRAFT_PATH.is_file():
-        sys.exit("Run the case first.")
+    if not REVIEW_PATH.is_file():
+        sys.exit("Submit the review first.")
     handle = json.loads(REVIEW_PATH.read_text())
-    draft = json.loads(DRAFT_PATH.read_text())
-    status, review = request("GET", f"{args.base_url}/v1/reviews/{handle['review_id']}")
+    review_id = handle["review_id"]
+
+    status, existing = request("GET", f"{args.base_url}/v1/records/{CASE_ID}")
+    if status == 200 and existing.get("id"):
+        print(json.dumps({
+            "http_status": status,
+            "existing_record_id": existing["id"],
+            "case_id": existing.get("case_id"),
+            "review_id": existing.get("review_id"),
+        }, indent=2))
+        return
+    if status != 404:
+        sys.exit(f"Record pre-check failed: {status} {existing}")
+
+    status, review = request("GET", f"{args.base_url}/v1/reviews/{review_id}")
     if status != 200:
         sys.exit(f"Could not read review: {status} {review}")
-    if review["status"] != "approved":
+    if review.get("status") != "approved":
         sys.exit(
-            f"Review {handle['review_id']} is {review['status']}. "
+            f"Review {review_id} is {review.get('status')}. "
             "Nothing was written. Ask a person to approve that exact draft."
         )
+    raw_draft = review.get("draft")
+    if not isinstance(raw_draft, str):
+        sys.exit("Review draft is not the server JSON string. Nothing was written.")
+    draft = json.loads(raw_draft)
+    if not isinstance(draft, dict) or draft.get("case_id") != CASE_ID:
+        sys.exit("Server draft does not match this case. Nothing was written.")
+    server_hash = review.get("hash")
+    if not isinstance(server_hash, str) or digest(draft) != server_hash:
+        sys.exit("Draft hash does not match the server hash. Nothing was written.")
+    if handle.get("draft_hash") and handle["draft_hash"] != server_hash:
+        sys.exit("Stored draft hash does not match the server hash. Nothing was written.")
+
     status, created = request(
         "POST",
         f"{args.base_url}/v1/records",
-        {"case_id": CASE_ID, "review_id": handle["review_id"], "draft": draft},
-        {"Idempotency-Key": handle["idempotency_key"]},
+        {"case_id": CASE_ID, "review_id": review_id, "draft": draft},
+        {"Idempotency-Key": idempotency_key(CASE_ID, review_id, server_hash)},
     )
     if status not in (200, 201):
         sys.exit(f"Create failed: {status} {created}")
@@ -257,10 +307,13 @@ def main():
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data" / "dev")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("run")
+    sub.add_parser("submit-review")
     sub.add_parser("create")
     args = parser.parse_args()
     if args.command == "run":
         cmd_run(args)
+    elif args.command == "submit-review":
+        cmd_submit_review(args)
     else:
         cmd_create(args)
 
