@@ -8,9 +8,9 @@ from dispute_copilot.adapters.case_system import FakeCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient
 from dispute_copilot.contract import validate_draft
-from dispute_copilot.errors import ContractError, LeakError, OutsideCheckpoint, ToolFailed
+from dispute_copilot.errors import ContractError, LeakError, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
-from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CONTRACT_VERSION, Classification
+from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CONTRACT_VERSION, Classification, Routing
 from dispute_copilot.rules.documents import parse_attachment, parse_followup, parse_intake
 from dispute_copilot.serialization import citation_source_text
 from dispute_copilot.workflow import prepare
@@ -159,45 +159,159 @@ def test_day_count_amount_and_currency_come_from_the_inputs_not_a_fixed_case():
     assert TOKEN not in rendered
 
 
-def test_a_second_customer_statement_is_not_drafted():
-    with pytest.raises(OutsideCheckpoint, match="another customer statement"):
-        prepare(
-            "CARD-D05",
-            corpus=FileCorpus(DATA),
-            tools=_tools("CARD-D05", _tx("CARD-D05", "TX-D05", 1, "XCR", "2026-10-01"), _merchant("Shop")),
-            case_system=FakeCaseSystem(),
-            case=_case("CARD-D05", ["CARD-D05-INTAKE", "CARD-D05-FOLLOWUP", "CARD-D05-ATTACHMENT"]),
-        )
+def test_conflicting_customer_statements_have_no_deadline():
+    case_id = "CARD-D05"
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, _tx(case_id, "TX-D05", 185, "XCR", "2026-10-01"), _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D05-INTAKE", "CARD-D05-FOLLOWUP", "CARD-D05-ATTACHMENT"]),
+    )
+    _assert_gold(draft, case_id)
+    sources = {item["source_id"] for item in draft["citations"]}
+    assert "CARD-D05-FOLLOWUP" in sources
+    assert "CARD-D05-INTAKE" in sources
+    rendered = json.dumps(draft)
+    assert "Authorization: confirmed" in rendered
+    assert "CUST-" not in rendered
 
 
-def test_a_confirmed_authorization_is_not_drafted_as_denied():
-    with pytest.raises(OutsideCheckpoint, match="confirmed"):
-        prepare(
-            "CARD-D02",
-            corpus=FileCorpus(DATA),
-            tools=_tools("CARD-D02", _tx("CARD-D02", "TX-D02", 1, "XCR", "2026-10-01"), _merchant("Shop")),
-            case_system=FakeCaseSystem(),
-            case=_case("CARD-D02", ["CARD-D02-INTAKE", "CARD-D02-ATTACHMENT"]),
-        )
+def test_a_confirmed_second_charge_is_a_duplicate():
+    draft = prepare(
+        "CARD-D02",
+        corpus=FileCorpus(DATA),
+        tools=_tools("CARD-D02", _tx("CARD-D02", "TX-D02", 1, "XCR", "2026-10-01"), _merchant("Shop")),
+        case_system=FakeCaseSystem(),
+        case=_case("CARD-D02", ["CARD-D02-INTAKE", "CARD-D02-ATTACHMENT"]),
+    )
+    assert draft["classification"] == Classification.DUPLICATE_CHARGE.value
+    assert draft["routing"] == Routing.READY_FOR_REVIEW.value
+    assert draft["facts"]["amount"] == 1
+    assert draft["deadline"] == "2026-11-16"
 
 
-def test_three_transaction_failures_write_nothing_and_invent_no_amount():
+def test_three_transaction_failures_keep_the_intake_and_leave_amount_empty():
     tools = _tools(
         "CARD-D07",
         {},
         _merchant("Shop"),
         tx_script=[(503, {"error": "upstream_timeout"})] * 3,
     )
-    with pytest.raises(ToolFailed) as caught:
-        prepare(
-            "CARD-D07",
-            corpus=FileCorpus(DATA),
-            tools=tools,
-            case_system=FakeCaseSystem(),
-            case=_case("CARD-D07", ["CARD-D07-INTAKE", "CARD-D07-ATTACHMENT"]),
-        )
-    assert caught.value.attempts == 3
-    assert tools.merchant_calls == []
+    draft = prepare(
+        "CARD-D07",
+        corpus=FileCorpus(DATA),
+        tools=tools,
+        case_system=FakeCaseSystem(),
+        case=_case("CARD-D07", ["CARD-D07-INTAKE", "CARD-D07-ATTACHMENT"]),
+    )
+    _assert_gold(draft, "CARD-D07")
+    assert tools.transaction_calls == ["CARD-D07"]
+    assert "transactions tool attempts 3" in draft["narrative"]
+    assert all("TRANSACTIONS" not in item["source_id"] for item in draft["citations"])
+    assert "219" not in json.dumps(draft["facts"])
+
+
+def test_a_missing_named_purchase_is_not_replaced():
+    payload = _tx("CARD-D01", "TX-OTHER", 1, "XCR", "2026-08-19")
+    draft = prepare(
+        "CARD-D01",
+        corpus=FileCorpus(DATA),
+        tools=_tools("CARD-D01", payload, _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case("CARD-D01", ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+    )
+    assert draft["facts"]["transaction_id"] == "TX-D01"
+    assert draft["facts"]["amount"] is None
+    assert draft["facts"]["currency"] is None
+    assert draft["routing"] == Routing.MANUAL_REVIEW.value
+    assert all("TRANSACTIONS" not in item["source_id"] for item in draft["citations"])
+
+
+def test_cash_not_dispensed_is_unsupported_even_when_authorization_is_confirmed():
+    case_id = "CARD-D06"
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, _tx(case_id, "TX-D06", 202, "XCR", "2026-10-03"), _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D06-INTAKE", "CARD-D06-ATTACHMENT"]),
+    )
+    _assert_gold(draft, case_id)
+
+
+def test_an_unconfirmed_unrecognized_purchase_asks_one_question():
+    case_id = "CARD-D04"
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, _tx(case_id, "TX-D04", 168, "XCR", "2026-10-01"), _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D04-INTAKE", "CARD-D04-ATTACHMENT"]),
+    )
+    _assert_gold(draft, case_id)
+    assert draft["follow_up_questions"][0]["field"] == "authorization_confirmation"
+    assert len(draft["follow_up_questions"][0]["question"]) >= 10
+
+
+def test_a_service_with_two_blank_fields_asks_both():
+    case_id = "CARD-D12"
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, _tx(case_id, "TX-D12", 304, "XCR", "2026-10-04"), _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D12-INTAKE", "CARD-D12-ATTACHMENT"]),
+    )
+    _assert_gold(draft, case_id)
+    assert [item["field"] for item in draft["follow_up_questions"]] == draft["missing_information"]
+
+
+@pytest.mark.parametrize(
+    ("case_id", "transaction_id", "amount", "posted"),
+    [
+        ("CARD-D02", "TX-D02", 134, "2026-10-02"),
+        ("CARD-D03", "TX-D03", 151, "2026-10-03"),
+        ("CARD-D08", "TX-D08", 236, "2026-10-02"),
+        ("CARD-D09", "TX-D02", 134, "2026-10-02"),
+        ("CARD-D10", "TX-D10", 270, "2026-10-03"),
+    ],
+)
+def test_ready_cases_match_gold(case_id: str, transaction_id: str, amount: int, posted: str):
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, _tx(case_id, transaction_id, amount, "XCR", posted), _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, [f"{case_id}-INTAKE", f"{case_id}-ATTACHMENT"]),
+    )
+    _assert_gold(draft, case_id)
+    rendered = json.dumps(draft)
+    assert TOKEN not in rendered
+    assert NOTE not in rendered
+    assert "CUST-" not in rendered
+
+
+def test_a_service_outage_stays_manual_and_keeps_the_questions():
+    case_id = "CARD-D12"
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(
+            case_id,
+            {},
+            _merchant("Morrow Supplies"),
+            tx_script=[(503, {"error": "upstream_timeout"})] * 3,
+        ),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D12-INTAKE", "CARD-D12-ATTACHMENT"]),
+    )
+    assert draft["classification"] == Classification.SERVICE_NOT_RECEIVED.value
+    assert draft["routing"] == Routing.MANUAL_REVIEW.value
+    assert draft["missing_information"] == ["promised_service_date", "purchase_receipt"]
+    assert len(draft["follow_up_questions"]) == 2
+    assert draft["facts"]["amount"] is None
+    assert draft["deadline"] == "2026-12-03"
 
 
 def test_a_retry_then_success_keeps_the_tool_amount():

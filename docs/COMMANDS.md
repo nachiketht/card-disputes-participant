@@ -88,13 +88,13 @@ uv run --locked dispute-copilot \
 
 `create-record` checks for an existing record, re-reads the review, checks the server hash, and posts the server draft. If the review is still pending, it exits without posting. Approve with `runtime.py approve` in between, using the `review_id` from the review file.
 
-This checkpoint drafts a denied authorization only. `run CARD-D01` and `run CARD-D11` produce scored drafts. Any other case exits without a draft and prints the reason.
+`run` drafts every development case the procedure can classify. A case with no readable intake, or a reported date outside every loaded policy, exits without a draft and prints the reason.
 
 ```sh
 uv run --locked dispute-copilot run-all
 ```
 
-`run-all` writes CARD-D01 and CARD-D11, skips the rest, and exits 2.
+`run-all` writes one draft per case the mock lists. It exits 0 when every case was written, and 2 when any case was skipped.
 
 The original one-file CARD-D01 script is still available. It talks to whatever mock is on the port. It does not choose the state file.
 
@@ -106,7 +106,7 @@ uv run --locked python scripts/normal_case.py create
 
 ## Evaluate
 
-Score a submission. Full development gold has 12 cases. A submission that contains only CARD-D01 and CARD-D11 fails the other ten. That is expected until the rules engine drafts every case.
+Score a submission. Full development gold has 12 cases. `run-all` against the development mock writes all 12. A submission that omits a case fails that case.
 
 ```sh
 mkdir -p reports
@@ -126,7 +126,7 @@ make check
 make daily
 ```
 
-`make check` is lint plus pytest. `make daily` is the same check, then a note that only the denied-authorization cases are scored.
+`make check` is lint plus pytest. `make daily` is the same check, then a note that the rules engine drafts every development case.
 
 Direct equivalents:
 

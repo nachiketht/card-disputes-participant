@@ -16,7 +16,7 @@ def _free_port() -> int:
         return sock.getsockname()[1]
 
 
-def test_live_denied_cases_and_the_create_boundary(tmp_path: Path):
+def test_live_development_cases_and_the_create_boundary(tmp_path: Path):
     port = _free_port()
     state = tmp_path / "mock.sqlite"
     submissions = tmp_path / "submissions"
@@ -40,18 +40,16 @@ def test_live_denied_cases_and_the_create_boundary(tmp_path: Path):
     try:
         _wait_until_healthy(port, server)
         run = _copilot(port, submissions, "run-all")
-        assert run.returncode == 2, run.stderr + run.stdout
+        assert run.returncode == 0, run.stderr + run.stdout
+        gold = json.loads((ROOT / "feedback" / "dev_gold.json").read_text(encoding="utf-8"))
         written = {path.parent.name for path in submissions.glob("drafts/*/v1.json")}
-        assert written == {"CARD-D01", "CARD-D11"}, run.stdout + run.stderr
+        assert written == set(gold), run.stdout + run.stderr
         rendered = "\n".join(path.read_text(encoding="utf-8") for path in submissions.rglob("*.json"))
         assert "SYNTHETIC-PRIVATE" not in rendered
         assert "CUST-" not in rendered
-        gold = json.loads((ROOT / "feedback" / "dev_gold.json").read_text(encoding="utf-8"))
-        gold_path = tmp_path / "gold.json"
-        gold_path.write_text(
-            json.dumps({key: gold[key] for key in ("CARD-D01", "CARD-D11")}),
-            encoding="utf-8",
-        )
+        outage = json.loads((submissions / "drafts" / "CARD-D07" / "v1.json").read_text(encoding="utf-8"))
+        assert outage["facts"]["amount"] is None
+        assert all("TRANSACTIONS" not in item["source_id"] for item in outage["citations"])
         report = tmp_path / "eval.json"
         evaluated = subprocess.run(
             [
@@ -60,7 +58,7 @@ def test_live_denied_cases_and_the_create_boundary(tmp_path: Path):
                 "--data",
                 "data/dev",
                 "--gold",
-                str(gold_path),
+                str(ROOT / "feedback" / "dev_gold.json"),
                 "--submission",
                 str(submissions / "results.json"),
                 "--report",
@@ -72,7 +70,7 @@ def test_live_denied_cases_and_the_create_boundary(tmp_path: Path):
         )
         assert evaluated.returncode == 0, evaluated.stdout + evaluated.stderr
         summary = json.loads(report.read_text(encoding="utf-8"))
-        assert summary["passed_cases"] == 2
+        assert summary["passed_cases"] == 12
 
         audit = _audit(state)
         attempts = [

@@ -1,8 +1,9 @@
 """Operator commands. Drafting, review submission, and record creation are separate.
 
 The process exits before writing a file when the mock health check fails.
-A case this checkpoint cannot draft is reported and skipped. The process does
-not approve a review.
+A case with no readable intake, no policy for its reported date, or a quote
+that is not in its source is reported and skipped. The process does not approve
+a review.
 """
 
 import argparse

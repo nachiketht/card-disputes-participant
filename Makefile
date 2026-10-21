@@ -12,7 +12,7 @@ test:
 check: lint test
 
 daily: check
-	@echo "Checkpoint 1 drafts a denied authorization only. CARD-D01 and CARD-D11 are scored here. 12/12 is the next freeze."
+	@echo "The rules engine drafts every development case. Score the written results with tools/evaluate.py."
 
 mock:
 	uv run --locked python tools/runtime.py serve --port 8765 --state .state/run.sqlite

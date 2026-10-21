@@ -1,0 +1,98 @@
+"""First matching row wins: unsupported, conflict, unauthorized, duplicate, service, ambiguous.
+
+Free text is used only for those signals. Labeled authorization comes from the
+intake and follow-ups. An attachment cannot enter the conflict row. Promised
+date and receipt lines are read only after the service row matches, so the
+boilerplate on every intake cannot change another type.
+"""
+
+import re
+from dataclasses import dataclass
+
+from dispute_copilot.fields import (
+    AUTH_CONFIRMED,
+    AUTH_DENIED,
+    AUTH_NOT_SUPPLIED,
+    Classification,
+    MissingId,
+)
+
+_ATM = re.compile(r"\batm\b")
+_TX_ID = re.compile(r"\bTX-[A-Za-z0-9-]+\b")
+_SERVICE_WORD = re.compile(r"\bservice\b")
+_UNSUPPORTED = ("cash withdrawal", "did not dispense", "didn't dispense")
+_RECOGNITION = ("do not recognize", "don't recognize", "did not authorize", "didn't authorize")
+_DUPLICATE = ("twice", "two charges", "extra charge")
+_SERVICE_GAP = ("not been delivered", "not delivered", "was not supplied")
+ATTACHMENT_MISSING = "missing"
+_CUSTOMER_AUTH = frozenset({AUTH_CONFIRMED, AUTH_NOT_SUPPLIED})
+
+
+@dataclass(frozen=True)
+class Decision:
+    classification: Classification
+    missing: tuple[MissingId, ...]
+    conflict: bool
+
+
+def classify(
+    complaint: str,
+    authorization: str,
+    other_authorizations: list[str],
+    promised_service_date: str | None,
+    purchase_receipt: str | None,
+    attachment_status: str | None,
+) -> Decision:
+    text = complaint.casefold()
+    if _unsupported(text):
+        return Decision(Classification.UNSUPPORTED, (), False)
+    statements = [authorization, *other_authorizations]
+    if len(statements) > 1 and len(set(statements)) > 1:
+        return Decision(Classification.AMBIGUOUS, (), True)
+    if authorization == AUTH_DENIED:
+        return Decision(Classification.UNAUTHORIZED, (), False)
+    if authorization == AUTH_NOT_SUPPLIED and _denies_recognition(text):
+        return Decision(Classification.UNAUTHORIZED, (MissingId.AUTHORIZATION_CONFIRMATION,), False)
+    if _duplicate(text, complaint) and authorization in _CUSTOMER_AUTH:
+        return Decision(Classification.DUPLICATE_CHARGE, (), False)
+    if _service(text) and authorization in _CUSTOMER_AUTH:
+        missing = _service_fields(promised_service_date, purchase_receipt, attachment_status)
+        if authorization == AUTH_NOT_SUPPLIED:
+            missing = (MissingId.AUTHORIZATION_CONFIRMATION, *missing)
+        return Decision(Classification.SERVICE_NOT_RECEIVED, missing, False)
+    return Decision(Classification.AMBIGUOUS, (), False)
+
+
+def _unsupported(text: str) -> bool:
+    return _ATM.search(text) is not None or any(phrase in text for phrase in _UNSUPPORTED)
+
+
+def _denies_recognition(text: str) -> bool:
+    return any(phrase in text for phrase in _RECOGNITION)
+
+
+def _duplicate(text: str, complaint: str) -> bool:
+    if any(phrase in text for phrase in _DUPLICATE):
+        return True
+    return len(set(_TX_ID.findall(complaint))) >= 2
+
+
+def _service(text: str) -> bool:
+    return _SERVICE_WORD.search(text) is not None and any(phrase in text for phrase in _SERVICE_GAP)
+
+
+def _blank(value: str | None) -> bool:
+    return value is None or value.strip() == "" or value == AUTH_NOT_SUPPLIED
+
+
+def _service_fields(
+    promised_service_date: str | None,
+    purchase_receipt: str | None,
+    attachment_status: str | None,
+) -> tuple[MissingId, ...]:
+    missing: list[MissingId] = []
+    if _blank(promised_service_date):
+        missing.append(MissingId.PROMISED_SERVICE_DATE)
+    if _blank(purchase_receipt) or attachment_status == ATTACHMENT_MISSING:
+        missing.append(MissingId.PURCHASE_RECEIPT)
+    return tuple(missing)

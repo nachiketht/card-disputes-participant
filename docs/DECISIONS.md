@@ -5,9 +5,9 @@
 Context: the brief scores policy, deadline, classification, missing fields, and routing exactly.
 Decision: those values are computed in code from the policy files and tool payloads. A model is not called.
 Alternatives: let a model classify. Rejected, because a wrong type fails the case and cannot be explained from the policy text.
-Brief check: this checkpoint's drafts for a denied purchase use the policy day count and the tool amount.
+Brief check: every development draft takes its type, day count, and amount from the procedure order, the policy file, and the tool payload.
 Rollback: none. A model may later draft prose only, and the scored fields stay on this path.
-Status: implemented for the denied-authorization path. The other dispute types are not classified yet.
+Status: implemented. `rules/classify.py` applies the procedure order to every development case.
 
 # ADR-2. One vocabulary module
 
@@ -57,11 +57,11 @@ Status: implemented for one review. The second-approval rule is accepted and not
 # ADR-7. Retry the transaction read, do not invent an amount
 
 Context: the procedure allows three total attempts and says not to treat a service failure as an empty history.
-Decision: a 503 is retried up to three attempts. The cap is rejected above three. If the named transaction never arrives, this checkpoint writes nothing and does not fill in an amount.
+Decision: a 503 is retried up to three attempts. The cap is rejected above three. If the named transaction never arrives, the draft keeps the intake id and reported date, leaves amount and currency empty, and routes to manual review. No other transaction is substituted, and the transaction payload is not cited.
 Alternatives: copy an amount from the complaint sentence, or stop after one failure.
-Brief check: a persistent failure records three attempts and leaves no draft.
+Brief check: a persistent failure records three attempts, writes that empty-amount draft, and does not cite the transaction payload.
 Rollback: none.
-Status: implemented as a hard stop. The later null-amount manual-review draft is not in this checkpoint.
+Status: implemented.
 
 # ADR-16. No reply on the model question means no model
 
@@ -83,9 +83,9 @@ Status: default is in force. Cloud deployment is not built.
 
 # Accepted, not built in this checkpoint
 
-These are recorded so the next checkpoint does not reopen them. They are not in the code yet.
+ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-8 through ADR-15 and ADR-18 and ADR-19 in the plan: ordered decision table, claim-line search, memory-only source registry, redaction at every later egress, ask-once, second approval, stdio MCP wrapper, fixed-clock display, one container image, and the change-control freeze after the 12/12 line.
+- ADR-9 through ADR-15 and ADR-18 and ADR-19 in the plan: claim-line search beyond labeled lines, ask-once, second approval, stdio MCP wrapper, fixed-clock display, one container image, and the change-control freeze after the 12/12 line.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q5 missing duplicate transaction, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note
