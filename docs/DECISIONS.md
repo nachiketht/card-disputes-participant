@@ -81,12 +81,21 @@ Brief check: the run commands take a base URL and the tests use a loopback port.
 Rollback: a written reply can allow a loopback mock inside a later cloud task.
 Status: default is in force. Cloud deployment is not built.
 
+# ADR-27. A duplicate report with one returned transaction goes to manual review
+
+Context: the procedure says to retrieve both transaction records for a duplicate charge. The transaction service can answer successfully and return only the named transaction. The current routing marks that case ready for review with no second-charge citation.
+Decision: decision-table row 4b. When the classification is duplicate_charge, the tool call succeeded, the named transaction is present, and no second distinct row is returned, routing is manual review. Classification stays duplicate_charge, the deadline is still computed, amount and currency come from the named transaction, missing_information stays empty, the duplicate_transaction citation is omitted, the routing citation also quotes the retrieve-both sentence, and the narrative discloses the single returned id. Persistent failure and a missing named transaction (ADR-7) take precedence. This is a fixed rule, not a configurable degradation kind.
+Alternatives: ready for review with a disclosure, which marks an uncorroborated claim ready; ambiguous, which the procedure reserves for authorization conflicts and which would null the deadline.
+Brief check: no fabricated citation, deadline kept for a supported type, D02, D08 and D09 unchanged.
+Rollback: edit row 4b and its generated test, logged as an R change.
+Status: accepted 2026-10-23 (closes Q5). Not yet built.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
 - ADR-9 through ADR-15 and ADR-18 and ADR-19 in the plan: claim-line search beyond labeled lines, ask-once, second approval, stdio MCP wrapper, fixed-clock display, one container image, and the change-control freeze after the 12/12 line.
-- Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q5 missing duplicate transaction, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
+- Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note
 
