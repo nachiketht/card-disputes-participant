@@ -1,4 +1,5 @@
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -81,6 +82,8 @@ def test_live_development_cases_and_the_create_boundary(tmp_path: Path):
         assert attempts == [1, 2, 3]
         assert [row for row in audit if row["event"] == "record_created"] == []
 
+        reviewed = _copilot(port, submissions, "agent-review", "CARD-D01")
+        assert reviewed.returncode == 0, reviewed.stderr + reviewed.stdout
         submitted = _copilot(port, submissions, "submit-review", "CARD-D01")
         assert submitted.returncode == 0, submitted.stderr
         pending = _copilot(port, submissions, "create-record", "CARD-D01")
@@ -148,6 +151,8 @@ def test_a_down_mock_writes_no_file(tmp_path: Path):
 
 
 def _copilot(port: int, submissions: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["LLM_PROVIDER"] = "null"
     return subprocess.run(
         [
             sys.executable,
@@ -164,6 +169,7 @@ def _copilot(port: int, submissions: Path, *args: str) -> subprocess.CompletedPr
         cwd=ROOT,
         text=True,
         capture_output=True,
+        env=env,
     )
 
 

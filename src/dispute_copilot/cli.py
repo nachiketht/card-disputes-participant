@@ -20,12 +20,15 @@ from dispute_copilot.adapters.tools import HttpToolClient
 from dispute_copilot.config import Settings
 from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable, OutsideCheckpoint, ToolFailed
 from dispute_copilot.fields import CASE_ID, CLASSIFICATION, DEADLINE, FACTS, POLICY_IDS, ROUTING
+from dispute_copilot.llm.factory import build_drafter
 from dispute_copilot.review import create_record, submit_review
-from dispute_copilot.storage import write_draft
+from dispute_copilot.review_flow.agent_review import record_agent_review
+from dispute_copilot.storage import latest_draft, write_draft
 from dispute_copilot.workflow import prepare
 
 
 def main(argv: list[str] | None = None) -> int:
+    _load_env_file()
     parser = _parser()
     args = parser.parse_args(argv)
     case_id = getattr(args, "case", None)
@@ -50,10 +53,16 @@ def main(argv: list[str] | None = None) -> int:
             print(str(exc), file=sys.stderr)
             return 1
         try:
+            drafter = build_drafter()
             if args.command == "run":
-                return _run_one(case_id, settings, corpus, tools, ledger)
+                return _run_one(case_id, settings, corpus, tools, ledger, drafter)
             if args.command == "run-all":
-                return _run_all(settings, corpus, tools, ledger)
+                return _run_all(settings, corpus, tools, ledger, drafter)
+            if args.command == "agent-review":
+                _path, draft, version = latest_draft(settings.submissions_dir, case_id)
+                approval = record_agent_review(settings.submissions_dir, case_id, draft, version)
+                print(json.dumps(approval, indent=2))
+                return 0 if approval.get("passed") is True else 2
             if args.command == "submit-review":
                 handle = submit_review(case_id, settings.submissions_dir, ledger)
                 print(json.dumps(handle, indent=2))
@@ -72,14 +81,14 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
 
-def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem) -> int:
-    draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger)
+def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter) -> int:
+    draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, drafter=drafter)
     path = write_draft(settings.submissions_dir, case_id, draft)
     print(json.dumps(_summary(draft, path), indent=2))
     return 0
 
 
-def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem) -> int:
+def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter) -> int:
     written = []
     skipped = []
     for case in tools.list_cases():
@@ -88,7 +97,7 @@ def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledg
             skipped.append({CASE_ID: case_id, "reason": "case id is not usable"})
             continue
         try:
-            draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, case=case)
+            draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, case=case, drafter=drafter)
         except MockUnavailable:
             raise
         except (OutsideCheckpoint, ToolFailed, CopilotError) as exc:
@@ -112,6 +121,27 @@ def _summary(draft: dict, path: Path) -> dict:
     }
 
 
+def _load_env_file() -> None:
+    """Load .env without overriding variables already set in the process."""
+    candidates = (Path.cwd() / ".env", Path(__file__).resolve().parents[2] / ".env")
+    seen: set[Path] = set()
+    for path in candidates:
+        if not path.is_file():
+            continue
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            if key and key not in os.environ:
+                os.environ[key] = value.strip().strip("'\"" )
+
+
 def _safe_case(case_id: str | None) -> bool:
     if case_id is None:
         return True
@@ -133,6 +163,8 @@ def _parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run", parents=[common])
     run.add_argument("case", metavar="CASE")
     commands.add_parser("run-all", parents=[common])
+    review = commands.add_parser("agent-review", parents=[common])
+    review.add_argument("case", metavar="CASE")
     submit = commands.add_parser("submit-review", parents=[common])
     submit.add_argument("case", metavar="CASE")
     create = commands.add_parser("create-record", parents=[common])

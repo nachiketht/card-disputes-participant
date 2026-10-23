@@ -13,6 +13,7 @@ from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.contract import validate_draft
+from dispute_copilot.drafting import Drafter, drafter_variables
 from dispute_copilot.errors import LeakError, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import (
@@ -69,7 +70,15 @@ _MISSING_INTAKE = {
 }
 
 
-def prepare(case_id: str, *, corpus: Corpus, tools: Tools, case_system: Ledger, case: dict | None = None) -> dict:
+def prepare(
+    case_id: str,
+    *,
+    corpus: Corpus,
+    tools: Tools,
+    case_system: Ledger,
+    case: dict | None = None,
+    drafter: Drafter | None = None,
+) -> dict:
     if case is None:
         case = _find_case(tools.list_cases(), case_id)
     _require_case_shape(case_id, case)
@@ -138,6 +147,23 @@ def prepare(case_id: str, *, corpus: Corpus, tools: Tools, case_system: Ledger, 
         ledger_id=existing.record_id if existing.found else None,
         posted_split=_posted_split(named, resolver, selection.policy_id),
     )
+    if drafter is not None:
+        narrative = _with_customer_message(
+            narrative,
+            drafter.customer_message(
+                drafter_variables(
+                    classification=decision.classification.value,
+                    routing=routing.value,
+                    transaction_id=transaction_id,
+                    reported_date=reported.isoformat(),
+                    deadline=deadline,
+                    policy_id=selection.policy_id,
+                    missing_fields=", ".join(item.value for item in decision.missing),
+                    transaction_attempts=transaction_attempts,
+                    quotes=json.dumps(citations, ensure_ascii=False),
+                )
+            ),
+        )
     payload = {
         CASE_ID: case_id,
         CLASSIFICATION: decision.classification,
@@ -405,6 +431,23 @@ def _cite(citations: list[dict], claim: str, source_id: str, quote: str, source_
     if Redactor().contains_restricted(quote):
         raise LeakError(f"quote for {claim} contains a restricted value")
     citations.append({CITATION_CLAIM: claim, CITATION_SOURCE_ID: source_id, CITATION_QUOTE: quote})
+
+
+def _with_customer_message(narrative: str, outcome) -> str:
+    marker = "Customer message draft:"
+    head, sep, _tail = narrative.partition(marker)
+    if not sep:
+        return narrative
+    text = head + sep + " " + outcome.text
+    if outcome.downgraded:
+        return text.replace(
+            "template text only, with no model.",
+            "generated from templates after the model was unavailable.",
+        )
+    return text.replace(
+        "template text only, with no model.",
+        "the customer message used the configured model. Scored fields stayed in code.",
+    )
 
 
 def _narrative(

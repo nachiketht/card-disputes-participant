@@ -17,14 +17,44 @@ def _draft(marker):
     }
 
 
+def _approval(draft_hash: str) -> dict:
+    return {
+        "case_id": "CARD-D01",
+        "draft_version": 1,
+        "draft_hash": draft_hash,
+        "passed": True,
+        "checks": {},
+        "run_id": "test",
+        "llm_review": None,
+        "contract_version": "1.0",
+    }
+
+
 def test_submit_posts_the_saved_draft(tmp_path: Path):
     saved = _draft("LOCAL")
     write_draft(tmp_path, "CARD-D01", saved)
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(
+        json.dumps({"agent_approval": _approval(digest(saved))}),
+        encoding="utf-8",
+    )
     ledger = FakeCaseSystem()
     handle = submit_review("CARD-D01", tmp_path, ledger)
     assert ledger.submitted == [saved]
     assert handle["review_id"] == "rev_1"
     assert json.loads((tmp_path / "reviews" / "CARD-D01.json").read_text(encoding="utf-8"))["draft_version"] == 1
+
+
+def test_submit_refuses_without_a_passed_agent_approval(tmp_path: Path):
+    write_draft(tmp_path, "CARD-D01", _draft("LOCAL"))
+    ledger = FakeCaseSystem()
+    try:
+        submit_review("CARD-D01", tmp_path, ledger)
+    except CreateRejected as exc:
+        assert exc.payload["error"] == "agent_approval_required"
+    else:
+        raise AssertionError("submit posted without a step-1 approval")
+    assert ledger.submitted == []
 
 
 def test_create_posts_the_server_draft_only_after_approval(tmp_path: Path):
@@ -34,7 +64,13 @@ def test_create_posts_the_server_draft_only_after_approval(tmp_path: Path):
     ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "pending", digest(server), raw, None)
     (tmp_path / "reviews").mkdir()
     (tmp_path / "reviews" / "CARD-D01.json").write_text(
-        json.dumps({"review_id": "rev_1", "draft_hash": digest(server)}),
+        json.dumps(
+            {
+                "review_id": "rev_1",
+                "draft_hash": digest(server),
+                "agent_approval": _approval(digest(server)),
+            }
+        ),
         encoding="utf-8",
     )
     try:
