@@ -1,5 +1,6 @@
 # Local mock case database. Do not commit a state file that contains approvals.
 .state/
+*.sqlite
 *.sqlite-journal
 *.sqlite-wal
 *.sqlite-shm
@@ -35,5 +36,12 @@ htmlcov/
 # Editors and OS
 .DS_Store
 .idea/
+.vscode/
+.cursor/
 *.swp
 *~
+
+# Packaging leftovers
+dist/
+build/
+*.egg-info/
