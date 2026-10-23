@@ -90,6 +90,24 @@ Brief check: no fabricated citation, deadline kept for a supported type, D02, D0
 Rollback: edit row 4b and its generated test, logged as an R change.
 Status: accepted 2026-10-23 (closes Q5). Not yet built.
 
+# ADR-28. The procedure is data, not a constant
+
+Context: CARD-PROCEDURE-01 is a module constant in the policy resolver, and the sentences quoted for classification, routing and missing fields are Python dicts beside hardcoded phrase lists. A renamed or reworded procedure is a code change in three modules.
+Decision: the procedure Source ID comes from settings (flag, env, default CARD-PROCEDURE-01) and every consumer takes it from the resolver output. Each rule is a row in config/rules/decision_table.yaml carrying its signal, optional evidence condition, classification, missing fields, routing and the exact sentence prefixes it quotes; missing.yaml and routing.yaml carry their quote prefixes. The loader fails at startup on a classification, identifier or routing outside fields.py, a row without a quote, a duplicate id, or a quote not found in the loaded procedure text. One generated test per row. Adding a step is adding a row and its test.
+Alternatives: keep the constants and edit code per change; let a model read the procedure and classify. Both rejected: the first is a redesign inside the freeze, the second lets the model set a scored field.
+Brief check: the five classifications and three identifiers stay fixed by the contract. The twelve dev outputs are unchanged. A synthetic CARD-PROCEDURE-02 with reworded sentences passes with no code change.
+Rollback: pin the previous procedure id and rows; the loader guards stay.
+Status: accepted 2026-10-23. Not yet built.
+
+# ADR-29. Prompts are versioned files behind an adapter
+
+Context: the drafter prompt is a string inside a function. A prompt edit has no version, the trace cannot say which prompt wrote a narrative, and the bake-off cannot compare variants.
+Decision: prompts live in prompts/<task>/v<N>.md with front matter (id, version, task, schema_version, variables, changelog). config/rules/prompts.yaml pins the active version per task. A PromptRegistry renders a prompt over a closed variable set (facts, verified quotes, flags, disclosures); an unknown variable or a raw document string is a render error. A PromptAdapter produces the provider wire shape. prompt_id, prompt_version and prompt_hash are recorded on every model span, in the agent approval, in metrics and in the bake-off report. Version files are immutable behind a manifest checked in CI. A change is a new version, a pin change and a CHANGES.md row. The template fallback is not a prompt.
+Alternatives: a prompt string in code (untraceable); a prompt-management service (a new dependency for two prompts).
+Brief check: scored fields are identical across every committed prompt version. No raw prose reaches the model. Logs never carry prompt text.
+Rollback: move the pin back to the previous version.
+Status: accepted 2026-10-23. Not yet built.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
