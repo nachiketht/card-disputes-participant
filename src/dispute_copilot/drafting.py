@@ -16,6 +16,7 @@ from dispute_copilot.fields import (
     ROUTING,
 )
 from dispute_copilot.llm.base import LLMError, LLMProvider
+from dispute_copilot.guardrails import record
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.null import TEMPLATE_CUSTOMER_MESSAGE, NullProvider
 from dispute_copilot.llm.prompts import PromptRegistry, RenderedPrompt
@@ -79,6 +80,7 @@ class Drafter:
         except Exception:
             return self._templates(rendered)
         if rejects(text) or self._redactor.contains_restricted(text):
+            record("output", reason="commitment" if rejects(text) else "redaction")
             return self._templates(rendered)
         return DraftedMessage(
             _normalize(text),

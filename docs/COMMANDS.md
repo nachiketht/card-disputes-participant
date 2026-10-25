@@ -395,7 +395,7 @@ uv run --locked dispute-copilot \
 ```text
 usage: dispute-copilot [-h] [--mock-url MOCK_URL] [--data-dir DATA_DIR]
                        [--submissions SUBMISSIONS]
-                       {run,run-all,agent-review,submit-review,create-record,metrics,dashboard}
+                       {run,run-all,agent-review,submit-review,create-record,metrics,evals,dashboard}
                        ...
 ```
 
@@ -409,6 +409,7 @@ Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--
 | `submit-review CASE` | one case id | yes | review posted | 2 refused or no draft |
 | `create-record CASE` | one case id | yes | created, or existing row reported | 2 gate or missing handle |
 | `metrics` | none | no | report printed | |
+| `evals` | `--submission PATH`, `--report PATH` | no, when a submission file is already written | scorecard printed and `passed` | 1 when a minimum is missed |
 | `dashboard` | `--export PATH`, `--port` (default 8754) | no | file written, or page served until interrupted | 1 if the port will not bind |
 
 Missing command or missing `CASE` is argparse exit 2. An unknown command (`bakeoff`, for example) is exit 2: `invalid choice`.
@@ -478,7 +479,18 @@ uv run --locked dispute-copilot dashboard
 
 `make dashboard` is the serve form. Open the HTML file in a browser when you used `--export`.
 
-The page has eight sections: run overview (pass or fail per case against the latency target, counts, SLO, alerts), a per-case span timeline, latency (p50, p95, max per step and per case), cost (per model call, per case, per run), a log table with filters, security (injections, masked values, gate refusals), approval state, and a deployment comparison. A pass on the overview means the case was written inside the latency target. It is not a gold score and it is not an approval.
+### Scorecard
+
+`dispute-copilot evals` reads a submission file, the development gold file, the versioned sets under `evals/sets/`, and the traces under `REPORTS_DIR`. It prints one scorecard and writes the JSON report given by `--report` (default `reports/evals.json`). Exit 1 means a category missed the minimum in `config/rules/evals.yaml`. The judge stays off. What each category covers, and the citation-support limit, is in `docs/EVALS.md`.
+
+```sh
+uv run --locked dispute-copilot evals --submission submissions/results.json --report reports/evals.json
+make evals
+```
+
+`make evals` starts the mock on `127.0.0.1` with a temporary state file, drafts every development case, then runs the scorecard. A public mock URL is refused before the health check. The refusal is a `guardrail.boundary` event. See `docs/GUARDRAILS.md`.
+
+The page has eight sections: run overview (pass or fail per case against the latency target, counts, SLO, alerts), a per-case span timeline, latency (p50, p95, max per step and per case), cost (per model call, per case, per run), a log table with filters, security (injections, masked values, gate refusals, guardrail events), approval state, and a deployment comparison. A pass on the overview means the case was written inside the latency target. It is not a gold score and it is not an approval.
 
 Token prices live in `config/rules/cost.yaml` as per-1,000-token estimates. The shipped file has no model prices. A call whose model is missing from that file is shown as `not configured`, not as a number. Compute cost is `estimate, unmeasured` unless `compute.usd` is filled with a measured figure. The page runs the same redactor as the logs before it is written.
 
@@ -618,7 +630,7 @@ uv run --locked pytest tests/integration
 refusing: hidden-style gold is not in this checkpoint, and feedback/dev_gold.json is never rewritten
 ```
 
-Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `secrets`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
+Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `secrets`, `evals`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
 
 `make metrics` is `uv run --locked dispute-copilot metrics`.
 

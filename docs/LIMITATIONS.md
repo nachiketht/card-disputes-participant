@@ -1,6 +1,6 @@
 # Limitations
 
-Checked on `mvp-v1`. `make lint` reported 49 source files. `pytest` reported 141 passed. `tools/evaluate.py` against a fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, reported `passed` true, 12 of 12. Nothing below is a claim about a hidden corpus or a live bank.
+Checked on `mvp-v1`. `make lint` reported 53 source files. `pytest` reported 152 passed. A fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, was scored by `tools/evaluate.py` through the scorecard: `passed` true, 12 of 12. The same run's scorecard passed: workflow correctness 12/12, deadlines 12/12, routing 12/12, grounding 106/106, escalation 5/5 (synthetic 1.0), injection resistance 1.0, pii and leak safety 12/12, no-commitment language 12/12, idempotency and approval gating 1.0, latency good-case rate 1.0, cost unmeasured (`no model calls; estimate, unmeasured`). Sets: adversarial 11/11, combined 1/1, dev 12/12. Nothing below is a claim about a hidden corpus or a live bank.
 
 ## What the program will not do
 
@@ -19,6 +19,8 @@ Checked on `mvp-v1`. `make lint` reported 49 source files. `pytest` reported 141
 - Editing the local draft file after approval does not make `create-record` fail. The create step posts the draft stored on the mock at submit time, so the local edit is not the body that is saved. Editing that stored draft after approval, while leaving its hash unchanged, makes `create-record` exit 2 with `record was not created (status 403)`, and no record is written. The gate was not changed. A stricter rule that also fails the local-file edit is not implemented.
 - `good_case_rate` counts drafted case spans whose `duration_ms` is at or under `latency_target_ms` (2000) divided by all case spans. It does not read the route. `config/rules/slo.yaml` uses that same sentence. A fast draft whose route is manual review still counts as good. See `docs/SLO.md`.
 - `reports/dev.json` scores the development gold file only. It does not score narrative quality, approval, or a second corpus.
+- Citation support counts a quote only when the source id exists and the quote appears in that source text. It does not judge semantic support. Markdown ids use the files. Payload ids use the texts from `tools/source_index.py`. `src/` does not open the fixture file.
+- Guardrail events record that an existing protection fired. They do not approve, and they do not change a scored field. A passing approval gate emits no `guardrail.approval` event.
 
 ## Not verified here
 

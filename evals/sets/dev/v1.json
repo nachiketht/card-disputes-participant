@@ -1,0 +1,7 @@
+{
+  "id": "dev",
+  "version": 1,
+  "kind": "official",
+  "data": "data/dev",
+  "gold": "feedback/dev_gold.json"
+}

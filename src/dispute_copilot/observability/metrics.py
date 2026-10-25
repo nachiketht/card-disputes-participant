@@ -95,6 +95,12 @@ def compute(records: list[dict], slo: dict | None = None) -> dict:
         "untrusted_instruction_cases": len(flagged),
         "injection_detected": len(injected),
         "gate_blocked": len(blocked),
+        "guardrails": {
+            "input": sum(1 for r in events if r.get("name") == "guardrail.input"),
+            "output": sum(1 for r in events if r.get("name") == "guardrail.output"),
+            "boundary": sum(1 for r in events if r.get("name") == "guardrail.boundary"),
+            "approval": sum(1 for r in events if r.get("name") == "guardrail.approval"),
+        },
         "routes": routed,
         "manual_review_rate": _ratio(routed.get(Routing.MANUAL_REVIEW.value, 0), len(drafted)),
     }

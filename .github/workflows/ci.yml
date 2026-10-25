@@ -80,6 +80,9 @@ jobs:
           uv run --locked python tools/check_fresh_report.py reports/dev.json "$REPORTS_DIR/dev.json"
           uv run --locked dispute-copilot dashboard --export "$REPORTS_DIR/status.html"
           kill "$(cat "${RUNNER_TEMP}/mock.pid")" || true
+          uv run --locked dispute-copilot evals \
+            --submission "$SUBMISSIONS_DIR/results.json" \
+            --report "$REPORTS_DIR/evals.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -90,6 +93,7 @@ jobs:
             ${{ runner.temp }}/reports/metrics.json
             ${{ runner.temp }}/reports/status.html
             ${{ runner.temp }}/reports/dev.json
+            ${{ runner.temp }}/reports/evals.json
 
   security:
     runs-on: ubuntu-latest

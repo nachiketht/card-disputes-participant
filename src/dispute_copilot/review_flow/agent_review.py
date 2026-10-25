@@ -34,6 +34,7 @@ from dispute_copilot.fields import (
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
+from dispute_copilot.guardrails import record
 from dispute_copilot.observability.cost import note_model_span
 from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import digest
@@ -166,6 +167,12 @@ def record_agent_review(
     trace_dir: Path | None = None,
 ) -> dict:
     checks = checklist(draft)
+    if checks.get("commitment_guard") is False:
+        record("output", reason="commitment")
+    if checks.get("redaction_clean") is False:
+        record("output", reason="redaction")
+    if checks.get("contract_valid") is False:
+        record("output", reason="contract")
     noted = injection_note(case_id, draft, trace_dir)
     mode = os.environ.get("FEATURE_LLM_REVIEW", "off").strip().lower()
     llm_review = None

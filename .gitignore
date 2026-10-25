@@ -11,6 +11,7 @@ submissions/.write.lock
 # Generated evaluation and runtime artifacts. Summary reports stay committable.
 reports/traces/
 reports/logs/
+reports/evals.json
 
 # Secrets and local environment
 .env

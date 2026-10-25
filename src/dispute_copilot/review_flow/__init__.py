@@ -12,6 +12,7 @@ from pathlib import Path
 from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
 from dispute_copilot.errors import CreateRejected
 from dispute_copilot.fields import CASE_ID
+from dispute_copilot.guardrails import record
 from dispute_copilot.observability.tracing import current
 from dispute_copilot.review_flow.gate import approval_gate
 from dispute_copilot.review_flow.handles import handle_path, read_handle, write_handle
@@ -92,6 +93,7 @@ def create_record(case_id: str, submissions: Path, case_system: Ledger) -> dict:
         reviewer_present=bool(review.reviewer),
     )
     if not passed:
+        record("approval", passed=False)
         raise CreateRejected(403, {"error": "approval_gate", "status": review.status})
     if digest(draft) != server_hash:
         tracer.event("review.hash_mismatch", level="warning", review=review.review_id)

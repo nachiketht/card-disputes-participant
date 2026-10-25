@@ -14,7 +14,7 @@ from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.contract import validate_draft
 from dispute_copilot.drafting import Drafter
-from dispute_copilot.errors import BreakerOpen, OutsideCheckpoint, ToolFailed
+from dispute_copilot.errors import BreakerOpen, ContractError, LeakError, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.evidence.untrusted import instruction_flags, payload_flags
 from dispute_copilot.fields import (
@@ -45,6 +45,7 @@ from dispute_copilot.rules.deadline import add_calendar_days
 from dispute_copilot.rules.documents import line_starting, parse_attachment, parse_followup, parse_intake
 from dispute_copilot.rules.questions import follow_up_questions
 from dispute_copilot.rules.routing import choose_routing
+from dispute_copilot.guardrails import record
 from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import citation_source_text
 
@@ -198,10 +199,18 @@ def prepare(
         NARRATIVE: narrative,
     }
     with tracer.span("contract.validate"):
-        draft = validate_draft(payload)
+        try:
+            draft = validate_draft(payload)
+        except (TypeError, ValueError, ContractError):
+            record("output", reason="contract")
+            raise
     with tracer.span("redaction.check"):
         rendered = json.dumps(draft, ensure_ascii=False)
-        Redactor().assert_clean(rendered)
+        try:
+            Redactor().assert_clean(rendered)
+        except LeakError:
+            record("output", reason="redaction")
+            raise
     return draft
 
 
@@ -227,6 +236,7 @@ def _flag_untrusted(source_id: str, text: object, flags: list[str] | None = None
             category=category,
             **{CASE_ID: tracer.case_id},
         )
+    record("input", source=source_id)
 
 
 def _find_case(cases: list[dict], case_id: str) -> dict:

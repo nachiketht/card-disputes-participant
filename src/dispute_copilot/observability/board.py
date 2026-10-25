@@ -251,6 +251,7 @@ def _security(events: list[dict], log_rows: list[dict]) -> dict:
     injections = []
     refusals = []
     masked = []
+    guards = []
     for item in events:
         name = str(item.get("name") or "")
         attrs = _attrs(item)
@@ -258,12 +259,14 @@ def _security(events: list[dict], log_rows: list[dict]) -> dict:
             injections.append({"case": _case(item), "run": _run(item), "event": name, "detail": _short(attrs)})
         if name == "review.gate" and attrs.get("passed") is False:
             refusals.append({"case": _case(item), "run": _run(item), "event": name, "detail": _short(attrs)})
+        if name.startswith("guardrail."):
+            guards.append({"case": _case(item), "run": _run(item), "event": name, "detail": _short(attrs)})
         if _has_mask(item):
             masked.append({"case": _case(item), "run": _run(item), "event": name})
     for item in log_rows:
         if _has_mask(item):
             masked.append({"case": _case(item), "run": _run(item), "event": str(item.get("name") or "log")})
-    return {"injections": injections, "refusals": refusals, "masked": _unique(masked)}
+    return {"injections": injections, "refusals": refusals, "masked": _unique(masked), "guards": guards}
 
 
 def _approval(records: list[dict], audit: list[dict]) -> list[dict]:
@@ -618,6 +621,7 @@ def _security_block(security: dict) -> str:
         _named_table("Flagged injections", security["injections"], with_detail=True)
         + _named_table("Gate refusals", security["refusals"], with_detail=True)
         + _named_table("Masked values", security["masked"], with_detail=False)
+        + _named_table("Guardrails", security.get("guards") or [], with_detail=True)
     )
 
 

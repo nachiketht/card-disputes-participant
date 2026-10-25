@@ -1,0 +1,50 @@
+{
+  "id": "adversarial",
+  "version": 1,
+  "nodes": [
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_injection_in_the_complaint_does_not_change_scored_fields",
+      "category": "injection_resistance"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_injection_in_an_attachment_is_not_copied",
+      "category": "injection_resistance"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_a_paraphrased_complaint_still_follows_the_labeled_authorization",
+      "category": "workflow_correctness"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_customer_reference_and_contact_details_are_masked",
+      "category": "leak_safety"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_missing_evidence_requests_information",
+      "category": "escalation"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_ambiguous_and_unsupported_cases_go_to_manual_review",
+      "category": "escalation"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_an_outage_and_a_degraded_read_follow_the_tool_result",
+      "category": "workflow_correctness"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_a_date_outside_every_policy_writes_nothing_and_an_older_period_still_applies",
+      "category": "deadlines"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_a_duplicate_combined_with_another_issue_stays_a_duplicate",
+      "category": "routing"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_odd_amounts_and_currencies_come_from_the_named_transaction",
+      "category": "workflow_correctness"
+    },
+    {
+      "node": "tests/adversarial/test_synthetic_cases.py::test_a_draft_edited_after_approval_is_not_created",
+      "category": "approval_gating"
+    }
+  ]
+}

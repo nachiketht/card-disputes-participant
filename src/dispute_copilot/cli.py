@@ -19,6 +19,7 @@ from dispute_copilot.adapters.corpus import FileCorpus
 from dispute_copilot.adapters.tools import HttpToolClient
 from dispute_copilot.config import Settings
 from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable, OutsideCheckpoint, ToolFailed
+from dispute_copilot.guardrails import loopback_host, record
 from dispute_copilot.fields import CASE_ID, CLASSIFICATION, DEADLINE, FACTS, POLICY_IDS, ROUTING
 from dispute_copilot.llm.factory import build_critic, build_drafter
 from dispute_copilot.observability import logs
@@ -39,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     label = getattr(args, "label", None)
     if isinstance(label, str) and label.strip():
         os.environ["RUN_LABEL"] = label.strip()[:64]
-    if args.command not in {"run-all", "metrics", "dashboard"} and not isinstance(case_id, str):
+    if args.command not in {"run-all", "metrics", "dashboard", "evals"} and not isinstance(case_id, str):
         print("case id is required", file=sys.stderr)
         return 1
     if not _safe_case(case_id if isinstance(case_id, str) else None):
@@ -59,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "dashboard":
         return _dashboard(args, settings)
+    if args.command == "evals":
+        return _evals(args, settings)
     try:
         corpus = FileCorpus(settings.data_dir)
     except (OSError, ValueError) as exc:
@@ -68,6 +71,10 @@ def main(argv: list[str] | None = None) -> int:
     with httpx.Client(base_url=settings.mock_base_url, timeout=policy.http_timeout_s, trust_env=False) as http:
         tools = HttpToolClient(http, policy=policy)
         ledger = HttpCaseSystem(http)
+        if not loopback_host(settings.mock_base_url):
+            record("boundary", reason="mock_url")
+            print("mock url must stay on loopback", file=sys.stderr)
+            return 1
         try:
             tools.health()
         except MockUnavailable as exc:
@@ -226,6 +233,21 @@ def _load_env_file() -> None:
                 os.environ[key] = value.strip().strip("'\"" )
 
 
+def _evals(args, settings: Settings) -> int:
+    from dispute_copilot.evals.scorecard import write_scorecard
+
+    submission = args.submission or (settings.submissions_dir / "results.json")
+    report = args.report or (settings.reports_dir / "evals.json")
+    code, text = write_scorecard(
+        submission=submission,
+        data_dir=settings.data_dir,
+        report_path=report,
+        trace_dir=settings.reports_dir / "traces",
+    )
+    print(text)
+    return code
+
+
 def _dashboard(args, settings: Settings) -> int:
     from dispute_copilot.observability.board import bind_page, load_view, render, write_html
 
@@ -282,6 +304,9 @@ def _parser() -> argparse.ArgumentParser:
     create = commands.add_parser("create-record", parents=[common])
     create.add_argument("case", metavar="CASE")
     commands.add_parser("metrics", parents=[common])
+    evals = commands.add_parser("evals", parents=[common])
+    evals.add_argument("--submission", type=Path, default=None)
+    evals.add_argument("--report", type=Path, default=None)
     dashboard = commands.add_parser("dashboard", parents=[common])
     dashboard.add_argument("--export", type=Path)
     dashboard.add_argument("--port", type=int, default=8754)

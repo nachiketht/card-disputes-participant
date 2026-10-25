@@ -90,6 +90,10 @@ class Tracer:
             self._stack.pop()
             self._finish(span)
 
+    def mark(self, **attrs) -> None:
+        if self._stack:
+            self._stack[-1].set(**attrs)
+
     def event(self, name: str, level: str = "info", **attrs) -> None:
         parent = self._stack[-1].span_id if self._stack else None
         record = self._base("event", name, parent)
