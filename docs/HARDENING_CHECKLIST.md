@@ -7,7 +7,7 @@ Card Dispute Copilot. Each brief failure situation (`BRIEF.md`) is mapped to the
 | Transaction service outage (persistent 503) | CARD-D07 | Retries with exponential backoff and capped jitter, then graceful degradation: amount and currency null, `manual_review`, outage cited | `adapters/tools.py:read_with_retries`, `reliability/retry.py:RetryPolicy`, `workflow.py:_named_facts` | `test_reliability.py::test_timeouts_on_every_attempt_fail_predictably_after_three`, `test_workflow.py::test_three_transaction_failures_keep_the_intake_and_leave_amount_empty` | `02_timeout_recovery.txt`, `04_scenarios.txt` |
 | Transient upstream timeout | CARD-D10 | Retry with backoff, recover on attempt 2 | same | `test_reliability.py::test_backoff_waits_between_attempts_and_recovers` | `02_timeout_recovery.txt` |
 | Request that hangs past the timeout | test double | `HTTP_TIMEOUT_S` per request; a timeout is a retryable attempt | `adapters/tools.py:HttpToolClient._read` | `test_reliability.py::test_a_real_http_timeout_is_retried_then_recovers` | `02_timeout_recovery.txt` (`scripts/fault_demo.py timeout`) |
-| Sustained outage across many cases | test double, and the mock with threshold 1 | Cross-case circuit breaker per dependency (ADR-30). Never cuts the 3 attempts inside a case | `reliability/breaker.py:CircuitBreaker` | `test_reliability.py::test_breaker_*`, `test_an_open_breaker_takes_the_existing_degradation_path` | `03_breaker.txt` |
+| Sustained outage across many cases | test double, and the mock with threshold 1 for the demo (default 3, `config/rules/breaker.yaml`) | Cross-case circuit breaker per dependency (ADR-30). Never cuts the 3 attempts inside a case | `reliability/breaker.py:CircuitBreaker` | `test_reliability.py::test_breaker_*`, `test_an_open_breaker_takes_the_existing_degradation_path` | `03_breaker.txt` |
 | Duplicate record creation (double submit, network retry) | CARD-D02 | Idempotency key from server state; records pre-check; mock replays the same key (200) and rejects a changed body (409) | `serialization.py:idempotency_key`, `review_flow/__init__.py:create_record` | `test_live_checkpoint.py` (second create posts nothing, one `record_created`) | `09_idempotency.txt` (after human approval) |
 | Duplicate intake / redelivered complaint | CARD-D09 (twin of D02) | Pre-check `GET /v1/records/CASE` resolves the logical case; no second POST. Mock returns 409 `duplicate_case` for a new key | `review_flow/__init__.py:create_record` | same | `09_idempotency.txt` |
 | Prompt injection in merchant metadata | CARD-D08 | Input/context separation: rules read only labeled lines and enum values; merchant prose is never copied; instruction-like text is flagged and logged as data | `rules/documents.py`, `workflow.py:_merchant`, `evidence/untrusted.py` | `test_security.py::test_injected_merchant_note_is_treated_as_data` | `05_injection.txt` |
@@ -22,14 +22,14 @@ Card Dispute Copilot. Each brief failure situation (`BRIEF.md`) is mapped to the
 
 | What | Where |
 |---|---|
-| Trace per case, spans for intake, rules, each tool call and attempt, backoff, breaker, policy, routing, citations, ledger, contract, redaction, review gate, record create | `observability/tracing.py`; files `reports/traces/<case>.jsonl` and `<case>.<command>.jsonl` |
+| Trace per case, spans for intake, rules, each tool call and attempt, backoff, breaker, policy, routing, citations, ledger, contract, redaction, review gate, record create, `injection.scan` (agent review records `injection_note`, null when nothing is flagged) | `observability/tracing.py`; files `reports/traces/<case>.jsonl` and `<case>.<command>.jsonl` |
 | JSON-lines log, one line per span or event | `observability/logs.py`; `reports/logs/run.jsonl` (`LOG_STDERR=1` also prints to stderr) |
 | Metrics tied to the SLO | `observability/metrics.py`; `reports/metrics.json` |
 | Alert rules | `config/rules/slo.yaml` |
 
 ## Metrics and alerts
 
-Metrics: `good_case_rate` (the SLO), `valid_contract_rate`, `case_latency_ms` (median, p95, max), `tool_exhausted_rate`, `tool_retries`, `breaker_opens`, `breaker_skips`, `manual_review_rate`, `untrusted_instruction_cases`, `gate_blocked`, `error_budget`.
+Metrics: `good_case_rate` (the SLO), `valid_contract_rate`, `case_latency_ms` (median, p95, max), `tool_exhausted_rate`, `tool_retries`, `breaker_opens`, `breaker_skips`, `manual_review_rate`, `untrusted_instruction_cases`, `injection_detected`, `gate_blocked`, `error_budget`.
 
 | Alert | Condition | Severity |
 |---|---|---|
