@@ -11,6 +11,8 @@ COPY config ./config
 COPY prompts ./prompts
 
 RUN pip install --no-cache-dir .
+RUN ln -s /app/config /usr/local/lib/python3.12/config \
+ && ln -s /app/prompts /usr/local/lib/python3.12/prompts
 
 ENV PYTHONUNBUFFERED=1 \
     MOCK_BASE_URL=http://127.0.0.1:8765 \
