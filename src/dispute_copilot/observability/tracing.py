@@ -118,6 +118,7 @@ class Tracer:
             "kind": kind,
             "name": name,
             "parent_id": parent,
+            "label": _run_label(),
         }
 
     def _emit(self, record: dict) -> None:
@@ -165,6 +166,11 @@ def case_trace(case_id: str, run_id: str, trace_dir: Path | None, stage: str = "
     finally:
         _current.reset(token)
         tracer.write()
+
+
+def _run_label() -> str:
+    raw = os.environ.get("RUN_LABEL", "").strip()
+    return raw[:64] if raw else "unlabeled"
 
 
 def _now() -> str:

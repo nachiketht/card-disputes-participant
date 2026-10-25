@@ -140,11 +140,18 @@ The repo still has `Dockerfile`, `docker-compose.yml`, and `deploy/azure/contain
 Cost cells in `docs/CLOUD_BREAKDOWN.md` are unmeasured.
 Status: names above are the running deployment as supplied. This session did not sign in to `<subscription>` and did not query the app. `docker` was not installed here, so the image was not built and compose was not started.
 
+# ADR-34. Read-only status page on loopback
+
+Context: traces, JSON logs, metrics, and audit events are already files. An operator needs one place to see latency, cost, injections, and review state. Sending those files to a hosted metrics product would copy case data off the machine and add a dependency this checkpoint does not need.
+Decision: `dispute-copilot dashboard` builds one HTML page from `REPORTS_DIR`. `--export PATH` writes that file and exits. Without it, the process serves the page on `127.0.0.1` only. There is no host flag. The default port is 8754. The handler answers GET `/` and GET `/health`. POST, PUT, PATCH, and DELETE return 405. The page does not approve, reject, reset, or post. Token prices come from `config/rules/cost.yaml`. A missing price is the words `not configured`. Compute cost is `estimate, unmeasured` unless that file contains a measured `usd` figure. `--label` or `RUN_LABEL` tags a run so local, Azure, and AWS rows can be compared. A row with no traces is `unmeasured`. The same redactor used for logs runs on the page before it is written. `LOG_STDOUT=1` copies JSON log lines to stdout. The stdio server does not do that, because stdout is its protocol. On the container, `REPORTS_DIR` is `/submissions/reports`, so traces sit on the same temporary disk as the drafts. Copy them out with `az containerapp exec`. Do not add ingress for this page.
+Alternatives: a hosted metrics product (copies case data); binding every interface (the mock rule is loopback, and this page is the same kind of local view).
+Status: implemented. Code: `observability/board.py`, `observability/cost.py`, `dispute-copilot dashboard`.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. An image build was not run from this workspace. AWS ECS is not deployed.
+- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. An image build was not run from this workspace. AWS ECS is not deployed.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note

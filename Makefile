@@ -1,4 +1,4 @@
-.PHONY: sync lint test check daily mock regen-gold metrics week10 week10-duplicate mcp
+.PHONY: sync lint test check daily mock regen-gold metrics dashboard week10 week10-duplicate mcp
 
 sync:
 	uv sync --locked
@@ -26,6 +26,9 @@ regen-gold:
 
 metrics:
 	uv run --locked dispute-copilot metrics
+
+dashboard:
+	uv run --locked dispute-copilot dashboard
 
 week10:
 	scripts/week10_evidence.sh

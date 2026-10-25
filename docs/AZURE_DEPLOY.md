@@ -322,6 +322,22 @@ az containerapp exec \
 
 Use the `review_id` from submit in the approve command. Approve runs in `mock` because that container owns the SQLite file.
 
+## Pull traces without opening ingress
+
+Drafts and traces are cleared when the replica restarts. The app container sets `REPORTS_DIR=/submissions/reports`, next to the drafts on the temporary disk. The status page does not listen on a public address. Build the HTML inside the app container and copy the file out:
+
+```sh
+az containerapp exec \
+  --name card-disputes \
+  --resource-group card-disputes-rg \
+  --container app \
+  --command "dispute-copilot dashboard --export /submissions/reports/status.html"
+```
+
+If that `az` build only opens a shell, run the same export at the prompt, then `cat /submissions/reports/status.html` and `cat /submissions/reports/logs/run.jsonl`. Open the HTML on your machine. Do not add an ingress rule for port 8754.
+
+`LOG_STDOUT=1 dispute-copilot run-all --label azure` writes the same JSON lines to that process's stdout. The replica command is still `sleep infinity`, so Log Analytics shows that process, not an exec session. Use the file copy above until the copilot itself is the process whose stdout the platform collects. Leave `LOG_STDOUT` unset for the stdio context server.
+
 ## What was left out on purpose
 
 - No public ingress and no load balancer. The mock stays on loopback inside the replica.

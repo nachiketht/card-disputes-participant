@@ -1,0 +1,6 @@
+# Per-1,000-token prices are estimates. Add a model only when the figure is known.
+# A model that is not listed is shown as "not configured". Do not guess a number.
+# Compute stays "estimate, unmeasured" until a measured usd figure is entered.
+models: {}
+compute:
+  status: "estimate, unmeasured"

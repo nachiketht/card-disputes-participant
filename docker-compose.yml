@@ -31,6 +31,7 @@ services:
     environment:
       DATA_DIR: /data
       SUBMISSIONS_DIR: /submissions
+      REPORTS_DIR: /submissions/reports
       MOCK_BASE_URL: http://127.0.0.1:8765
     volumes:
       - ./data/dev/documents:/data/documents:ro

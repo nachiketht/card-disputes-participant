@@ -31,7 +31,7 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(safe_line, ensure_ascii=False, sort_keys=True)
 
 
-def configure(log_file: Path | None, to_stderr: bool = False) -> None:
+def configure(log_file: Path | None, to_stderr: bool = False, to_stdout: bool = False) -> None:
     LOGGER.handlers.clear()
     LOGGER.setLevel(logging.INFO)
     LOGGER.propagate = False
@@ -43,6 +43,10 @@ def configure(log_file: Path | None, to_stderr: bool = False) -> None:
         LOGGER.addHandler(handler)
     if to_stderr:
         stream = logging.StreamHandler(sys.stderr)
+        stream.setFormatter(formatter)
+        LOGGER.addHandler(stream)
+    if to_stdout:
+        stream = logging.StreamHandler(sys.stdout)
         stream.setFormatter(formatter)
         LOGGER.addHandler(stream)
     if not LOGGER.handlers:

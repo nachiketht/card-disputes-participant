@@ -15,10 +15,12 @@ from dispute_copilot.fields import (
     FACT_TRANSACTION_ID,
     ROUTING,
 )
-from dispute_copilot.llm.base import LLMProvider
+from dispute_copilot.llm.base import LLMError, LLMProvider
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.null import TEMPLATE_CUSTOMER_MESSAGE, NullProvider
 from dispute_copilot.llm.prompts import PromptRegistry, RenderedPrompt
+from dispute_copilot.observability.cost import note_model_span
+from dispute_copilot.observability.tracing import current
 
 _DRAFT_MARK = "Draft for human review:"
 
@@ -87,16 +89,24 @@ class Drafter:
         )
 
     def _complete(self, rendered: RenderedPrompt) -> str:
-        first = self.primary.complete(system=rendered.system, user=rendered.user)
-        if first.text.strip():
-            return first.text.strip()
-        second = self.primary.complete(
-            system=rendered.system,
-            user=rendered.user + "\nReply with the customer message only.",
+        first = self._complete_once(rendered.system, rendered.user)
+        if first.strip():
+            return first.strip()
+        second = self._complete_once(
+            rendered.system,
+            rendered.user + "\nReply with the customer message only.",
         )
-        if not second.text.strip():
+        if not second.strip():
             raise LLMError("empty completion")
-        return second.text.strip()
+        return second.strip()
+
+    def _complete_once(self, system: str, user: str) -> str:
+        if getattr(self.primary, "model", "") == "template":
+            return self.primary.complete(system=system, user=user).text
+        with current().span("model.call") as span:
+            completion = self.primary.complete(system=system, user=user)
+            note_model_span(span, completion)
+            return completion.text
 
     def _templates(self, rendered: RenderedPrompt | None) -> DraftedMessage:
         return DraftedMessage(

@@ -1,6 +1,6 @@
 # Limitations
 
-Checked on `mvp-v1`. `make lint` reported 47 source files. `pytest` reported 129 passed. `tools/evaluate.py` against a fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, reported `passed` true, 12 of 12. Nothing below is a claim about a hidden corpus or a live bank.
+Checked on `mvp-v1`. `make lint` reported 49 source files. `pytest` reported 141 passed. `tools/evaluate.py` against a fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, reported `passed` true, 12 of 12. Nothing below is a claim about a hidden corpus or a live bank.
 
 ## What the program will not do
 
@@ -9,6 +9,7 @@ Checked on `mvp-v1`. `make lint` reported 47 source files. `pytest` reported 129
 - Scored fields (classification, routing, facts, deadline, missing information, policy ids) come from the rules. A model is off unless `LLM_PROVIDER` and `FEATURE_LLM_REVIEW` are set. In `block` mode the critic can only fail the checklist. It is not given the scored fields to rewrite. This session did not re-run `FEATURE_LLM_REVIEW=block`; that refusal is what the checklist code does.
 - The mock listen address in `create_server` is `127.0.0.1`. Health was requested on that address. `ss` was not installed here, so a second look at the socket table was not taken.
 - `src/dispute_copilot/mcp_server.py` speaks stdio only. It does not take a port. A session test compared listening ports in `/proc/net/tcp` before and after that process started, and the set did not change. The call list has no approve, reject, or reset operation, and the module does not read the fixture file. The `mcp` library is an optional extra. Without it, `uv sync --locked` still installs the copilot and the server module exits 1. Complaint text and evidence quotes returned by `get_draft` are marked untrusted data. A passing checklist through `agent_review` does not approve the case. `create_record` still stops on the existing gate. The saved draft is not a resource URI, because that library attaches the requested URI to a resource error.
+- `dispute-copilot dashboard` is read-only. Served, it binds `127.0.0.1` and answers GET. POST, PUT, PATCH, and DELETE return 405. `--export` writes one HTML file and does not listen. The page does not approve. Token prices in `config/rules/cost.yaml` are empty, so model cost is `not configured` until a real rate is entered. Compute cost is `estimate, unmeasured` unless `compute.usd` is set. Human review state is `unmeasured` without `audit.json`. Deployment rows for `local`, `azure`, and `aws` stay `unmeasured` until a run is tagged with `--label` or `RUN_LABEL`. An export of `evidence/week10/reports` was opened in headless Chrome. The log filter for `CARD-D08` left 16 of 189 lines visible. The page was not served from the Azure app.
 
 ## Known gaps
 

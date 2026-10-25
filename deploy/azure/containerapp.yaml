@@ -48,6 +48,8 @@ properties:
             value: /data
           - name: SUBMISSIONS_DIR
             value: /submissions
+          - name: REPORTS_DIR
+            value: /submissions/reports
           - name: MOCK_BASE_URL
             value: http://127.0.0.1:8765
           - name: FEATURE_LLM_REVIEW

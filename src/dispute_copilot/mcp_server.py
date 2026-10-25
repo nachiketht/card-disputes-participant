@@ -405,6 +405,7 @@ def main() -> int:
         return 1
     _load_env_file()
     settings = Settings.from_sources(None, None, None)
+    # Stdout is the protocol stream, so LOG_STDOUT is not applied here.
     logs.configure(settings.reports_dir / "logs" / "mcp.jsonl", os.environ.get("LOG_STDERR", "") == "1")
     import anyio
 

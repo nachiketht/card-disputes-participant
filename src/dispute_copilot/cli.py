@@ -36,20 +36,29 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     case_id = getattr(args, "case", None)
-    if args.command not in {"run-all", "metrics"} and not isinstance(case_id, str):
+    label = getattr(args, "label", None)
+    if isinstance(label, str) and label.strip():
+        os.environ["RUN_LABEL"] = label.strip()[:64]
+    if args.command not in {"run-all", "metrics", "dashboard"} and not isinstance(case_id, str):
         print("case id is required", file=sys.stderr)
         return 1
     if not _safe_case(case_id if isinstance(case_id, str) else None):
         print("case id must be a single path segment", file=sys.stderr)
         return 1
     settings = Settings.from_sources(args.mock_url, args.data_dir, args.submissions)
-    logs.configure(settings.reports_dir / "logs" / "run.jsonl", os.environ.get("LOG_STDERR", "") == "1")
+    logs.configure(
+        settings.reports_dir / "logs" / "run.jsonl",
+        os.environ.get("LOG_STDERR", "") == "1",
+        os.environ.get("LOG_STDOUT", "") == "1",
+    )
     run_id = new_run_id()
     trace_dir = settings.reports_dir / "traces"
     if args.command == "metrics":
         report = write_report(settings.reports_dir / "metrics.json", read_traces(trace_dir))
         print(json.dumps({"metrics": report["metrics"], "alerts_fired": report["alerts_fired"]}, indent=2))
         return 0
+    if args.command == "dashboard":
+        return _dashboard(args, settings)
     try:
         corpus = FileCorpus(settings.data_dir)
     except (OSError, ValueError) as exc:
@@ -217,6 +226,33 @@ def _load_env_file() -> None:
                 os.environ[key] = value.strip().strip("'\"" )
 
 
+def _dashboard(args, settings: Settings) -> int:
+    from dispute_copilot.observability.board import bind_page, load_view, render, write_html
+
+    if args.export is not None:
+        write_html(settings.reports_dir, args.export)
+        print(args.export)
+        return 0
+    port = args.port
+    if not isinstance(port, int) or port < 1 or port > 65535:
+        print("port must be from 1 to 65535", file=sys.stderr)
+        return 1
+    try:
+        server = bind_page(render(load_view(settings.reports_dir)), port)
+    except OSError as exc:
+        print(f"could not listen on 127.0.0.1:{port}: {exc}", file=sys.stderr)
+        return 1
+    host, bound = server.server_address[:2]
+    print(f"http://{host}:{bound}", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        return 0
+    finally:
+        server.server_close()
+    return 0
+
+
 def _safe_case(case_id: str | None) -> bool:
     if case_id is None:
         return True
@@ -230,6 +266,7 @@ def _parser() -> argparse.ArgumentParser:
     common.add_argument("--mock-url", default=argparse.SUPPRESS)
     common.add_argument("--data-dir", type=Path, default=argparse.SUPPRESS)
     common.add_argument("--submissions", type=Path, default=argparse.SUPPRESS)
+    common.add_argument("--label", default=None, help="tag traces from this run; RUN_LABEL does the same")
     parser = argparse.ArgumentParser(prog="dispute-copilot")
     parser.add_argument("--mock-url", default=os.environ.get("MOCK_BASE_URL"))
     parser.add_argument("--data-dir", type=Path, default=None)
@@ -245,6 +282,9 @@ def _parser() -> argparse.ArgumentParser:
     create = commands.add_parser("create-record", parents=[common])
     create.add_argument("case", metavar="CASE")
     commands.add_parser("metrics", parents=[common])
+    dashboard = commands.add_parser("dashboard", parents=[common])
+    dashboard.add_argument("--export", type=Path)
+    dashboard.add_argument("--port", type=int, default=8754)
     return parser
 
 

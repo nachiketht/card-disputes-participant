@@ -34,6 +34,7 @@ from dispute_copilot.fields import (
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
+from dispute_copilot.observability.cost import note_model_span
 from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import digest
 
@@ -203,7 +204,9 @@ def _ask_critic(draft: dict, critic) -> tuple[str, str]:
         return "block", UNUSABLE_REASON
     try:
         system, user = _critic_messages(draft)
-        completion = critic.complete(system=system, user=user)
+        with current().span("model.call") as span:
+            completion = critic.complete(system=system, user=user)
+            note_model_span(span, completion)
     except (LLMError, OSError, ValueError, TypeError):
         return "block", UNUSABLE_REASON
     text = completion.text if isinstance(getattr(completion, "text", None), str) else ""

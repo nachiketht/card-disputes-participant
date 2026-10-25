@@ -17,6 +17,27 @@ uv run --locked dispute-copilot metrics     # recompute metrics and alerts from 
 
 `submit-review` before a passing `agent-review` for that draft exits 2 and does not post. Approval is the human command at the bottom of this page. The app never approves. Command order and exits are in `docs/COMMANDS.md`.
 
+Open the status page after a run. It is read-only and, when served, binds `127.0.0.1` only:
+
+```sh
+uv run --locked dispute-copilot dashboard --export reports/status.html
+uv run --locked dispute-copilot dashboard
+```
+
+The first command writes one HTML file. The second serves `http://127.0.0.1:8754`. Neither command approves a case. Tag a run with `--label local` or `--label azure` before comparing rows. A label with no traces stays unmeasured.
+
+On the Azure app the drafts and traces are on temporary storage and a restart clears them. The app container sets `REPORTS_DIR=/submissions/reports`. Copy the files out with exec. Do not add a public ingress for the page. `az containerapp exec` is interactive in some CLI versions; run the export inside that shell, then copy the HTML back:
+
+```sh
+az containerapp exec \
+  --name card-disputes \
+  --resource-group card-disputes-rg \
+  --container app \
+  --command "dispute-copilot dashboard --export /submissions/reports/status.html"
+```
+
+Then, still in the app container, print the file you need (`cat /submissions/reports/status.html` or `cat /submissions/reports/logs/run.jsonl`). `LOG_STDOUT=1` in front of a copilot command also writes the JSON log lines to that process's stdout. The container command is `sleep infinity`, so the platform log stream for the replica does not include an exec session. The file copy is the path that works today. Do not set `LOG_STDOUT` on the stdio context server.
+
 Reset before an independent run (stop the mock first; never reset mid-review):
 
 ```sh

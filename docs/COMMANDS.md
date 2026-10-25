@@ -395,11 +395,11 @@ uv run --locked dispute-copilot \
 ```text
 usage: dispute-copilot [-h] [--mock-url MOCK_URL] [--data-dir DATA_DIR]
                        [--submissions SUBMISSIONS]
-                       {run,run-all,agent-review,submit-review,create-record,metrics}
+                       {run,run-all,agent-review,submit-review,create-record,metrics,dashboard}
                        ...
 ```
 
-Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--submissions`, `-h`.
+Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--submissions`, `--label`, `-h`.
 
 | Command | Arguments | Mock required | Exit 0 | Other exits |
 |---|---|---|---|---|
@@ -409,6 +409,7 @@ Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--
 | `submit-review CASE` | one case id | yes | review posted | 2 refused or no draft |
 | `create-record CASE` | one case id | yes | created, or existing row reported | 2 gate or missing handle |
 | `metrics` | none | no | report printed | |
+| `dashboard` | `--export PATH`, `--port` (default 8754) | no | file written, or page served until interrupted | 1 if the port will not bind |
 
 Missing command or missing `CASE` is argparse exit 2. An unknown command (`bakeoff`, for example) is exit 2: `invalid choice`.
 
@@ -456,7 +457,34 @@ Per-case checks: `classification`, `routing`, `policy_selection`, `facts`, `miss
 
 ## Observability
 
-Defaults: traces in `reports/traces/`, logs in `reports/logs/run.jsonl`, metrics in `reports/metrics.json`. `REPORTS_DIR` moves all three. `LOG_STDERR=1` copies log lines to stderr. Times in traces are UTC.
+Defaults: traces in `reports/traces/`, logs in `reports/logs/run.jsonl`, metrics in `reports/metrics.json`. `REPORTS_DIR` moves all three. `LOG_STDERR=1` copies log lines to stderr. `LOG_STDOUT=1` copies the same JSON lines to stdout, for a platform log collector. Times in traces are UTC. `LOG_STDOUT` is not applied to the stdio context server, because that process already uses stdout for its protocol.
+
+`--label NAME` on a command (or `RUN_LABEL`) stores `label` on each trace record. The status page compares `local`, `azure`, and `aws`. A label with no traces is unmeasured.
+
+```sh
+uv run --locked dispute-copilot run-all --label local
+LOG_STDOUT=1 uv run --locked dispute-copilot run-all --label azure
+```
+
+### Status page
+
+`dispute-copilot dashboard` reads traces, `logs/run.jsonl`, `logs/mcp.jsonl`, and `audit.json` when that file is present. It does not contact the mock. With `--export out.html` it writes one HTML file and exits. Without `--export` it serves that page on `127.0.0.1` only. The default port is `8754`. There is no host flag. GET `/` and GET `/health` are the only successful routes. POST, PUT, PATCH, and DELETE return 405. The page does not approve, reject, reset, or post.
+
+```sh
+uv run --locked dispute-copilot dashboard --export reports/status.html
+uv run --locked dispute-copilot dashboard
+# http://127.0.0.1:8754
+```
+
+`make dashboard` is the serve form. Open the HTML file in a browser when you used `--export`.
+
+The page has eight sections: run overview (pass or fail per case against the latency target, counts, SLO, alerts), a per-case span timeline, latency (p50, p95, max per step and per case), cost (per model call, per case, per run), a log table with filters, security (injections, masked values, gate refusals), approval state, and a deployment comparison. A pass on the overview means the case was written inside the latency target. It is not a gold score and it is not an approval.
+
+Token prices live in `config/rules/cost.yaml` as per-1,000-token estimates. The shipped file has no model prices. A call whose model is missing from that file is shown as `not configured`, not as a number. Compute cost is `estimate, unmeasured` unless `compute.usd` is filled with a measured figure. The page runs the same redactor as the logs before it is written.
+
+Human review state stays `unmeasured` unless `REPORTS_DIR/audit.json` is a JSON list of audit rows (`event`, `case_id`). Copy that list from `tools/runtime.py audit` if you want the column filled. The page only reads it.
+
+Pulling the same files from the Azure app, without opening ingress, is in `docs/AZURE_DEPLOY.md` and `docs/RUNBOOK.md`.
 
 ```sh
 uv run --locked dispute-copilot metrics
