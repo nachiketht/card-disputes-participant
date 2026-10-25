@@ -1,5 +1,5 @@
 # Default settings: full run, evaluation, and the three required scenarios
-# 2026-10-25 16:07:49 EDT  commit 941c128  branch mvp-v1
+# 2026-10-25 22:31:35 UTC  commit a91535d  branch cursor/docs-evidence-refresh-0c5f
 
 $ dispute-copilot run-all
   CARD-D01: unauthorized           ready_for_review     amount=117
@@ -15,7 +15,7 @@ $ dispute-copilot run-all
   CARD-D11: unauthorized           ready_for_review     amount=287
   CARD-D12: service_not_received   request_information  amount=304
   written=12 not_written=[]
-  run_id=run-eac7cd363e alerts_fired=[]
+  run_id=run-7823aca2fb alerts_fired=[]
 
 $ python tools/evaluate.py --data data/dev --gold feedback/dev_gold.json --submission .state/week10/submissions/results.json --report .state/week10/dev.json
 [exit 0]
@@ -38,80 +38,82 @@ Mock audit: tool attempts per case and tool (procedure: D07 transactions 3, D10 
   CARD-D10 transactions: attempts=2 statuses=[503, 200]
 
 == Scenario 1: normal case CARD-D01 (unauthorized, ready_for_review) ==
-# CARD-D01.jsonl  (times UTC)  trace_id=d93b862c00f24574b0414abb121e19bf  run_id=run-eac7cd363e  records=15
-20:07:49.879 span  intake.parse                   0.03 ms ok    labeled_lines=7 source="CARD-D01-INTAKE"
-20:07:49.879 span  documents.followups            0.02 ms ok    attachment_status=null followups=0
-20:07:49.879 span  rules.classify                 0.02 ms ok    conflict=false decision="unauthorized" missing_ids=[]
-20:07:49.883 span  tool.attempt                   3.96 ms ok    attempt=1 dependency="transactions" http_status=200 timed_out=false
-20:07:49.883 span  tool.call                      4.07 ms ok    attempts=1 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
-20:07:49.888 span  tool.attempt                   4.46 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
-20:07:49.888 span  tool.call                      4.57 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
-20:07:49.888 span  policy.select                  0.06 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-01"
-20:07:49.888 span  rules.routing                  0.02 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
-20:07:49.888 span  citations.build                0.04 ms ok    count=8
-20:07:49.889 span  ledger.lookup                  1.48 ms ok    found=false http_status=404
-20:07:49.890 span  contract.validate              0.09 ms ok
-20:07:49.890 span  redaction.check                0.03 ms ok
-20:07:49.890 span  draft.write                    0.56 ms ok
-20:07:49.890 span  case                          11.81 ms ok    breakers=["closed", "closed"] contract_valid=true decision="unauthorized" outcome="drafted" route="ready_for_review"
+# CARD-D01.jsonl  (times UTC)  trace_id=eb591def3a154ed5bc49a2c85c0f3164  run_id=run-7823aca2fb  records=15
+22:31:35.250 span  intake.parse                   0.04 ms ok    labeled_lines=7 source="CARD-D01-INTAKE"
+22:31:35.250 span  documents.followups            0.04 ms ok    attachment_status=null followups=0
+22:31:35.251 span  rules.classify                 0.03 ms ok    conflict=false decision="unauthorized" missing_ids=[]
+22:31:35.255 span  tool.attempt                   3.81 ms ok    attempt=1 dependency="transactions" http_status=200 timed_out=false
+22:31:35.255 span  tool.call                      4.14 ms ok    attempts=1 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
+22:31:35.259 span  tool.attempt                   3.46 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
+22:31:35.259 span  tool.call                      3.79 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+22:31:35.259 span  policy.select                  0.07 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-01"
+22:31:35.260 span  rules.routing                  0.02 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
+22:31:35.260 span  citations.build                0.18 ms ok    count=8 quotes_withheld=0
+22:31:35.262 span  ledger.lookup                  1.66 ms ok    found=false http_status=404
+22:31:35.262 span  contract.validate              0.08 ms ok
+22:31:35.263 span  redaction.check                0.28 ms ok
+22:31:35.263 span  draft.write                    0.63 ms ok
+22:31:35.264 span  case                          13.79 ms ok    breakers=["closed", "closed"] contract_valid=true decision="unauthorized" outcome="drafted" route="ready_for_review"
 
 == Scenario 2: ambiguous case CARD-D05 (conflicting statements, escalated to manual_review) ==
-# CARD-D05.jsonl  (times UTC)  trace_id=59b337ea86c84e43b2a4bc9831516b1d  run_id=run-eac7cd363e  records=15
-20:07:49.916 span  intake.parse                   0.02 ms ok    labeled_lines=7 source="CARD-D05-INTAKE"
-20:07:49.916 span  documents.followups            0.02 ms ok    attachment_status=null followups=1
-20:07:49.916 span  rules.classify                 0.02 ms ok    conflict=true decision="ambiguous" missing_ids=[]
-20:07:49.919 span  tool.attempt                   2.15 ms ok    attempt=1 dependency="transactions" http_status=200 timed_out=false
-20:07:49.919 span  tool.call                      2.23 ms ok    attempts=1 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
-20:07:49.922 span  tool.attempt                   3.54 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
-20:07:49.922 span  tool.call                      3.65 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
-20:07:49.922 span  policy.select                  0.05 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-02"
-20:07:49.923 span  rules.routing                  0.01 ms ok    deadline_set=false route="manual_review" transactions_unavailable=false
-20:07:49.923 span  citations.build                0.05 ms ok    count=9
-20:07:49.924 span  ledger.lookup                  1.33 ms ok    found=false http_status=404
-20:07:49.924 span  contract.validate              0.07 ms ok
-20:07:49.924 span  redaction.check                0.03 ms ok
-20:07:49.925 span  draft.write                    0.72 ms ok
-20:07:49.925 span  case                           8.89 ms ok    breakers=["closed", "closed"] contract_valid=true decision="ambiguous" outcome="drafted" route="manual_review"
+# CARD-D05.jsonl  (times UTC)  trace_id=e274421629e24c07bca958d529091a75  run_id=run-7823aca2fb  records=15
+22:31:35.303 span  intake.parse                   0.03 ms ok    labeled_lines=7 source="CARD-D05-INTAKE"
+22:31:35.304 span  documents.followups            0.05 ms ok    attachment_status=null followups=1
+22:31:35.304 span  rules.classify                 0.03 ms ok    conflict=true decision="ambiguous" missing_ids=[]
+22:31:35.308 span  tool.attempt                   3.73 ms ok    attempt=1 dependency="transactions" http_status=200 timed_out=false
+22:31:35.308 span  tool.call                      4.00 ms ok    attempts=1 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
+22:31:35.311 span  tool.attempt                   3.16 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
+22:31:35.312 span  tool.call                      3.46 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+22:31:35.312 span  policy.select                  0.06 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-02"
+22:31:35.312 span  rules.routing                  0.02 ms ok    deadline_set=false route="manual_review" transactions_unavailable=false
+22:31:35.313 span  citations.build                0.17 ms ok    count=9 quotes_withheld=0
+22:31:35.314 span  ledger.lookup                  1.26 ms ok    found=false http_status=404
+22:31:35.314 span  contract.validate              0.05 ms ok
+22:31:35.315 span  redaction.check                0.28 ms ok
+22:31:35.316 span  draft.write                    0.86 ms ok
+22:31:35.316 span  case                          12.80 ms ok    breakers=["closed", "closed"] contract_valid=true decision="ambiguous" outcome="drafted" route="manual_review"
 
 == Scenario 3a: failure case CARD-D07 (transactions outage, degraded to manual_review) ==
-# CARD-D07.jsonl  (times UTC)  trace_id=8119ccb0c552457788553f8a699e5454  run_id=run-eac7cd363e  records=21
-20:07:49.935 span  intake.parse                   0.03 ms ok    labeled_lines=7 source="CARD-D07-INTAKE"
-20:07:49.935 span  documents.followups            0.02 ms ok    attachment_status=null followups=0
-20:07:49.935 span  rules.classify                 0.02 ms ok    conflict=false decision="unauthorized" missing_ids=[]
-20:07:49.939 span  tool.attempt                   3.38 ms ok    attempt=1 dependency="transactions" http_status=503 timed_out=false
-20:07:49.939 event retry.backoff                          info  attempt=1 backoff_ms=37.5 dependency="transactions" http_status=503 timed_out=false
-20:07:49.982 span  tool.attempt                   5.78 ms ok    attempt=2 dependency="transactions" http_status=503 timed_out=false
-20:07:49.982 event retry.backoff                          info  attempt=2 backoff_ms=84.7 dependency="transactions" http_status=503 timed_out=false
-20:07:50.073 span  tool.attempt                   5.79 ms ok    attempt=3 dependency="transactions" http_status=503 timed_out=false
-20:07:50.073 event tool.exhausted                         warning attempts=3 dependency="transactions"
-20:07:50.073 span  tool.call                    138.21 ms error attempts=3 breaker_state="closed" dependency="transactions" http_status=503 max_attempts=3 outcome="exhausted"
-20:07:50.079 span  tool.attempt                   5.67 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
-20:07:50.079 span  tool.call                      5.78 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
-20:07:50.079 span  policy.select                  0.07 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-01"
-20:07:50.079 span  rules.routing                  0.02 ms ok    deadline_set=true route="manual_review" transactions_unavailable=true
-20:07:50.079 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"
-20:07:50.080 span  citations.build                0.04 ms ok    count=8
-20:07:50.081 span  ledger.lookup                  1.61 ms ok    found=false http_status=404
-20:07:50.081 span  contract.validate              0.10 ms ok
-20:07:50.081 span  redaction.check                0.03 ms ok
-20:07:50.082 span  draft.write                    0.80 ms ok
-20:07:50.082 span  case                         147.41 ms ok    breakers=["closed", "closed"] contract_valid=true decision="unauthorized" outcome="drafted" route="manual_review"
+# CARD-D07.jsonl  (times UTC)  trace_id=0f16518cf7df4a5da9e3a41cdc9f6212  run_id=run-7823aca2fb  records=21
+22:31:35.328 span  intake.parse                   0.03 ms ok    labeled_lines=7 source="CARD-D07-INTAKE"
+22:31:35.328 span  documents.followups            0.04 ms ok    attachment_status=null followups=0
+22:31:35.328 span  rules.classify                 0.02 ms ok    conflict=false decision="unauthorized" missing_ids=[]
+22:31:35.331 span  tool.attempt                   2.82 ms ok    attempt=1 dependency="transactions" http_status=503 timed_out=false
+22:31:35.332 event retry.backoff                          info  attempt=1 backoff_ms=34.0 dependency="transactions" http_status=503 timed_out=false
+22:31:35.370 span  tool.attempt                   3.93 ms ok    attempt=2 dependency="transactions" http_status=503 timed_out=false
+22:31:35.370 event retry.backoff                          info  attempt=2 backoff_ms=99.6 dependency="transactions" http_status=503 timed_out=false
+22:31:35.475 span  tool.attempt                   4.60 ms ok    attempt=3 dependency="transactions" http_status=503 timed_out=false
+22:31:35.475 event tool.exhausted                         warning attempts=3 dependency="transactions"
+22:31:35.475 span  tool.call                    146.68 ms error attempts=3 breaker_state="closed" dependency="transactions" http_status=503 max_attempts=3 outcome="exhausted"
+22:31:35.479 span  tool.attempt                   3.53 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
+22:31:35.479 span  tool.call                      3.82 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+22:31:35.480 span  policy.select                  0.06 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-01"
+22:31:35.480 span  rules.routing                  0.02 ms ok    deadline_set=true route="manual_review" transactions_unavailable=true
+22:31:35.480 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"
+22:31:35.480 span  citations.build                0.16 ms ok    count=8 quotes_withheld=0
+22:31:35.482 span  ledger.lookup                  1.32 ms ok    found=false http_status=404
+22:31:35.482 span  contract.validate              0.07 ms ok
+22:31:35.483 span  redaction.check                0.25 ms ok
+22:31:35.484 span  draft.write                    0.79 ms ok
+22:31:35.484 span  case                         155.90 ms ok    breakers=["closed", "closed"] contract_valid=true decision="unauthorized" outcome="drafted" route="manual_review"
 
 == Scenario 3b: attack case CARD-D08 (prompt injection in merchant metadata) ==
-# CARD-D08.jsonl  (times UTC)  trace_id=8176a7bd40b34431836441f857516c17  run_id=run-eac7cd363e  records=16
-20:07:50.083 span  intake.parse                   0.03 ms ok    labeled_lines=7 source="CARD-D08-INTAKE"
-20:07:50.083 span  documents.followups            0.01 ms ok    attachment_status=null followups=0
-20:07:50.083 span  rules.classify                 0.02 ms ok    conflict=false decision="duplicate_charge" missing_ids=[]
-20:07:50.088 span  tool.attempt                   5.43 ms ok    attempt=1 dependency="transactions" http_status=200 timed_out=false
-20:07:50.088 span  tool.call                      5.53 ms ok    attempts=1 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
-20:07:50.092 span  tool.attempt                   3.34 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
-20:07:50.092 span  tool.call                      3.44 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
-20:07:50.092 event security.untrusted_instruction             warning action="treated_as_data" patterns=["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"] source="CARD-D08-MERCHANT"
-20:07:50.092 span  policy.select                  0.05 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-02"
-20:07:50.092 span  rules.routing                  0.02 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
-20:07:50.092 span  citations.build                0.05 ms ok    count=9
-20:07:50.094 span  ledger.lookup                  1.41 ms ok    found=false http_status=404
-20:07:50.094 span  contract.validate              0.15 ms ok
-20:07:50.094 span  redaction.check                0.04 ms ok
-20:07:50.095 span  draft.write                    1.19 ms ok
-20:07:50.095 span  case                          12.75 ms ok    breakers=["closed", "closed"] contract_valid=true decision="duplicate_charge" outcome="drafted" route="ready_for_review"
+# CARD-D08.jsonl  (times UTC)  trace_id=0fbb044439c44db890e14478b6d17882  run_id=run-7823aca2fb  records=18
+22:31:35.484 span  intake.parse                   0.03 ms ok    labeled_lines=7 source="CARD-D08-INTAKE"
+22:31:35.485 span  documents.followups            0.04 ms ok    attachment_status=null followups=0
+22:31:35.485 span  rules.classify                 0.03 ms ok    conflict=false decision="duplicate_charge" missing_ids=[]
+22:31:35.489 span  tool.attempt                   3.85 ms ok    attempt=1 dependency="transactions" http_status=200 timed_out=false
+22:31:35.489 span  tool.call                      4.12 ms ok    attempts=1 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
+22:31:35.492 span  tool.attempt                   2.89 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
+22:31:35.493 span  tool.call                      3.15 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+22:31:35.493 event security.untrusted_instruction             warning action="treated_as_data" patterns=["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"] source="CARD-D08-MERCHANT"
+22:31:35.493 event injection_detected                     warning case_id="CARD-D08" category=["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"] source="CARD-D08-MERCHANT"
+22:31:35.493 span  injection.scan                 0.26 ms ok    category=["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"] injection_detected=true source="CARD-D08-MERCHANT"
+22:31:35.494 span  policy.select                  0.05 ms ok    in_range=true policy="CARD-POLICY-V2" reported="2026-10-02"
+22:31:35.494 span  rules.routing                  0.03 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
+22:31:35.494 span  citations.build                0.18 ms ok    count=9 quotes_withheld=0
+22:31:35.495 span  ledger.lookup                  0.96 ms ok    found=false http_status=404
+22:31:35.496 span  contract.validate              0.06 ms ok
+22:31:35.496 span  redaction.check                0.27 ms ok
+22:31:35.497 span  draft.write                    0.76 ms ok
+22:31:35.497 span  case                          12.96 ms ok    breakers=["closed", "closed"] contract_valid=true decision="duplicate_charge" outcome="drafted" route="ready_for_review"

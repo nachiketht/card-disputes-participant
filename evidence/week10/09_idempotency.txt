@@ -1,0 +1,74 @@
+# Idempotency: duplicate request handling
+# 2026-10-25 22:32:06 UTC  commit a91535d
+# Approved via the operator command: uv run --locked python tools/runtime.py approve rev_7b5c02542908 --reviewer demo-reviewer --state .state/week10.sqlite
+
+Key derivation (src/dispute_copilot/serialization.py):
+def idempotency_key(case_id: str, review_id: str, server_hash: str, second_review_id: str | None = None) -> str:
+    """Stable key from server state, so a retry cannot open a second record."""
+    material = f"v1|{case_id}|{review_id}|{server_hash}"
+    if second_review_id:
+        material = f"{material}|{second_review_id}"
+    return "dc-" + hashlib.sha256(material.encode()).hexdigest()
+
+Review rev_7b5c02542908 is approved by demo-reviewer.
+
+1) First create through the normal path:
+$ dispute-copilot create-record CARD-D02
+  {
+    "http_status": 201,
+    "record_id": "dispute-double-02",
+    "existing_record_id": null,
+    "posted": true
+  }
+  exit=0
+
+2) Same command again (operator double-click). Pre-check finds the record; nothing is posted:
+$ dispute-copilot create-record CARD-D02
+  {
+    "http_status": 200,
+    "record_id": "dispute-double-02",
+    "existing_record_id": "dispute-double-02",
+    "posted": false
+  }
+  exit=0
+
+3) Raw replay of the same POST with the same Idempotency-Key (network retry):
+  HTTP 200 record_id=dispute-double-02 body={"case_id": "CARD-D02", "record_id": "dispute-double-02", "review_id": "rev_7b5c02542908", "status": "created"}
+
+4) Same Idempotency-Key, changed draft:
+  HTTP 409 body={"error": "idempotency_conflict"}
+
+5) New Idempotency-Key, same case (duplicate case creation):
+  HTTP 409 existing_record_id=dispute-double-02 body={"error": "duplicate_case", "existing_record_id": "dispute-double-02"}
+
+6) Redelivered complaint CARD-D09 (duplicate webhook/intake). Pre-check resolves it to the same record:
+$ dispute-copilot create-record CARD-D09
+  {
+    "http_status": 200,
+    "record_id": "dispute-double-02",
+    "existing_record_id": "dispute-double-02",
+    "posted": false
+  }
+  exit=0
+  GET /v1/records/CARD-D09 -> 200 id=dispute-double-02
+
+Mock audit (writes only):
+  2026-10-25T22:31:37.095894+00:00  review_requested         CARD-D02  {"draft_hash":"d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3","review_id":"rev_7b5c02542908"}
+  2026-10-25T22:31:37.801584+00:00  review_requested         CARD-D09  {"draft_hash":"fb775b6c2a5c55f226e76482f8f4f3c9fab0a1688a0cfa65d11a76a6074f0228","review_id":"rev_0aff931c0e97"}
+  2026-10-25T22:32:06.806413+00:00  human_approved           CARD-D02  {"draft_hash":"d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3","review_id":"rev_7b5c02542908","reviewer":"demo-reviewer"}
+  2026-10-25T22:32:07.241127+00:00  record_created           CARD-D02  {"draft_hash":"d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3","record_id":"dispute-double-02","review_id":"rev_7b5c02542908","reviewer":"demo-reviewer"}
+  2026-10-25T22:32:07.476664+00:00  write_replayed           CARD-D02  {}
+  2026-10-25T22:32:07.478566+00:00  idempotency_conflict     CARD-D02  {}
+  2026-10-25T22:32:07.480745+00:00  duplicate_prevented      CARD-D02  {"existing_record_id":"dispute-double-02"}
+
+records created: 1 (expected 1). PASS
+[exit 0]
+
+# CARD-D02.create-record.jsonl  (times UTC)  trace_id=5d694b6381fb4739931b4dfc264e6a0b  run_id=run-9a98f87dc7  records=3
+22:32:07.446 span  record.precheck                1.55 ms ok    found=true http_status=200 record="dispute-double-02"
+22:32:07.446 event idempotency.existing_record             info  posted=false record="dispute-double-02"
+22:32:07.446 span  create-record                  2.17 ms ok
+# CARD-D09.create-record.jsonl  (times UTC)  trace_id=4307d4d89d6945c68ca9ffd72002daa7  run_id=run-77df4c66f6  records=3
+22:32:07.663 span  record.precheck                1.45 ms ok    found=true http_status=200 record="dispute-double-02"
+22:32:07.663 event idempotency.existing_record             info  posted=false record="dispute-double-02"
+22:32:07.663 span  create-record                  2.10 ms ok

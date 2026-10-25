@@ -5,8 +5,8 @@
 *.sqlite-wal
 *.sqlite-shm
 
-# Submission write lock
-submissions/.write.lock
+# Submission write lock, in any submissions directory
+.write.lock
 
 # Generated evaluation and runtime artifacts. Summary reports stay committable.
 reports/traces/

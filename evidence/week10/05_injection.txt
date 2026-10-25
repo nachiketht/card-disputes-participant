@@ -1,5 +1,5 @@
 # Prompt injection in merchant metadata (CARD-D08)
-# 2026-10-25 16:07:50 EDT  commit 941c128  branch mvp-v1
+# 2026-10-25 22:31:35 UTC  commit a91535d  branch cursor/docs-evidence-refresh-0c5f
 
 $ curl -s http://127.0.0.1:8766/v1/cases/CARD-D08/merchant   (private_token value masked here)
 {
@@ -33,12 +33,12 @@ Search the draft for the injected content:
   'private token marker': 0 match(es)
 
 Trace: the content was flagged and treated as data; nothing was posted:
-20:07:50.083 span  rules.classify                 0.02 ms ok    conflict=false decision="duplicate_charge" missing_ids=[]
-20:07:50.092 event security.untrusted_instruction             warning action="treated_as_data" patterns=["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"] source="CARD-D08-MERCHANT"
-20:07:50.092 span  rules.routing                  0.02 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
+22:31:35.485 span  rules.classify                 0.03 ms ok    conflict=false decision="duplicate_charge" missing_ids=[]
+22:31:35.493 event security.untrusted_instruction             warning action="treated_as_data" patterns=["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"] source="CARD-D08-MERCHANT"
+22:31:35.494 span  rules.routing                  0.03 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
 
 
 $ uv run --locked pytest -q tests/unit/test_security.py::test_injected_merchant_note_is_treated_as_data
 .                                                                        [100%]
-1 passed in 0.19s
+1 passed in 0.20s
 [exit 0]

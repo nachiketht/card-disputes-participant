@@ -1,5 +1,5 @@
 # Human boundary enforced in code
-# 2026-10-25 16:07:51 EDT  commit 941c128  branch mvp-v1
+# 2026-10-25 22:31:36 UTC  commit a91535d  branch cursor/docs-evidence-refresh-0c5f
 Raw POST /v1/records with no approved review (mock rejects):
 
 $ curl -s -X POST http://127.0.0.1:8766/v1/records -H 'Idempotency-Key: probe-1' -d '{case_id: CARD-D01, review_id: rev_none, draft: {...}}'
@@ -39,9 +39,10 @@ $ dispute-copilot agent-review CARD-D02
       "citations_present": true,
       "narrative_marked_draft": true
     },
-    "run_id": "4df27535a21546a78fdd3b5a6502938c",
+    "run_id": "710a70e18684445980067af852d80e91",
     "llm_review": null,
-    "contract_version": "1.0"
+    "contract_version": "1.0",
+    "injection_note": null
   }
   Reviewer note for CARD-D02
   No model reason. The checklist result still stands.
@@ -66,11 +67,12 @@ $ dispute-copilot submit-review CARD-D02
         "citations_present": true,
         "narrative_marked_draft": true
       },
-      "run_id": "4df27535a21546a78fdd3b5a6502938c",
+      "run_id": "710a70e18684445980067af852d80e91",
       "llm_review": null,
-      "contract_version": "1.0"
+      "contract_version": "1.0",
+      "injection_note": null
     },
-    "review_id": "rev_50cc82967e81",
+    "review_id": "rev_7b5c02542908",
     "draft_hash": "d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3",
     "draft_version": 2
   }
@@ -115,9 +117,10 @@ $ dispute-copilot agent-review CARD-D09
       "citations_present": true,
       "narrative_marked_draft": true
     },
-    "run_id": "2a17a901f1dc43f2bb2d17f7669d6dd9",
+    "run_id": "7eeb45e93b9541399a77d2daf3012f19",
     "llm_review": null,
-    "contract_version": "1.0"
+    "contract_version": "1.0",
+    "injection_note": null
   }
   Reviewer note for CARD-D09
   No model reason. The checklist result still stands.
@@ -142,11 +145,12 @@ $ dispute-copilot submit-review CARD-D09
         "citations_present": true,
         "narrative_marked_draft": true
       },
-      "run_id": "2a17a901f1dc43f2bb2d17f7669d6dd9",
+      "run_id": "7eeb45e93b9541399a77d2daf3012f19",
       "llm_review": null,
-      "contract_version": "1.0"
+      "contract_version": "1.0",
+      "injection_note": null
     },
-    "review_id": "rev_b01b2cd29df9",
+    "review_id": "rev_0aff931c0e97",
     "draft_hash": "fb775b6c2a5c55f226e76482f8f4f3c9fab0a1688a0cfa65d11a76a6074f0228",
     "draft_version": 2
   }
@@ -167,7 +171,7 @@ $ dispute-copilot create-record CARD-D02
   records created for CARD-D02: 0
 
 HUMAN STEP. Approve the review, then run the duplicate step:
-  uv run --locked python tools/runtime.py approve rev_50cc82967e81 --reviewer <your-name> --state .state/week10.sqlite
+  uv run --locked python tools/runtime.py approve rev_7b5c02542908 --reviewer <your-name> --state .state/week10.sqlite
   scripts/week10_duplicate.sh
 [exit 0]
 
@@ -175,7 +179,7 @@ Static checks: no approve or reject callable in src, no operator command in src,
 
 $ uv run --locked pytest -q tests/unit/test_security.py tests/unit/test_gates.py tests/unit/test_approval.py
 ...........                                                              [100%]
-11 passed in 0.29s
+11 passed in 0.35s
 [exit 0]
 
 $ grep -rnE 'def approve|\.approve\(|runtime.py' src/ || echo none

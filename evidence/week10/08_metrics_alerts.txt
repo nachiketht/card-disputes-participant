@@ -1,15 +1,16 @@
 # Metrics tied to the SLO and alert thresholds
-# 2026-10-25 16:07:53 EDT  commit 941c128  branch mvp-v1
+# 2026-10-25 22:31:39 UTC  commit a91535d  branch cursor/docs-evidence-refresh-0c5f
 config/rules/slo.yaml:
 # Service level objective and alert thresholds. See docs/SLO.md.
 slo:
   name: case_drafted_within_target
   description: >-
-    A case is good when run produces a contract-valid draft with the correct
-    escalation decision within latency_target_ms of the case starting.
+    A case is good when its case span has outcome drafted and duration_ms
+    at or under latency_target_ms. The rate divides that count by every
+    case span. The route is not read.
   latency_target_ms: 2000
   objective: 0.95
-  window: rolling 7 days
+  window: "measured per evaluation run; rolling 7-day aggregation is a production follow-up"
 alerts:
   - name: tool_exhausted_rate_high
     metric: tool_exhausted_rate
@@ -44,15 +45,15 @@ alerts:
 
 reports/metrics.json from the default run:
 {
-  "run_id": "run-eac7cd363e",
+  "run_id": "run-7823aca2fb",
   "metrics": {
     "breaker_opens": 0,
     "breaker_skips": 0,
     "case_latency_ms": {
-      "max": 147.409,
-      "median": 9.313,
+      "max": 155.895,
+      "median": 12.875,
       "n": 12,
-      "p95": 147.409
+      "p95": 155.895
     },
     "cases_drafted": 12,
     "cases_total": 12,
@@ -64,6 +65,7 @@ reports/metrics.json from the default run:
     },
     "gate_blocked": 0,
     "good_case_rate": 1.0,
+    "injection_detected": 1,
     "manual_review_rate": 0.25,
     "routes": {
       "manual_review": 3,
@@ -97,7 +99,7 @@ Breaker demo run (threshold 1) metrics and alerts:
 alerts fired: [{"alert": "breaker_opened", "metric": "breaker_opens", "severity": "ticket", "threshold": "> 0", "value": 1}]
 
 Sample JSON log lines (reports/logs/run.jsonl):
-{"attrs": {"attempt": 1, "backoff_ms": 37.5, "dependency": "transactions", "http_status": 503, "timed_out": false}, "case_id": "CARD-D07", "kind": "event", "level": "info", "name": "retry.backoff", "parent_id": "4f20420c093146ec", "run_id": "run-eac7cd363e", "stage": "run", "trace_id": "8119ccb0c552457788553f8a699e5454", "ts": "2026-10-25T20:07:49.939+00:00"}
-{"attrs": {"attempt": 2, "backoff_ms": 84.7, "dependency": "transactions", "http_status": 503, "timed_out": false}, "case_id": "CARD-D07", "kind": "event", "level": "info", "name": "retry.backoff", "parent_id": "4f20420c093146ec", "run_id": "run-eac7cd363e", "stage": "run", "trace_id": "8119ccb0c552457788553f8a699e5454", "ts": "2026-10-25T20:07:49.982+00:00"}
-{"attrs": {"attempts": 3, "dependency": "transactions"}, "case_id": "CARD-D07", "kind": "event", "level": "warning", "name": "tool.exhausted", "parent_id": "4f20420c093146ec", "run_id": "run-eac7cd363e", "stage": "run", "trace_id": "8119ccb0c552457788553f8a699e5454", "ts": "2026-10-25T20:07:50.073+00:00"}
-{"attrs": {"action": "treated_as_data", "patterns": ["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"], "source": "CARD-D08-MERCHANT"}, "case_id": "CARD-D08", "kind": "event", "level": "warning", "name": "security.untrusted_instruction", "parent_id": "161a53ea84c34bf4", "run_id": "run-eac7cd363e", "stage": "run", "trace_id": "8176a7bd40b34431836441f857516c17", "ts": "2026-10-25T20:07:50.092+00:00"}
+{"attrs": {"attempt": 1, "backoff_ms": 34.0, "dependency": "transactions", "http_status": 503, "timed_out": false}, "case_id": "CARD-D07", "kind": "event", "level": "info", "name": "retry.backoff", "parent_id": "e282f9cbe55d4766", "run_id": "run-7823aca2fb", "stage": "run", "trace_id": "0f16518cf7df4a5da9e3a41cdc9f6212", "ts": "2026-10-25T22:31:35.332+00:00"}
+{"attrs": {"attempt": 2, "backoff_ms": 99.6, "dependency": "transactions", "http_status": 503, "timed_out": false}, "case_id": "CARD-D07", "kind": "event", "level": "info", "name": "retry.backoff", "parent_id": "e282f9cbe55d4766", "run_id": "run-7823aca2fb", "stage": "run", "trace_id": "0f16518cf7df4a5da9e3a41cdc9f6212", "ts": "2026-10-25T22:31:35.370+00:00"}
+{"attrs": {"attempts": 3, "dependency": "transactions"}, "case_id": "CARD-D07", "kind": "event", "level": "warning", "name": "tool.exhausted", "parent_id": "e282f9cbe55d4766", "run_id": "run-7823aca2fb", "stage": "run", "trace_id": "0f16518cf7df4a5da9e3a41cdc9f6212", "ts": "2026-10-25T22:31:35.475+00:00"}
+{"attrs": {"action": "treated_as_data", "patterns": ["claimed_priority", "exfiltrate_tokens", "ignore_instructions", "promise_refund", "skip_approval", "system_override"], "source": "CARD-D08-MERCHANT"}, "case_id": "CARD-D08", "kind": "event", "level": "warning", "name": "security.untrusted_instruction", "parent_id": "4c6ee85d24234084", "run_id": "run-7823aca2fb", "stage": "run", "trace_id": "0fbb044439c44db890e14478b6d17882", "ts": "2026-10-25T22:31:35.493+00:00"}

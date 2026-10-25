@@ -54,10 +54,10 @@
     "breaker_opens": 1,
     "breaker_skips": 5,
     "case_latency_ms": {
-      "max": 134.861,
-      "median": 7.667,
+      "max": 131.601,
+      "median": 10.811,
       "n": 12,
-      "p95": 134.861
+      "p95": 131.601
     },
     "cases_drafted": 12,
     "cases_total": 12,
@@ -69,6 +69,7 @@
     },
     "gate_blocked": 0,
     "good_case_rate": 1.0,
+    "injection_detected": 1,
     "manual_review_rate": 0.6667,
     "routes": {
       "manual_review": 8,
@@ -94,12 +95,12 @@
     "untrusted_instruction_cases": 1,
     "valid_contract_rate": 1.0
   },
-  "run_id": "run-e50d16c1ed",
+  "run_id": "run-437b8bb124",
   "slo": {
-    "description": "A case is good when run produces a contract-valid draft with the correct escalation decision within latency_target_ms of the case starting.",
+    "description": "A case is good when its case span has outcome drafted and duration_ms at or under latency_target_ms. The rate divides that count by every case span. The route is not read.",
     "latency_target_ms": 2000,
     "name": "case_drafted_within_target",
     "objective": 0.95,
-    "window": "rolling 7 days"
+    "window": "measured per evaluation run; rolling 7-day aggregation is a production follow-up"
   }
 }

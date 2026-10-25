@@ -1,5 +1,5 @@
 # Cross-case circuit breaker
-# 2026-10-25 16:07:46 EDT  commit 941c128  branch mvp-v1
+# 2026-10-25 22:31:32 UTC  commit a91535d  branch cursor/docs-evidence-refresh-0c5f
 Breaker file:
 # Cross-case circuit breaker, one per read dependency (ADR-30).
 # It never reduces the three attempts inside a case. It opens only after
@@ -15,17 +15,17 @@ Breaker: failure_threshold=2 consecutive exhausted cases, cooldown_s=0.5
 Test double: transactions returns 503 until it is healed.
 CASE-1: exhausted 3 attempts -> transactions_unavailable, manual_review; requests sent=3; breaker=closed
     attempt 1: HTTP 503  (2 ms)
-    backoff 43.0 ms before attempt 2
+    backoff 39.7 ms before attempt 2
     attempt 2: HTTP 503  (2 ms)
-    backoff 97.2 ms before attempt 3
+    backoff 87.0 ms before attempt 3
     attempt 3: HTTP 503  (2 ms)
     -> transactions: exhausted after 3 attempt(s)
 CASE-2: exhausted 3 attempts -> transactions_unavailable, manual_review; requests sent=3; breaker=open
-    attempt 1: HTTP 503  (1 ms)
-    backoff 49.9 ms before attempt 2
-    attempt 2: HTTP 503  (1 ms)
-    backoff 95.6 ms before attempt 3
-    attempt 3: HTTP 503  (1 ms)
+    attempt 1: HTTP 503  (2 ms)
+    backoff 36.9 ms before attempt 2
+    attempt 2: HTTP 503  (2 ms)
+    backoff 81.4 ms before attempt 3
+    attempt 3: HTTP 503  (2 ms)
     BREAKER closed -> open: 2 consecutive cases exhausted retries
     -> transactions: exhausted after 3 attempt(s)
 CASE-3: skipped by open breaker -> transactions_unavailable, manual_review; requests sent=0; breaker=open
@@ -34,9 +34,9 @@ CASE-3: skipped by open breaker -> transactions_unavailable, manual_review; requ
 CASE-4: exhausted 3 attempts -> transactions_unavailable, manual_review; requests sent=3; breaker=open
     BREAKER open -> half_open: cooldown elapsed; next case is a probe
     attempt 1: HTTP 503  (2 ms)
-    backoff 38.7 ms before attempt 2
+    backoff 26.9 ms before attempt 2
     attempt 2: HTTP 503  (2 ms)
-    backoff 92.9 ms before attempt 3
+    backoff 55.4 ms before attempt 3
     attempt 3: HTTP 503  (2 ms)
     BREAKER half_open -> open: probe exhausted its attempts
     -> transactions: exhausted after 3 attempt(s)
@@ -48,7 +48,7 @@ CASE-5: ok after 1 attempt(s); requests sent=1; breaker=closed
     BREAKER half_open -> closed: probe succeeded
     -> transactions: ok after 1 attempt(s)
 CASE-6: ok after 1 attempt(s); requests sent=1; breaker=closed
-    attempt 1: HTTP 200  (2 ms)
+    attempt 1: HTTP 200  (3 ms)
     -> transactions: ok after 1 attempt(s)
 [exit 0]
 
@@ -69,13 +69,13 @@ $ BREAKER_FAILURE_THRESHOLD=1 BREAKER_COOLDOWN_S=60 dispute-copilot run-all
   CARD-D11: unauthorized           manual_review        amount=None
   CARD-D12: service_not_received   manual_review        amount=None
   written=12 not_written=[]
-  run_id=run-e50d16c1ed alerts_fired=[{"alert": "breaker_opened", "severity": "ticket", "metric": "breaker_opens", "value": 1, "threshold": "> 0"}]
-20:07:49.365 event breaker.transition                     warning consecutive_exhausted=1 dependency="transactions" from_state="closed" reason="1 consecutive cases exhausted retries" to_state="open"
-20:07:49.365 span  tool.call                    125.03 ms error attempts=3 breaker_state="closed" dependency="transactions" http_status=503 max_attempts=3 outcome="exhausted"
-20:07:49.371 span  tool.call                      5.90 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
-20:07:49.372 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"
-20:07:49.375 span  case                         134.86 ms ok    breakers=["open", "closed"] contract_valid=true decision="unauthorized" outcome="drafted" route="manual_review"
-20:07:49.376 event breaker.skip                           warning consecutive_exhausted=1 cooldown_s=60.0 dependency="transactions" failure_threshold=1 state="open"
-20:07:49.380 span  tool.call                      3.92 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
-20:07:49.380 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"
-20:07:49.382 span  case                           7.18 ms ok    breakers=["open", "closed"] contract_valid=true decision="duplicate_charge" outcome="drafted" route="manual_review"
+  run_id=run-437b8bb124 alerts_fired=[{"alert": "breaker_opened", "severity": "ticket", "metric": "breaker_opens", "value": 1, "threshold": "> 0"}]
+22:31:34.736 event breaker.transition                     warning consecutive_exhausted=1 dependency="transactions" from_state="closed" reason="1 consecutive cases exhausted retries" to_state="open"
+22:31:34.736 span  tool.call                    123.59 ms error attempts=3 breaker_state="closed" dependency="transactions" http_status=503 max_attempts=3 outcome="exhausted"
+22:31:34.739 span  tool.call                      2.63 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+22:31:34.740 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"
+22:31:34.743 span  case                         131.60 ms ok    breakers=["open", "closed"] contract_valid=true decision="unauthorized" outcome="drafted" route="manual_review"
+22:31:34.745 event breaker.skip                           warning consecutive_exhausted=1 cooldown_s=60.0 dependency="transactions" failure_threshold=1 state="open"
+22:31:34.748 span  tool.call                      2.96 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+22:31:34.749 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"
+22:31:34.753 span  case                           8.92 ms ok    breakers=["open", "closed"] contract_valid=true decision="duplicate_charge" outcome="drafted" route="manual_review"
