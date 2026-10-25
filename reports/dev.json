@@ -1,5 +1,5 @@
 {
-  "passed": false,
+  "passed": true,
   "format_errors": [],
   "cases": [
     {
@@ -21,83 +21,193 @@
     },
     {
       "case_id": "CARD-D02",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D03",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D04",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D05",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D06",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D07",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D08",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D09",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D10",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D11",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     },
     {
       "case_id": "CARD-D12",
-      "passed": false,
+      "passed": true,
       "checks": {
-        "submitted": false
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
       }
     }
   ],
-  "passed_cases": 1,
+  "passed_cases": 12,
   "total_cases": 12,
   "limitations": "Automated checks do not establish semantic grounding, safe prose, human approval, tool correctness or readiness. Review narrative and server audit separately."
 }
