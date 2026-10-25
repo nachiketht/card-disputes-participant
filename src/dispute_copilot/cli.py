@@ -21,6 +21,7 @@ from dispute_copilot.config import Settings
 from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable, OutsideCheckpoint, ToolFailed
 from dispute_copilot.fields import CASE_ID, CLASSIFICATION, DEADLINE, FACTS, POLICY_IDS, ROUTING
 from dispute_copilot.llm.factory import build_critic, build_drafter
+from dispute_copilot.retrieval.policy import PolicyResolver
 from dispute_copilot.review import create_record, submit_review
 from dispute_copilot.review_flow.agent_review import format_reviewer_note, record_agent_review
 from dispute_copilot.storage import latest_draft, write_draft
@@ -38,9 +39,12 @@ def main(argv: list[str] | None = None) -> int:
     if not _safe_case(case_id if isinstance(case_id, str) else None):
         print("case id must be a single path segment", file=sys.stderr)
         return 1
-    settings = Settings.from_sources(args.mock_url, args.data_dir, args.submissions)
+    settings = Settings.from_sources(
+        args.mock_url, args.data_dir, args.submissions, getattr(args, "procedure_id", None)
+    )
     try:
         corpus = FileCorpus(settings.data_dir)
+        resolver = PolicyResolver(corpus, settings.procedure_id)
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -55,9 +59,9 @@ def main(argv: list[str] | None = None) -> int:
         try:
             drafter = build_drafter()
             if args.command == "run":
-                return _run_one(case_id, settings, corpus, tools, ledger, drafter)
+                return _run_one(case_id, settings, corpus, tools, ledger, drafter, resolver)
             if args.command == "run-all":
-                return _run_all(settings, corpus, tools, ledger, drafter)
+                return _run_all(settings, corpus, tools, ledger, drafter, resolver)
             if args.command == "agent-review":
                 _path, draft, version = latest_draft(settings.submissions_dir, case_id)
                 approval = record_agent_review(
@@ -86,14 +90,14 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
 
-def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter) -> int:
-    draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, drafter=drafter)
+def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, resolver: PolicyResolver) -> int:
+    draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, drafter=drafter, resolver=resolver)
     path = write_draft(settings.submissions_dir, case_id, draft)
     print(json.dumps(_summary(draft, path), indent=2))
     return 0
 
 
-def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter) -> int:
+def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, resolver: PolicyResolver) -> int:
     written = []
     skipped = []
     for case in tools.list_cases():
@@ -102,7 +106,9 @@ def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledg
             skipped.append({CASE_ID: case_id, "reason": "case id is not usable"})
             continue
         try:
-            draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, case=case, drafter=drafter)
+            draft = prepare(
+                case_id, corpus=corpus, tools=tools, case_system=ledger, case=case, drafter=drafter, resolver=resolver
+            )
         except MockUnavailable:
             raise
         except (OutsideCheckpoint, ToolFailed, CopilotError) as exc:
@@ -160,10 +166,12 @@ def _parser() -> argparse.ArgumentParser:
     common.add_argument("--mock-url", default=argparse.SUPPRESS)
     common.add_argument("--data-dir", type=Path, default=argparse.SUPPRESS)
     common.add_argument("--submissions", type=Path, default=argparse.SUPPRESS)
+    common.add_argument("--procedure-id", default=argparse.SUPPRESS)
     parser = argparse.ArgumentParser(prog="dispute-copilot")
     parser.add_argument("--mock-url", default=os.environ.get("MOCK_BASE_URL"))
     parser.add_argument("--data-dir", type=Path, default=None)
     parser.add_argument("--submissions", type=Path, default=None)
+    parser.add_argument("--procedure-id", default=None)
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", parents=[common])
     run.add_argument("case", metavar="CASE")

@@ -9,10 +9,10 @@ from dataclasses import dataclass
 from datetime import date
 
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
+from dispute_copilot.config import DEFAULT_PROCEDURE_ID
 from dispute_copilot.fields import Classification
 from dispute_copilot.rules.documents import labeled_lines
-
-PROCEDURE_ID = "CARD-PROCEDURE-01"
+from dispute_copilot.rules.wording import load_wording, validate_openings
 _DATE_LABELS = frozenset({"Effective from", "Effective through"})
 _DAY_LABEL = {
     Classification.UNAUTHORIZED: "Unauthorized deadline days",
@@ -41,9 +41,13 @@ class PolicySelection:
 
 
 class PolicyResolver:
-    def __init__(self, corpus: FileCorpus | MemoryCorpus) -> None:
-        self.procedure_text = corpus.get(PROCEDURE_ID)
-        self.procedure_id = PROCEDURE_ID
+    def __init__(self, corpus: FileCorpus | MemoryCorpus, procedure_id: str | None = None) -> None:
+        self.procedure_id = procedure_id or DEFAULT_PROCEDURE_ID
+        try:
+            self.procedure_text = corpus.get(self.procedure_id)
+        except KeyError:
+            raise ValueError(f"procedure {self.procedure_id} is not in the corpus") from None
+        validate_openings(load_wording(), self.procedure_text)
         self._versions: list[PolicyVersion] = []
         for source_id in corpus.ids():
             if not source_id.startswith("CARD-POLICY-"):

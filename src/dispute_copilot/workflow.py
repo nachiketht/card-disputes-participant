@@ -44,6 +44,7 @@ from dispute_copilot.rules.deadline import add_calendar_days
 from dispute_copilot.rules.documents import line_starting, parse_attachment, parse_followup, parse_intake
 from dispute_copilot.rules.questions import follow_up_questions
 from dispute_copilot.rules.routing import choose_routing
+from dispute_copilot.rules.wording import load_wording
 from dispute_copilot.serialization import citation_source_text
 
 Corpus = FileCorpus | MemoryCorpus
@@ -51,18 +52,6 @@ Tools = HttpToolClient | FakeToolClient
 Ledger = HttpCaseSystem | FakeCaseSystem
 
 _NO_DEADLINE = frozenset({Classification.UNSUPPORTED, Classification.AMBIGUOUS})
-_PROCEDURE_PREFIX = {
-    Classification.UNAUTHORIZED: "Use unauthorized when",
-    Classification.DUPLICATE_CHARGE: "Use duplicate_charge for",
-    Classification.SERVICE_NOT_RECEIVED: "Use service_not_received for",
-    Classification.AMBIGUOUS: "If customer accounts conflict",
-    Classification.UNSUPPORTED: "Cash withdrawal disputes are unsupported",
-}
-_MISSING_PROCEDURE = {
-    MissingId.AUTHORIZATION_CONFIRMATION: "use the provisional",
-    MissingId.PROMISED_SERVICE_DATE: "If no promised date",
-    MissingId.PURCHASE_RECEIPT: "request purchase_receipt",
-}
 _MISSING_INTAKE = {
     MissingId.AUTHORIZATION_CONFIRMATION: "Authorization: ",
     MissingId.PROMISED_SERVICE_DATE: "Promised service date: ",
@@ -78,6 +67,7 @@ def prepare(
     case_system: Ledger,
     case: dict | None = None,
     drafter: Drafter | None = None,
+    resolver: PolicyResolver | None = None,
 ) -> dict:
     if case is None:
         case = _find_case(tools.list_cases(), case_id)
@@ -105,7 +95,8 @@ def prepare(
     transactions, transaction_attempts, transactions_down = _transactions(tools, case_id)
     merchant_note, merchant_attempts = _merchant(tools, case_id)
     try:
-        resolver = PolicyResolver(corpus)
+        if resolver is None:
+            resolver = PolicyResolver(corpus)
         selection = resolver.select(reported)
     except (ValueError, KeyError) as exc:
         raise OutsideCheckpoint(f"{case_id} policy lookup failed: {exc}") from exc
@@ -329,16 +320,18 @@ def _citations(
         except ValueError as exc:
             raise OutsideCheckpoint(str(exc)) from exc
         _cite(citations, DEADLINE, selection.policy_id, counted, policy_text)
-    prefix = _PROCEDURE_PREFIX[decision.classification]
-    typed = line_starting(procedure_text, prefix)
+    wording = load_wording()
+    typed = None
+    if decision.classification != Classification.AMBIGUOUS or decision.conflict:
+        typed = line_starting(procedure_text, wording.type_prefix(decision.classification))
     if typed is not None:
         _cite(citations, CLASSIFICATION, selection.procedure_id, typed, procedure_text)
-    routing_quote = line_starting(procedure_text, "Routing precedence:")
+    routing_quote = line_starting(procedure_text, wording.openings["routing_line"])
     if routing_quote is None:
         raise OutsideCheckpoint(f"{case_id} procedure has no routing line to cite")
     _cite(citations, ROUTING, selection.procedure_id, routing_quote, procedure_text)
     if transactions_unavailable:
-        outage = line_starting(procedure_text, "Never treat service failure")
+        outage = line_starting(procedure_text, wording.openings["service_outage"])
         if outage is not None:
             _cite(citations, "service_outage", selection.procedure_id, outage, procedure_text)
     _cite(citations, "customer_evidence", intake_id, intake["complaint"], intake_text)
@@ -351,7 +344,7 @@ def _citations(
         for source_id, _authorization, text in followups:
             _cite_authorization(citations, source_id, text)
     for field in decision.missing:
-        procedure_line = line_starting(procedure_text, _MISSING_PROCEDURE[field])
+        procedure_line = line_starting(procedure_text, wording.missing_prefix(field))
         if procedure_line is not None:
             _cite(citations, MISSING_INFORMATION, selection.procedure_id, procedure_line, procedure_text)
         intake_line = line_starting(intake_text, _MISSING_INTAKE[field])

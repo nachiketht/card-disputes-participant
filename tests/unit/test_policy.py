@@ -9,6 +9,7 @@ from dispute_copilot.adapters.corpus import FileCorpus
 from dispute_copilot.fields import Classification
 from dispute_copilot.retrieval.policy import PolicyResolver
 from dispute_copilot.rules.deadline import add_calendar_days
+from dispute_copilot.rules.wording import procedure_stub
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data" / "dev"
@@ -31,10 +32,7 @@ def test_policy_boundaries_follow_the_effective_dates():
 def test_a_new_policy_file_is_selected_by_its_dates(tmp_path):
     policies = tmp_path / "policies"
     policies.mkdir()
-    (policies / "CARD-PROCEDURE-01.md").write_text(
-        "Source ID: CARD-PROCEDURE-01\nRouting precedence: manual_review for unsupported/ambiguous cases;\n",
-        encoding="utf-8",
-    )
+    (policies / "CARD-PROCEDURE-01.md").write_text(procedure_stub("CARD-PROCEDURE-01"), encoding="utf-8")
     (policies / "CARD-POLICY-NEXT.md").write_text(
         "\n".join(
             [
@@ -70,7 +68,7 @@ def test_overlapping_policies_are_an_error():
 
     corpus = MemoryCorpus(
         {
-            "CARD-PROCEDURE-01": "Source ID: CARD-PROCEDURE-01\n",
+            "CARD-PROCEDURE-01": procedure_stub("CARD-PROCEDURE-01"),
             "CARD-POLICY-A": "Source ID: CARD-POLICY-A\n" + text,
             "CARD-POLICY-B": "Source ID: CARD-POLICY-B\n" + text,
         }

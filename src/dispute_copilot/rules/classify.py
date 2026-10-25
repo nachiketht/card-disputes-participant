@@ -17,13 +17,11 @@ from dispute_copilot.fields import (
     MissingId,
 )
 
+from dispute_copilot.rules.wording import load_wording
+
 _ATM = re.compile(r"\batm\b")
 _TX_ID = re.compile(r"\bTX-[A-Za-z0-9-]+\b")
 _SERVICE_WORD = re.compile(r"\bservice\b")
-_UNSUPPORTED = ("cash withdrawal", "did not dispense", "didn't dispense")
-_RECOGNITION = ("do not recognize", "don't recognize", "did not authorize", "didn't authorize")
-_DUPLICATE = ("twice", "two charges", "extra charge")
-_SERVICE_GAP = ("not been delivered", "not delivered", "was not supplied")
 ATTACHMENT_MISSING = "missing"
 _CUSTOMER_AUTH = frozenset({AUTH_CONFIRMED, AUTH_NOT_SUPPLIED})
 
@@ -64,21 +62,23 @@ def classify(
 
 
 def _unsupported(text: str) -> bool:
-    return _ATM.search(text) is not None or any(phrase in text for phrase in _UNSUPPORTED)
+    phrases = load_wording().phrases_for(Classification.UNSUPPORTED.value)
+    return _ATM.search(text) is not None or any(phrase in text for phrase in phrases)
 
 
 def _denies_recognition(text: str) -> bool:
-    return any(phrase in text for phrase in _RECOGNITION)
+    return any(phrase in text for phrase in load_wording().phrases_for("recognition"))
 
 
 def _duplicate(text: str, complaint: str) -> bool:
-    if any(phrase in text for phrase in _DUPLICATE):
+    if any(phrase in text for phrase in load_wording().phrases_for("duplicate")):
         return True
     return len(set(_TX_ID.findall(complaint))) >= 2
 
 
 def _service(text: str) -> bool:
-    return _SERVICE_WORD.search(text) is not None and any(phrase in text for phrase in _SERVICE_GAP)
+    gaps = load_wording().phrases_for("service_gap")
+    return _SERVICE_WORD.search(text) is not None and any(phrase in text for phrase in gaps)
 
 
 def _blank(value: str | None) -> bool:

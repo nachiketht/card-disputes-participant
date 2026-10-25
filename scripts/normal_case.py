@@ -21,11 +21,15 @@ Assumptions used here:
 import argparse
 import hashlib
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
+
+from dispute_copilot.config import DEFAULT_PROCEDURE_ID
+from dispute_copilot.rules.wording import load_wording
 
 ROOT = Path(__file__).resolve().parents[1]
 CASE_ID = "CARD-D01"
@@ -166,7 +170,9 @@ def build_draft(data_dir, base_url):
 
     reported = date.fromisoformat(intake_fields["Reported date"])
     policy_id, policy_text, unauthorized_days = select_policy(data_dir, reported)
-    procedure = load_text(data_dir, "CARD-PROCEDURE-01", "policies")
+    procedure_id = os.environ.get("PROCEDURE_ID") or DEFAULT_PROCEDURE_ID
+    procedure = load_text(data_dir, procedure_id, "policies")
+    routing_prefix = load_wording().openings["routing_line"]
     deadline = (reported + timedelta(days=unauthorized_days)).isoformat()
 
     status, transactions = request("GET", f"{base_url}/v1/cases/{CASE_ID}/transactions")
@@ -190,7 +196,7 @@ def build_draft(data_dir, base_url):
         "case_id": CASE_ID,
         "classification": "unauthorized",
         "routing": "ready_for_review",
-        "policy_ids": [policy_id, "CARD-PROCEDURE-01"],
+        "policy_ids": [policy_id, procedure_id],
         "facts": {
             "transaction_id": intake_fields["Transaction ID"],
             "amount": named["amount"],
@@ -201,7 +207,7 @@ def build_draft(data_dir, base_url):
         "deadline": deadline,
         "citations": [
             cite("deadline", policy_id, f"Unauthorized deadline days: {unauthorized_days}", policy_text),
-            cite("routing", "CARD-PROCEDURE-01", line_starting(procedure, "Routing precedence:"), procedure),
+            cite("routing", procedure_id, line_starting(procedure, routing_prefix), procedure),
             cite("customer_evidence", intake_id, complaint, intake),
             cite("transaction_amount", transactions["source_id"], amount_quote, txn_text),
         ],

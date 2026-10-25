@@ -10,8 +10,10 @@ from dispute_copilot.adapters.tools import FakeToolClient
 from dispute_copilot.contract import validate_draft
 from dispute_copilot.errors import ContractError, LeakError, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
-from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CONTRACT_VERSION, Classification, Routing
+from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CLASSIFICATION, CONTRACT_VERSION, Classification, Routing
+from dispute_copilot.retrieval.policy import PolicyResolver
 from dispute_copilot.rules.documents import parse_attachment, parse_followup, parse_intake
+from dispute_copilot.rules.wording import procedure_stub
 from dispute_copilot.serialization import citation_source_text
 from dispute_copilot.workflow import prepare
 
@@ -124,12 +126,7 @@ def test_day_count_amount_and_currency_come_from_the_inputs_not_a_fixed_case():
             "Service deadline days: 12",
         ]
     )
-    procedure = "\n".join(
-        [
-            "Source ID: CARD-PROCEDURE-01",
-            "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;",
-        ]
-    )
+    procedure = procedure_stub("CARD-PROCEDURE-01")
     attachment = "Source ID: CASE-NEXT-ATTACHMENT\nAuthorization: confirmed\nHOSTILE-ATTACHMENT-TEXT\n"
     corpus = MemoryCorpus(
         {
@@ -157,6 +154,63 @@ def test_day_count_amount_and_currency_come_from_the_inputs_not_a_fixed_case():
     assert "HOSTILE-ATTACHMENT-TEXT" not in rendered
     assert "Authorization: confirmed" not in rendered
     assert TOKEN not in rendered
+
+
+def test_a_second_procedure_id_is_listed_on_the_draft(tmp_path: Path):
+    policies = tmp_path / "policies"
+    documents = tmp_path / "documents"
+    policies.mkdir()
+    documents.mkdir()
+    dev = ROOT / "data" / "dev"
+    for name in ("CARD-POLICY-V1.md", "CARD-POLICY-V2.md"):
+        (policies / name).write_text((dev / "policies" / name).read_text(encoding="utf-8"), encoding="utf-8")
+    procedure = (dev / "policies" / "CARD-PROCEDURE-01.md").read_text(encoding="utf-8")
+    procedure = procedure.replace("Source ID: CARD-PROCEDURE-01", "Source ID: CARD-PROCEDURE-02", 1)
+    (policies / "CARD-PROCEDURE-02.md").write_text(procedure, encoding="utf-8")
+    for name in ("CARD-D01-INTAKE.md", "CARD-D01-ATTACHMENT.md"):
+        (documents / name).write_text((dev / "documents" / name).read_text(encoding="utf-8"), encoding="utf-8")
+    corpus = FileCorpus(tmp_path)
+    resolver = PolicyResolver(corpus, "CARD-PROCEDURE-02")
+    draft = prepare(
+        "CARD-D01",
+        corpus=corpus,
+        tools=_tools("CARD-D01", _tx("CARD-D01", "TX-D01", 117, "XCR", "2026-08-19"), _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case("CARD-D01", ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        resolver=resolver,
+    )
+    assert draft["policy_ids"][-1] == "CARD-PROCEDURE-02"
+    assert draft["classification"] == Classification.UNAUTHORIZED.value
+
+
+def test_an_unmatched_complaint_has_no_type_quote():
+    intake = "\n".join(
+        [
+            "Source ID: CASE-PLAIN-INTAKE",
+            "The purchase looks fine.",
+            "Reported date: 2026-10-01",
+            "Transaction ID: TX-PLAIN",
+            "Authorization: confirmed",
+        ]
+    )
+    base = FileCorpus(DATA)
+    texts = {
+        source_id: base.get(source_id)
+        for source_id in base.ids()
+        if source_id.startswith("CARD-POLICY") or source_id == "CARD-PROCEDURE-01"
+    }
+    texts["CASE-PLAIN-INTAKE"] = intake
+    texts["CASE-PLAIN-ATTACHMENT"] = "Source ID: CASE-PLAIN-ATTACHMENT\n"
+    draft = prepare(
+        "CASE-PLAIN",
+        corpus=MemoryCorpus(texts),
+        tools=_tools("CASE-PLAIN", _tx("CASE-PLAIN", "TX-PLAIN", 10, "XCR", "2026-10-01"), _merchant("Shop")),
+        case_system=FakeCaseSystem(),
+        case=_case("CASE-PLAIN", ["CASE-PLAIN-INTAKE", "CASE-PLAIN-ATTACHMENT"]),
+    )
+    assert draft["classification"] == Classification.AMBIGUOUS.value
+    assert CLASSIFICATION not in {item["claim"] for item in draft["citations"]}
+    assert "If customer accounts conflict" not in json.dumps(draft)
 
 
 def test_conflicting_customer_statements_have_no_deadline():

@@ -1,0 +1,49 @@
+# Phrase lists match the customer's words. Openings match a line in the loaded procedure.
+# The check order and the authorization conditions stay in code.
+
+phrases:
+  - id: unsupported
+    values:
+      - cash withdrawal
+      - did not dispense
+      - didn't dispense
+  - id: recognition
+    values:
+      - do not recognize
+      - don't recognize
+      - did not authorize
+      - didn't authorize
+  - id: duplicate
+    values:
+      - twice
+      - two charges
+      - extra charge
+  - id: service_gap
+    values:
+      - not been delivered
+      - not delivered
+      - was not supplied
+
+openings:
+  - id: unauthorized
+    prefix: "Use unauthorized when"
+  - id: duplicate_charge
+    prefix: "Use duplicate_charge for"
+  - id: service_not_received
+    prefix: "Use service_not_received for"
+  - id: ambiguous
+    prefix: "If customer accounts conflict"
+  - id: unsupported
+    prefix: "Cash withdrawal disputes are unsupported"
+  - id: routing_line
+    prefix: "Routing precedence:"
+  - id: service_outage
+    prefix: "Never treat service failure"
+
+missing_openings:
+  - id: authorization_confirmation
+    prefix: "use the provisional"
+  - id: promised_service_date
+    prefix: "If no promised date"
+  - id: purchase_receipt
+    prefix: "request purchase_receipt"
