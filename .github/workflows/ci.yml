@@ -4,7 +4,30 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LLM_PROVIDER: "null"
+  FEATURE_LLM_REVIEW: "off"
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --locked --extra mcp
+      - run: uv run --locked --extra mcp python tools/validate_package.py
+      - run: uv run --locked --extra mcp python tools/lint_gates.py
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -12,7 +35,82 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
+          enable-cache: true
       - run: uv sync --locked --extra mcp
-      - run: uv run --locked --extra mcp python tools/validate_package.py
-      - run: uv run --locked --extra mcp python tools/lint_gates.py
       - run: uv run --locked --extra mcp pytest
+
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --locked --extra mcp
+      - name: score every development case
+        run: |
+          set -eu
+          state="${RUNNER_TEMP}/mock.sqlite"
+          export SUBMISSIONS_DIR="${RUNNER_TEMP}/submissions"
+          export REPORTS_DIR="${RUNNER_TEMP}/reports"
+          mkdir -p "$SUBMISSIONS_DIR" "$REPORTS_DIR"
+          uv run --locked python tools/runtime.py serve --data data/dev --state "$state" --port 8765 > "${RUNNER_TEMP}/mock.log" 2>&1 &
+          echo $! > "${RUNNER_TEMP}/mock.pid"
+          ready=0
+          i=0
+          while [ "$i" -lt 50 ]; do
+            if curl -sf http://127.0.0.1:8765/health >/dev/null; then
+              ready=1
+              break
+            fi
+            i=$((i + 1))
+            sleep 0.2
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat "${RUNNER_TEMP}/mock.log" >&2 || true
+            exit 1
+          fi
+          uv run --locked dispute-copilot run-all --mock-url http://127.0.0.1:8765
+          uv run --locked python tools/evaluate.py \
+            --data data/dev \
+            --gold feedback/dev_gold.json \
+            --submission "$SUBMISSIONS_DIR/results.json" \
+            --report "$REPORTS_DIR/dev.json"
+          uv run --locked python tools/check_fresh_report.py reports/dev.json "$REPORTS_DIR/dev.json"
+          uv run --locked dispute-copilot dashboard --export "$REPORTS_DIR/status.html"
+          kill "$(cat "${RUNNER_TEMP}/mock.pid")" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: traces-metrics-dashboard
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/reports/traces
+            ${{ runner.temp }}/reports/metrics.json
+            ${{ runner.temp }}/reports/status.html
+            ${{ runner.temp }}/reports/dev.json
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --locked --extra mcp
+      - run: uv run --locked --extra mcp python tools/check_mcp_names.py
+      - run: uv run --locked --extra mcp pytest tests/adversarial tests/unit/test_security.py tests/unit/test_leak_patterns.py tests/unit/test_approval.py tests/integration/test_mcp_stdio.py
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/scan_secrets.py
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh tools/image_smoke.sh card-disputes:ci

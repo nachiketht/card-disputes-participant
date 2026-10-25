@@ -587,7 +587,7 @@ make check
 make daily
 ```
 
-`make lint` runs `uv run --locked python tools/lint_gates.py` and prints `lint gates passed (46 source files)`. Exit 1 lists problems on stderr. The gate scans `src/**/*.py` for a mention of the fixture file, a restricted marker, an `approve` definition or call, and a contract name spelled outside `fields.py`.
+`make lint` runs `uv run --locked python tools/lint_gates.py` and prints `lint gates passed` with the source-file count. Exit 1 lists problems on stderr. The gate scans `src/**/*.py` for a mention of the fixture file, a restricted marker, an `approve` definition or call, and a contract name spelled outside `fields.py`.
 
 `tools/lint_gates.py` has no help parser. The only recognized argument is `--staged`, which also rejects an index path under `.state/`. Any other argument, including `--help`, is ignored and the gates still run.
 
@@ -618,7 +618,7 @@ uv run --locked pytest tests/integration
 refusing: hidden-style gold is not in this checkpoint, and feedback/dev_gold.json is never rewritten
 ```
 
-Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `week10`, `week10-duplicate`.
+Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `secrets`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
 
 `make metrics` is `uv run --locked dispute-copilot metrics`.
 

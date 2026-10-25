@@ -3,3 +3,4 @@ set -e
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 uv run --locked python tools/lint_gates.py --staged
+uv run --locked python tools/scan_secrets.py

@@ -147,11 +147,17 @@ Decision: `dispute-copilot dashboard` builds one HTML page from `REPORTS_DIR`. `
 Alternatives: a hosted metrics product (copies case data); binding every interface (the mock rule is loopback, and this page is the same kind of local view).
 Status: implemented. Code: `observability/board.py`, `observability/cost.py`, `dispute-copilot dashboard`.
 
+# ADR-35. Local checks only, no deploy job
+
+Context: the workflow ran lint and the test suite. Later work added a status page, a stdio server, adversarial cases, and a saved development report. A cloud deploy from the workflow would need a registry login and a chosen deploy path.
+Decision: `.github/workflows/ci.yml` has six jobs: `lint`, `test`, `evaluate`, `security`, `secrets`, and `image`. Those names are the ones to require in branch protection. `evaluate` starts the mock on `127.0.0.1` with a temporary state file, runs `run-all`, and fails unless `tools/evaluate.py` passes every development case and `reports/dev.json` matches that report. `image` builds the local image and drafts one case through the mock inside the image. It does not push. `secrets` scans tracked files. The workflow sets `LLM_PROVIDER=null` and `FEATURE_LLM_REVIEW=off`. It uses no repository secrets and does not call a model endpoint. There is no Azure or AWS deploy job.
+Status: the workflow file is in the tree. This workspace had no `docker` binary, so the `image` job was not executed here.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. An image build was not run from this workspace. AWS ECS is not deployed.
+- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. An image build was not run from this workspace. AWS ECS is not deployed.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note
