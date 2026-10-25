@@ -8,7 +8,7 @@ from dispute_copilot.adapters.case_system import FakeCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient
 from dispute_copilot.contract import validate_draft
-from dispute_copilot.errors import ContractError, LeakError, ToolFailed
+from dispute_copilot.errors import ContractError, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CONTRACT_VERSION, Classification, Routing
 from dispute_copilot.rules.documents import parse_attachment, parse_followup, parse_intake
@@ -351,16 +351,19 @@ def test_merchant_failure_leaves_the_purchase_draft_intact():
     assert "Merchant context is unavailable." in draft["narrative"]
 
 
-def test_a_restricted_display_name_is_not_written():
+def test_a_restricted_display_name_is_masked():
     payload = _tx("CARD-D01", "TX-D01", 117, "XCR", "2026-08-19")
-    with pytest.raises(LeakError):
-        prepare(
-            "CARD-D01",
-            corpus=FileCorpus(DATA),
-            tools=_tools("CARD-D01", payload, _merchant(TOKEN)),
-            case_system=FakeCaseSystem(),
-            case=_case("CARD-D01", ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
-        )
+    draft = prepare(
+        "CARD-D01",
+        corpus=FileCorpus(DATA),
+        tools=_tools("CARD-D01", payload, _merchant(TOKEN)),
+        case_system=FakeCaseSystem(),
+        case=_case("CARD-D01", ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+    )
+    _assert_gold(draft, "CARD-D01")
+    rendered = json.dumps(draft)
+    assert TOKEN not in rendered
+    assert "[redacted]" in draft["narrative"]
 
 
 def test_labeled_lines_ignore_prose_and_attachment_authorization():

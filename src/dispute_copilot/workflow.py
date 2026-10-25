@@ -14,7 +14,7 @@ from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.contract import validate_draft
 from dispute_copilot.drafting import Drafter
-from dispute_copilot.errors import BreakerOpen, LeakError, OutsideCheckpoint, ToolFailed
+from dispute_copilot.errors import BreakerOpen, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.evidence.untrusted import instruction_flags, payload_flags
 from dispute_copilot.fields import (
@@ -136,7 +136,7 @@ def prepare(
     if transactions_unavailable:
         tracer.event("degradation.applied", level="warning", kind="transactions_unavailable", route=routing)
     with tracer.span("citations.build") as span:
-        citations = _citations(
+        citations, withheld = _citations(
             case_id,
             decision,
             intake_id,
@@ -150,7 +150,9 @@ def prepare(
             amount,
             transactions_unavailable,
         )
-        span.set(count=len(citations))
+        if withheld:
+            routing = Routing.MANUAL_REVIEW
+        span.set(count=len(citations), quotes_withheld=len(withheld))
     with tracer.span("ledger.lookup") as span:
         existing = case_system.get_record(case_id)
         span.set(found=existing.found, http_status=existing.http_status)
@@ -171,6 +173,11 @@ def prepare(
         posted_split=_posted_split(named, resolver, selection.policy_id),
         transactions_skipped=transactions_skipped,
     )
+    if withheld:
+        narrative += (
+            " A cited quote contained a restricted value that could not be masked safely."
+            " This case is routed to manual review."
+        )
     # Callers may still pass a drafter. The saved customer sentence stays the template.
     del drafter
     payload = {
@@ -318,7 +325,28 @@ def _merchant(tools: Tools, case_id: str) -> tuple[str, int]:
     display = payload.get("display_name")
     if not isinstance(display, str) or not display.strip():
         return "Merchant context is unavailable.", attempts
-    return f"Merchant display name from the tool: {display.strip()}.", attempts
+    note = f"Merchant display name from the tool: {display.strip()}."
+    redactor = Redactor()
+    if not redactor.contains_restricted(note):
+        return note, attempts
+    masked = redactor.mask(note)
+    if redactor.contains_restricted(masked):
+        current().event(
+            "redaction.withheld",
+            level="warning",
+            claim="merchant_display",
+            source="merchant",
+            action="withheld",
+        )
+        return "Merchant display name was withheld because it could not be masked safely.", attempts
+    current().event(
+        "redaction.applied",
+        level="warning",
+        claim="merchant_display",
+        source="merchant",
+        action="masked",
+    )
+    return masked, attempts
 
 
 def _posted_split(row: dict | None, resolver: PolicyResolver, selected_id: str) -> str:
@@ -353,67 +381,68 @@ def _citations(
     transaction_id: str,
     amount: int | float | None,
     transactions_unavailable: bool,
-) -> list[dict]:
+) -> tuple[list[dict], list[str]]:
     if selection.policy_id is None or selection.policy_text is None:
         raise OutsideCheckpoint(f"{case_id} has no policy text to cite")
     citations: list[dict] = []
+    withheld: list[str] = []
     policy_text = selection.policy_text
     procedure_text = selection.procedure_text
     opened = line_starting(policy_text, "Effective from: ")
     if opened is None:
         raise OutsideCheckpoint(f"{case_id} policy has no effective-from line to cite")
-    _cite(citations, "policy_selection", selection.policy_id, opened, policy_text)
+    _cite(citations, "policy_selection", selection.policy_id, opened, policy_text, withheld)
     if deadline is not None:
         try:
             counted = deadline_line(policy_text, decision.classification)
         except ValueError as exc:
             raise OutsideCheckpoint(str(exc)) from exc
-        _cite(citations, DEADLINE, selection.policy_id, counted, policy_text)
+        _cite(citations, DEADLINE, selection.policy_id, counted, policy_text, withheld)
     prefix = _PROCEDURE_PREFIX[decision.classification]
     typed = line_starting(procedure_text, prefix)
     if typed is not None:
-        _cite(citations, CLASSIFICATION, selection.procedure_id, typed, procedure_text)
+        _cite(citations, CLASSIFICATION, selection.procedure_id, typed, procedure_text, withheld)
     routing_quote = line_starting(procedure_text, "Routing precedence:")
     if routing_quote is None:
         raise OutsideCheckpoint(f"{case_id} procedure has no routing line to cite")
-    _cite(citations, ROUTING, selection.procedure_id, routing_quote, procedure_text)
+    _cite(citations, ROUTING, selection.procedure_id, routing_quote, procedure_text, withheld)
     if transactions_unavailable:
         outage = line_starting(procedure_text, "Never treat service failure")
         if outage is not None:
-            _cite(citations, "service_outage", selection.procedure_id, outage, procedure_text)
-    _cite(citations, "customer_evidence", intake_id, intake["complaint"], intake_text)
+            _cite(citations, "service_outage", selection.procedure_id, outage, procedure_text, withheld)
+    _cite(citations, "customer_evidence", intake_id, intake["complaint"], intake_text, withheld)
     for label in ("Reported date: ", "Transaction ID: "):
         evidence = line_starting(intake_text, label)
         if evidence is not None:
-            _cite(citations, "customer_evidence", intake_id, evidence, intake_text)
+            _cite(citations, "customer_evidence", intake_id, evidence, intake_text, withheld)
     if decision.conflict:
-        _cite_authorization(citations, intake_id, intake_text)
+        _cite_authorization(citations, intake_id, intake_text, withheld)
         for source_id, _authorization, text in followups:
-            _cite_authorization(citations, source_id, text)
+            _cite_authorization(citations, source_id, text, withheld)
     for field in decision.missing:
         procedure_line = line_starting(procedure_text, _MISSING_PROCEDURE[field])
         if procedure_line is not None:
-            _cite(citations, MISSING_INFORMATION, selection.procedure_id, procedure_line, procedure_text)
+            _cite(citations, MISSING_INFORMATION, selection.procedure_id, procedure_line, procedure_text, withheld)
         intake_line = line_starting(intake_text, _MISSING_INTAKE[field])
         if intake_line is not None:
-            _cite(citations, MISSING_INFORMATION, intake_id, intake_line, intake_text)
+            _cite(citations, MISSING_INFORMATION, intake_id, intake_line, intake_text, withheld)
     delivery = intake.get("delivery_note")
     if isinstance(delivery, str) and delivery:
         note = line_starting(intake_text, "Delivery note: ")
         if note is not None:
-            _cite(citations, "duplicate_delivery", intake_id, note, intake_text)
+            _cite(citations, "duplicate_delivery", intake_id, note, intake_text, withheld)
     if not transactions_unavailable and transactions is not None and amount is not None:
-        _cite_transactions(citations, case_id, decision, transactions, transaction_id, amount)
+        _cite_transactions(citations, case_id, decision, transactions, transaction_id, amount, withheld)
     if not citations:
         raise OutsideCheckpoint(f"{case_id} has no citation whose quote is in its source")
-    return citations
+    return citations, withheld
 
 
-def _cite_authorization(citations: list[dict], source_id: str, text: str) -> None:
+def _cite_authorization(citations: list[dict], source_id: str, text: str, withheld: list[str]) -> None:
     quote = line_starting(text, "Authorization: ")
     if quote is None:
         raise OutsideCheckpoint(f"{source_id} has no authorization line to cite for the conflict")
-    _cite(citations, "conflicting_evidence", source_id, quote, text)
+    _cite(citations, "conflicting_evidence", source_id, quote, text, withheld)
 
 
 def _cite_transactions(
@@ -423,6 +452,7 @@ def _cite_transactions(
     transactions: dict,
     transaction_id: str,
     amount: int | float,
+    withheld: list[str],
 ) -> None:
     source_id = transactions.get(CITATION_SOURCE_ID)
     if not isinstance(source_id, str) or not source_id:
@@ -431,7 +461,7 @@ def _cite_transactions(
     amount_quote = '"' + FACT_AMOUNT + '": ' + json.dumps(amount)
     if amount_quote not in text:
         raise OutsideCheckpoint(f"{case_id} amount quote is not in the transaction payload")
-    _cite(citations, "transaction_amount", source_id, amount_quote, text)
+    _cite(citations, "transaction_amount", source_id, amount_quote, text, withheld)
     if decision.classification != Classification.DUPLICATE_CHARGE:
         return
     rows = transactions.get("transactions")
@@ -447,15 +477,42 @@ def _cite_transactions(
         seen.add(other)
         quote = '"' + FACT_TRANSACTION_ID + '": ' + json.dumps(other)
         if quote in text:
-            _cite(citations, "duplicate_transaction", source_id, quote, text)
+            _cite(citations, "duplicate_transaction", source_id, quote, text, withheld)
 
 
-def _cite(citations: list[dict], claim: str, source_id: str, quote: str, source_text: str) -> None:
+def _cite(
+    citations: list[dict],
+    claim: str,
+    source_id: str,
+    quote: str,
+    source_text: str,
+    withheld: list[str],
+) -> None:
     if quote not in source_text:
         raise OutsideCheckpoint(f"quote for {claim} is not in {source_id}")
-    if Redactor().contains_restricted(quote):
-        raise LeakError(f"quote for {claim} contains a restricted value")
-    citations.append({CITATION_CLAIM: claim, CITATION_SOURCE_ID: source_id, CITATION_QUOTE: quote})
+    redactor = Redactor()
+    stored = quote
+    if redactor.contains_restricted(quote):
+        masked = redactor.mask_quote(quote)
+        if masked is None:
+            current().event(
+                "redaction.withheld",
+                level="warning",
+                claim=claim,
+                source=source_id,
+                action="withheld",
+            )
+            withheld.append(claim)
+            return
+        current().event(
+            "redaction.applied",
+            level="warning",
+            claim=claim,
+            source=source_id,
+            action="masked",
+        )
+        stored = masked
+    citations.append({CITATION_CLAIM: claim, CITATION_SOURCE_ID: source_id, CITATION_QUOTE: stored})
 
 
 def _with_customer_message(narrative: str, outcome) -> str:

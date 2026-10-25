@@ -36,7 +36,8 @@ def safe(value: object, redactor: Redactor | None = None) -> object:
         return value
     if isinstance(value, str):
         if redactor.contains_restricted(value):
-            return "[redacted]"
+            masked = redactor.mask(value)
+            value = masked if not redactor.contains_restricted(masked) else "[redacted]"
         return value if len(value) <= _MAX_TEXT else value[:_MAX_TEXT] + "..."
     if isinstance(value, (list, tuple)):
         return [safe(item, redactor) for item in value]

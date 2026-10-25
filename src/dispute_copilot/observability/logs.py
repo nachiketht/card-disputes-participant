@@ -5,6 +5,8 @@ import logging
 import sys
 from pathlib import Path
 
+from dispute_copilot.evidence.redaction import Redactor
+from dispute_copilot.fields import CASE_ID
 from dispute_copilot.observability.tracing import LOGGER, safe
 
 
@@ -15,7 +17,15 @@ class JsonFormatter(logging.Formatter):
             line = {"level": record.levelname.lower(), **body}
         else:
             line = {"level": record.levelname.lower(), "name": "log", "message": safe(record.getMessage())}
-        return json.dumps(line, ensure_ascii=False, sort_keys=True)
+        rendered = json.dumps(line, ensure_ascii=False, sort_keys=True)
+        redactor = Redactor()
+        if not redactor.contains_restricted(rendered):
+            return rendered
+        safe_line = {"level": line.get("level", "info"), "name": line.get("name", "log"), "message": "[redacted]"}
+        case_id = line.get(CASE_ID)
+        if isinstance(case_id, str) and not redactor.contains_restricted(case_id):
+            safe_line[CASE_ID] = case_id
+        return json.dumps(safe_line, ensure_ascii=False, sort_keys=True)
 
 
 def configure(log_file: Path | None, to_stderr: bool = False) -> None:
