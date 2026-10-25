@@ -151,6 +151,43 @@ git config core.hooksPath .githooks
 
 `make regen-gold` exists and exits 2 on purpose. It refuses to rewrite `feedback/dev_gold.json`. Hidden-style gold is not in this checkpoint.
 
+## Reliability, tracing and metrics
+
+Read tools retry a 503 or a request timeout up to 3 total attempts with exponential backoff and capped jitter (`config/rules/retry.yaml`). A cross-case circuit breaker per dependency (`config/rules/breaker.yaml`, ADR-30) opens only after consecutive cases exhausted every attempt. Overrides:
+
+```sh
+HTTP_TIMEOUT_S=10 RETRY_BASE_DELAY_S=0.05 RETRY_MAX_DELAY_S=0.2
+BREAKER_ENABLED=1 BREAKER_FAILURE_THRESHOLD=3 BREAKER_COOLDOWN_S=30
+```
+
+Every `run`, `run-all`, `agent-review`, `submit-review` and `create-record` writes a redacted trace to `reports/traces/` and JSON log lines to `reports/logs/run.jsonl`. `REPORTS_DIR` moves both. `LOG_STDERR=1` also prints log lines to stderr.
+
+```sh
+uv run --locked dispute-copilot metrics                      # reports/metrics.json and fired alerts
+uv run --locked python scripts/trace_view.py reports/traces/CARD-D07.jsonl
+```
+
+SLO, alerts and runbook: `docs/SLO.md`, `config/rules/slo.yaml`, `docs/RUNBOOK.md`. Mapping of failure cases to patterns: `docs/HARDENING_CHECKLIST.md`. Audit: `docs/SECURITY_AUDIT.md`.
+
+## Week 10 evidence
+
+```sh
+make week10             # scripts/week10_evidence.sh: own mock on :8766, writes evidence/week10/
+```
+
+It stops at the human step and prints an approve command for CARD-D02. A person runs that command, then:
+
+```sh
+make week10-duplicate   # scripts/week10_duplicate.sh: create once, replay four ways, one record
+```
+
+Fault demos against a local test double (hang past the timeout, 503, recovery, breaker open and close):
+
+```sh
+uv run --locked python scripts/fault_demo.py timeout
+uv run --locked python scripts/fault_demo.py breaker
+```
+
 ## Bake-offs
 
 These are the planned commands. They are not wired up. There is no `make bakeoff` target and no bake-off package yet. Running them will fail until that work lands.
