@@ -1,12 +1,24 @@
 # Azure deploy: one image, files split by container
 
-This is a rehearsal deploy. The assessed path stays on your machine until a facilitator confirms in writing that the mock may run in the cloud.
+Azure Container Apps is the deployment that is running. The app never approves. The mock listens on `127.0.0.1` inside the replica. There is no public ingress and no public address.
 
-Nothing in this file logs in to Azure or builds an image. Run the commands yourself, in order. Stop and ask before changing a subscription, a region, or a secret.
+This session could not sign in to `<subscription>`, so it did not query these resources. The names below are the ones supplied for that deployment. Do not put the subscription name or the model endpoint in this file. Use `<subscription>` and `<model-endpoint>`.
 
-## What was checked
+| Item | In use |
+|---|---|
+| Region | West US 3 (`westus3`) |
+| Resource group | `card-disputes-rg` |
+| Registry | `pod3disputes` |
+| Image | `card-disputes:promptfix` (code only; no case files in the image) |
+| Storage account | `pod3disputesdata` |
+| Shares | `mock-data` (only `dataset.json`) and `app-data` (`documents/` and `policies/`) |
+| Environment | `card-disputes-env` |
+| App | `card-disputes`, one replica, no public ingress |
+| Judge | Azure-hosted `claude-haiku-4-5` at `<model-endpoint>`, secret `llm-api-key` (not in git). It only checks a finished draft. It does not approve. |
 
-The layout files were read on `mvp-v1` after `azure-deploy` was merged. `azure-deploy` was not deleted. Docker was not installed in that check, so none of the following were run: `docker build`, `docker compose up`, `docker compose exec`, `az login`, a container-app create, or the copilot flow inside a container (`run`, `run-all`, `agent-review`, `submit-review`, approve, `create-record`, evaluate).
+## What was checked from this workspace
+
+The layout files were read on `mvp-v1`. `azure-deploy` was not deleted. Docker was not installed here, and this session did not run `az login`. None of the following were run from here: `docker build`, `docker compose up`, `docker compose exec`, a container-app query, or the copilot flow inside a container (`run`, `run-all`, `agent-review`, `submit-review`, approve, `create-record`, evaluate).
 
 File checks that did run:
 
@@ -15,9 +27,8 @@ File checks that did run:
 - The mock command has no host flag. `tools/runtime.py` binds `127.0.0.1`. Compose gives the app `network_mode: service:mock` and `MOCK_BASE_URL=http://127.0.0.1:8765`. The app mounts `documents/` and `policies/` only. The mock mounts `dataset.json` only.
 - `uv.lock` is copied and not given to the installer. The image runs `pip install .`. Whether that install succeeds was not run.
 - `docker-compose.yml` sets `env_file: .env`. That file is not in git, and `.dockerignore` excludes it. A compose start with a missing `.env` was not run; the file reference is still a requirement of the compose file as written.
-- Resource names in the steps below (`Momentum(sandboxes)`, `pod3-resource`, `westus3`, `card-disputes-rg`) were already in this note. This check did not sign in, so it did not confirm they exist.
 
-Until a machine with Docker runs the compose block, treat every container command below as unread by an engine.
+Local compose commands below were not run from this workspace. The Azure names are the running deployment as supplied, not a result of a query from here.
 
 ## What this deploy is
 
@@ -44,7 +55,7 @@ flowchart LR
   app -->|read| corpus[documents and policies]
   mock -->|read| fixture[dataset.json]
   mock -->|write| ledger[SQLite ledger]
-  app -->|judge call| haiku[Azure Haiku deployment]
+  app -->|judge call| judge["claude-haiku-4-5 at model-endpoint"]
 ```
 
 ## Step 1. Use this branch
@@ -85,42 +96,39 @@ Stop the local pair when you are done:
 docker compose down
 ```
 
-## Step 3. Sign in and pick the resource group
+## Step 3. Sign in
 
-The Foundry resource `pod3-resource` is only the Haiku deployment. The container app is a new resource in the same subscription.
+The running resource group is `card-disputes-rg` in West US 3. The subscription id is not written here.
 
 ```sh
 az login
-az account set --subscription "Momentum(sandboxes)"
-az group create --name card-disputes-rg --location westus3
+az account set --subscription "<subscription>"
 ```
-
-Use `DefaultResourceGroup-CIN` instead of a new group if you are not allowed to create one. Keep the region as `westus3` so it matches the Foundry project.
 
 ## Step 4. Create the registry and push the image
 
 The registry stores the image. The two containers pull the same tag.
 
 ```sh
-az acr create --name CHANGE_ME_REGISTRY --resource-group card-disputes-rg --sku Basic --admin-enabled false
-az acr login --name CHANGE_ME_REGISTRY
-docker build -t CHANGE_ME_REGISTRY.azurecr.io/card-disputes:latest .
-docker push CHANGE_ME_REGISTRY.azurecr.io/card-disputes:latest
+az acr create --name pod3disputes --resource-group card-disputes-rg --sku Basic --admin-enabled false
+az acr login --name pod3disputes
+docker build -t pod3disputes.azurecr.io/card-disputes:promptfix .
+docker push pod3disputes.azurecr.io/card-disputes:promptfix
 ```
 
-`CHANGE_ME_REGISTRY` must be unique across Azure, lowercase, 5 to 50 characters. Example: `pod3disputes`.
+The registry in use is `pod3disputes`. The tag in use is `card-disputes:promptfix`. The image holds code only.
 
 Confirm the image has no case files:
 
 ```sh
-docker run --rm CHANGE_ME_REGISTRY.azurecr.io/card-disputes:latest python -c "from pathlib import Path; print(list(Path('/data').glob('*')))"
+docker run --rm pod3disputes.azurecr.io/card-disputes:promptfix python -c "from pathlib import Path; print(list(Path('/data').glob('*')))"
 ```
 
 `/data` is empty because the files arrive only through mounts.
 
 ## Step 5. Create the Container Apps environment
 
-The environment is the private network around the app. It is not the Foundry resource.
+The environment in use is `card-disputes-env`. It is the network around the app, not `<model-endpoint>`.
 
 ```sh
 az containerapp env create \
@@ -135,39 +143,39 @@ Create a storage account and two file shares. One share is the mock folder. The 
 
 ```sh
 az storage account create \
-  --name CHANGE_ME_STORAGE \
+  --name pod3disputesdata \
   --resource-group card-disputes-rg \
   --location westus3 \
   --sku Standard_LRS \
   --kind StorageV2
 
-az storage share create --name mock-data --account-name CHANGE_ME_STORAGE
-az storage share create --name app-data --account-name CHANGE_ME_STORAGE
+az storage share create --name mock-data --account-name pod3disputesdata
+az storage share create --name app-data --account-name pod3disputesdata
 
 az storage file upload \
-  --account-name CHANGE_ME_STORAGE \
+  --account-name pod3disputesdata \
   --share-name mock-data \
   --source data/dev/dataset.json \
   --path dataset.json
 
 az storage file upload-batch \
-  --account-name CHANGE_ME_STORAGE \
+  --account-name pod3disputesdata \
   --destination app-data/documents \
   --source data/dev/documents
 
 az storage file upload-batch \
-  --account-name CHANGE_ME_STORAGE \
+  --account-name pod3disputesdata \
   --destination app-data/policies \
   --source data/dev/policies
 ```
 
-`CHANGE_ME_STORAGE` must be 3 to 24 lowercase letters and numbers, unique across Azure. Example: `pod3disputesdata`.
+The storage account in use is `pod3disputesdata`. Share `mock-data` holds only `dataset.json`. Share `app-data` holds `documents/` and `policies/`. The mock mounts `mock-data` at `/data`. The app mounts `app-data` at `/data`. The app cannot see `dataset.json`. That split is intentional. SKU and access flags in the create commands were not confirmed from this workspace.
 
 Register the shares on the environment:
 
 ```sh
 STORAGE_KEY=$(az storage account keys list \
-  --account-name CHANGE_ME_STORAGE \
+  --account-name pod3disputesdata \
   --resource-group card-disputes-rg \
   --query "[0].value" -o tsv)
 
@@ -175,7 +183,7 @@ az containerapp env storage set \
   --name card-disputes-env \
   --resource-group card-disputes-rg \
   --storage-name mockdata \
-  --azure-file-account-name CHANGE_ME_STORAGE \
+  --azure-file-account-name pod3disputesdata \
   --azure-file-account-key "$STORAGE_KEY" \
   --azure-file-share-name mock-data \
   --access-mode ReadOnly
@@ -184,7 +192,7 @@ az containerapp env storage set \
   --name card-disputes-env \
   --resource-group card-disputes-rg \
   --storage-name appdata \
-  --azure-file-account-name CHANGE_ME_STORAGE \
+  --azure-file-account-name pod3disputesdata \
   --azure-file-account-key "$STORAGE_KEY" \
   --azure-file-share-name app-data \
   --access-mode ReadOnly
@@ -208,18 +216,18 @@ az role assignment create \
   --assignee-object-id "$PULL_PRINCIPAL" \
   --assignee-principal-type ServicePrincipal \
   --role AcrPull \
-  --scope "$(az acr show --name CHANGE_ME_REGISTRY --query id -o tsv)"
+  --scope "$(az acr show --name pod3disputes --query id -o tsv)"
 ```
 
 Edit [deploy/azure/containerapp.yaml](../deploy/azure/containerapp.yaml):
 
 - Replace `CHANGE_ME_ENVIRONMENT_ID` with the value of `$ENV_ID`.
-- Replace every `CHANGE_ME_REGISTRY` with the registry name.
-- Leave the secret value as the placeholder. Step 8 sets the real key with a command so it is not stored in git.
+- Replace every `CHANGE_ME_REGISTRY` with `pod3disputes`.
+- Leave the secret value as the placeholder. Step 8 sets the real key with a command so it is not stored in git. The secret name in use is `llm-api-key`.
 
 The template uses a system identity for the registry. If the create command rejects that, switch the registry block to the pull identity from this step and ask before changing the YAML.
 
-## Step 8. Create the app and set the Haiku key
+## Step 8. Create the app and set the judge key
 
 ```sh
 az containerapp create \
@@ -242,7 +250,7 @@ az containerapp secret set \
 
 If the YAML create fails because the placeholder secret is invalid, delete the `secrets:` block from the YAML, create the app, then run `az containerapp secret set` and add the `LLM_API_KEY` secret ref in a second update. Do not paste the key into the YAML.
 
-The app has no ingress. The mock listens on `127.0.0.1` inside the replica, so it is not reachable from the internet.
+The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The judge is the Azure-hosted `claude-haiku-4-5` deployment at `<model-endpoint>`. Its key is the Container App secret `llm-api-key`. That call only checks a finished draft. It does not approve.
 
 ## Step 9. Check the cloud pair
 
@@ -278,7 +286,7 @@ az containerapp exec \
   --command "dispute-copilot run CARD-D04"
 ```
 
-`FEATURE_LLM_REVIEW=block` is set on the app container, so a later check calls Haiku:
+`FEATURE_LLM_REVIEW=block` is set on the app container in the template, so a later check calls `claude-haiku-4-5` at `<model-endpoint>`:
 
 ```sh
 az containerapp exec \
@@ -288,9 +296,9 @@ az containerapp exec \
   --command "dispute-copilot agent-review CARD-D04"
 ```
 
-A real pass or block reason means the container reached the Haiku deployment. `The model reply was not usable.` means the key or the base URL was refused.
+A real pass or block reason means the container reached `<model-endpoint>`. `The model reply was not usable.` means the key or the base URL was refused. A pass does not approve the case.
 
-Submit, approve, and create stay two different containers:
+Submit runs in `app`. Approve runs in `mock`. Create runs in `app` and still stops unless the human approve has been recorded:
 
 ```sh
 az containerapp exec \
@@ -303,7 +311,7 @@ az containerapp exec \
   --name card-disputes \
   --resource-group card-disputes-rg \
   --container mock \
-  --command "python tools/runtime.py approve REVIEW_ID --reviewer dhyey --state /state/run.sqlite"
+  --command "python tools/runtime.py approve <review_id> --reviewer <name> --state /state/run.sqlite"
 
 az containerapp exec \
   --name card-disputes \
@@ -316,10 +324,10 @@ Use the `review_id` from submit in the approve command. Approve runs in `mock` b
 
 ## What was left out on purpose
 
-- No public ingress and no load balancer.
-- No second cloud.
-- The Foundry resource is not called as its own service. The judge still uses the Haiku deployment URL.
-- Restarting the replica clears the ledger and the drafts. Run `reset` only when you mean to:
+- No public ingress and no load balancer. The mock stays on loopback inside the replica.
+- AWS ECS is not deployed. It is an unbuilt alternative in `docs/CLOUD_BREAKDOWN.md`.
+- The judge calls `<model-endpoint>` only to check a finished draft. It does not approve. The app never approves.
+- Restarting the replica clears the ledger at `/state` and the drafts at `/submissions`. Files on `mock-data` and `app-data` stay. Run `reset` only when you mean to:
 
 ```sh
 az containerapp exec \

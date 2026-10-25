@@ -21,7 +21,7 @@ Checked on `mvp-v1`. `make lint` reported 47 source files. `pytest` reported 129
 
 ## Not verified here
 
-- Image build, compose, and any hosted container run. `docker` was not installed in this session. Which cloud is used first is still an open choice. The layout files are described in ADR-33.
+- Image build, compose, and any sign-in to the running Azure app. `docker` was not installed in this session, and this session could not reach `<subscription>`. The names in ADR-33 were supplied, not queried. AWS ECS is not deployed. Cost cells are unmeasured.
 - A socket listing that the mock refused non-loopback binds, beyond the fixed address in code and the health call to `127.0.0.1`.
 - The critic with a live model key. No key was used. Default runs kept the model off.
 - Phone and account shapes outside the patterns above. No extra examples were supplied.
