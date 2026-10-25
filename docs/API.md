@@ -23,8 +23,8 @@ POST /v1/records body:
 ```
 
 Add the `Idempotency-Key` header. Exact replay returns the original record (200); first creation returns 201. Reusing a key for different content returns 409. An already-created underlying complaint/loss returns 409 `duplicate_case` even with a new key or duplicate intake ID. Treat this as an existing record, never fabricate another case.
-Approval is bound to the full draft hash. Missing, rejected, wrong-case, or changed-draft approval returns 403. An agent cannot approve through HTTP. Human operator commands are documented in README.
-KYC is read-only: every record-creation attempt is forbidden, even if a review was approved.
+Approval is bound to the full draft hash. Missing, rejected, wrong-case, or changed-draft approval returns 403 `approval_missing_or_draft_changed`. There is no HTTP approve route. Human operator commands are documented in README and `docs/COMMANDS.md`.
+On `data/dev`, `allow_write` is true. After a person approves that exact draft, `POST /v1/records` returns 201. Before approval the same post returns 403. A dataset with `allow_write` false returns 403 `read_only_mission` even after approval. The development fixture does not do that.
 
 A configured upstream timeout returns 503 `upstream_timeout` promptly rather than sleeping. This tests the team's error path; it does not test actual network timeout duration. Transient faults fail once; persistent faults fail on every request until reset. Use at most three total attempts, then escalate. Counter state survives service restart. Reset it between independent assessment runs.
 Unknown resources return 404. Invalid input returns 400 or 413. No batch processing, authentication, real payment, claim adjudication or customer approval endpoint exists.

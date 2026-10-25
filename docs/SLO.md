@@ -2,12 +2,12 @@
 
 ## SLO
 
-**95% of cases get a contract-valid draft, with the correct escalation route, within 2 seconds of the case starting, measured over a rolling 7 days.**
+**95% of case spans are drafted within 2 seconds of the case starting, measured over a rolling 7 days.**
 
-- A case is *good* when `run` writes a draft that passes `validate_draft` and the case span (`case` in `reports/traces/<case>.jsonl`) lasts 2000 ms or less.
-- A case is *bad* when it is not written (skipped, crashed, leak refused) or is slower than 2000 ms.
-- Measured from traces by `dispute-copilot metrics` into `reports/metrics.json` (`good_case_rate`). Thresholds live in `config/rules/slo.yaml`.
-- A correct `manual_review` on an outage is a good case. The procedure says to degrade, not to fail.
+- A case is *good* when its `case` span has `outcome` `drafted` and `duration_ms` at or under 2000. `good_case_rate` is that count divided by every `case` span. The metric does not read the route.
+- A case is *bad* when that span was not written, or it is slower than 2000 ms.
+- Measured from traces by `dispute-copilot metrics` into `reports/metrics.json`. `config/rules/slo.yaml` holds the 2000 ms target, the 0.95 objective, and the alert thresholds. The rate above is what the program counts.
+- A drafted outage case inside the time limit counts as good, including `manual_review` after transactions fail. The procedure says to degrade. The metric does not check that the route matches the procedure.
 
 ## Why 2 seconds
 

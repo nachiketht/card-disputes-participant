@@ -7,11 +7,15 @@ Paths below assume the defaults: mock on `127.0.0.1:8765`, state `.state/run.sql
 ## Start and health
 
 ```sh
-make mock                                   # terminal 1
+make mock                                   # terminal 1; state .state/run.sqlite, port 8765
 curl -s http://127.0.0.1:8765/health        # terminal 2: {"status": "ok", ...}
 uv run --locked dispute-copilot run-all     # drafts, traces, reports/metrics.json
+uv run --locked dispute-copilot agent-review CASE
+uv run --locked dispute-copilot submit-review CASE
 uv run --locked dispute-copilot metrics     # recompute metrics and alerts from traces
 ```
+
+`submit-review` before a passing `agent-review` for that draft exits 2 and does not post. Approval is the human command at the bottom of this page. The app never approves. Command order and exits are in `docs/COMMANDS.md`.
 
 Reset before an independent run (stop the mock first; never reset mid-review):
 
@@ -40,7 +44,7 @@ curl -s http://127.0.0.1:8765/v1/cases/CARD-D08/merchant                # the ra
 grep -c -E 'SYSTEM OVERRIDE|refund|SYNTHETIC-' submissions/drafts/CARD-D08/v*.json   # expect 0
 ```
 
-- Flag present, draft clean, routing equal to what the evidence supports: the control worked. The case can go to review as normal. Tell the reviewer the merchant record carried an instruction.
+- Flag present, draft clean, routing equal to what the evidence supports: the control worked. Run `agent-review`, then `submit-review`. Tell the reviewer the merchant record carried an instruction.
 - Draft contains injected text, a refund promise, or a restricted value: the separation failed. That should be impossible because the narrative is a template and `Redactor.assert_clean` runs before write, so treat it as a code regression.
 - Routing differs from the evidence (for example a changed classification): check `rules.classify` and `rules.routing` spans; rules read labeled lines only, so look for a forged labeled line (`Authorization:` etc.) inside a document.
 
@@ -59,7 +63,7 @@ grep -c -E 'SYSTEM OVERRIDE|refund|SYNTHETIC-' submissions/drafts/CARD-D08/v*.js
 
 **Confirm.** `uv run --locked python scripts/trace_view.py reports/traces/CARD-D05.jsonl` and look at `documents.followups` (`followups` should be 1) and `rules.classify` (`conflict=true`). `followups=0` means the follow-up document was not listed by the mock or is missing from `data/*/documents/`.
 
-**Mitigate.** Do not approve a non-`manual_review` draft for this case. Reject it, fix the data or the parser, rerun the case (`dispute-copilot run CARD-D05` writes vN+1), and submit the new version.
+**Mitigate.** Do not approve a non-`manual_review` draft for this case. Reject it, fix the data or the parser, rerun the case (`dispute-copilot run CARD-D05` writes vN+1), then `agent-review` and `submit-review` on that new draft.
 
 ## 3. Dependency outage (alerts `tool_exhausted_rate_high`, `breaker_opened`)
 
@@ -67,7 +71,7 @@ grep -c -E 'SYSTEM OVERRIDE|refund|SYNTHETIC-' submissions/drafts/CARD-D08/v*.js
 
 **Confirm.** `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8765/v1/cases/CARD-D01/transactions`. A 503 `upstream_timeout` is the dependency. In the mock, a persistent fault lasts until reset.
 
-**Mitigate.** Nothing to do in code: each case still gets its 3 attempts, degrades to amount null and `manual_review`, and cites the outage sentence. With the breaker open, later cases skip the call until the cooldown ends, then one probe case tests it. Tell reviewers more cases will be `manual_review`. When the service is back, rerun the degraded cases so drafts get amounts (`dispute-copilot run CASE`, new version, new review). Breaker settings: `config/rules/breaker.yaml` or `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S`, `BREAKER_ENABLED=0`.
+**Mitigate.** Nothing to do in code: each case still gets its 3 attempts, degrades to amount null and `manual_review`, and cites the outage sentence. With the breaker open, later cases skip the call until the cooldown ends, then one probe case tests it. Tell reviewers more cases will be `manual_review`. When the service is back, rerun the degraded cases so drafts get amounts (`dispute-copilot run CASE` writes a new version). That version needs `agent-review`, `submit-review`, and a new human approval. Breaker settings: `config/rules/breaker.yaml` or `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S`, `BREAKER_ENABLED=0`.
 
 ## Approve, reject, audit (human only)
 

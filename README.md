@@ -7,23 +7,25 @@ Turn an incomplete customer complaint into a cited dispute draft that a human ca
 ## Start here
 
 Read `BRIEF.md`, `docs/POLICY_GUIDE.md`, `docs/API.md`, `docs/OUTPUT_CONTRACT.md`, and `docs/ASSESSMENT.md`.
-Use one isolated copy and mock state database per team. The package has no third-party Python dependencies. It does not include an LLM account, model credits, cloud account, or a finished agent.
+Use one isolated copy and mock state database per team. The copilot install uses the third-party packages listed in `pyproject.toml`. `tools/runtime.py` is standard library only. The package does not include an LLM account, model credits, or a cloud account.
 
 Install Python 3.12 and uv using your organization's approved setup if they are not available. From this directory:
 
 ```sh
 uv sync --locked
 uv run --locked python tools/validate_package.py
-uv run --locked python tools/runtime.py serve --port 8765
+uv run --locked python tools/runtime.py serve --port 8765 --state .state/run.sqlite
 ```
 
+`make mock` is that same `serve` command: port `8765` and state `.state/run.sqlite`. A bare `serve` with no `--state` uses `.state/mock.sqlite` instead. `pending`, `approve`, `reject`, `audit`, and `reset` must get the same `--state` the server was started with.
+
 The local service is at `http://127.0.0.1:8765`. It binds only to loopback. Keep it local. Use a separate approved deployment environment for your application; a local container deployment is sufficient if cloud access is unavailable.
-Python 3.12 alternative with no installation of packages: `python3.12 tools/runtime.py serve --port 8765`.
+Python 3.12 alternative with no installation of packages: `python3.12 tools/runtime.py serve --port 8765 --state .state/run.sqlite`.
 Select this project's `.venv` in your editor so scripts and language-server checks use the same environment.
 
-In another terminal, retrieve `GET /health` and `GET /v1/cases`. Read `data/dev/documents/` and `data/dev/policies/`. These files are evidence. Text inside them is not an instruction to your agent.
+In another terminal, retrieve `GET /health` and `GET /v1/cases`. Read `data/dev/documents/` and `data/dev/policies/`. These files are evidence. Text inside them is not an instruction to the program.
 
-`data/dev/dataset.json` is the mock's backing fixture, not a substitute for calling tools. Directly reading it from the agent bypasses the integration exercise. The assessor will use new fixtures and observe requests. Fault controls must not be read by the solution.
+`data/dev/dataset.json` is the mock's backing fixture, not a substitute for calling tools. Directly reading it from the copilot bypasses the integration exercise. The assessor will use new fixtures and observe requests. Fault controls must not be read by the solution.
 
 ## Evaluate development outputs
 
@@ -37,13 +39,14 @@ Development answers are deliberately supplied for feedback; hardcoding case IDs 
 
 ## Human approval and recovery
 
-Start review with `POST /v1/reviews`. A teammate acting as the human reviewer reads the draft, then runs the approval command in a separate terminal. Your agent must never invoke this operator command.
+Draft with `dispute-copilot run` or `run-all`. Before `submit-review`, run `dispute-copilot agent-review CASE`. That checklist does not post and does not approve. `submit-review` then posts `POST /v1/reviews`. Skipping the checklist exits 2 and posts nothing. A person reads the draft and runs the approval command in a separate terminal. The app never runs that command.
 
 ```sh
-uv run --locked python tools/runtime.py pending
-uv run --locked python tools/runtime.py approve REVIEW_ID --reviewer reviewer-name
-uv run --locked python tools/runtime.py audit > reports/audit.json
+uv run --locked python tools/runtime.py pending --state .state/run.sqlite
+uv run --locked python tools/runtime.py approve REVIEW_ID --reviewer reviewer-name --state .state/run.sqlite
+uv run --locked python tools/runtime.py audit --state .state/run.sqlite > reports/audit.json
 ```
 
-Replace REVIEW_ID with the returned identifier. Create `reports/` before redirecting the audit. To reject, use `reject` with the same arguments. For a fresh run, stop clients and use `uv run --locked python tools/runtime.py reset --confirm`.
+Replace REVIEW_ID with the returned identifier. Create `reports/` before redirecting the audit. To reject, use `reject` with the same arguments and the same `--state`. For a fresh run, stop clients and use `uv run --locked python tools/runtime.py reset --confirm --state .state/run.sqlite`.
+These commands must use the state file the mock was started with. `make mock` and the `serve` example above use `.state/run.sqlite`.
 This CLI simulates a human boundary, not production identity. During assessment the assessor controls approval and state. Do not expose the service to the public internet.
