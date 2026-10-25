@@ -1,4 +1,4 @@
-.PHONY: sync lint test check daily mock regen-gold
+.PHONY: sync lint test check daily mock regen-gold metrics week10 week10-duplicate
 
 sync:
 	uv sync --locked
@@ -20,3 +20,12 @@ mock:
 regen-gold:
 	@echo "refusing: hidden-style gold is not in this checkpoint, and feedback/dev_gold.json is never rewritten" >&2
 	@exit 2
+
+metrics:
+	uv run --locked dispute-copilot metrics
+
+week10:
+	scripts/week10_evidence.sh
+
+week10-duplicate:
+	scripts/week10_duplicate.sh
