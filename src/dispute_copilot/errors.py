@@ -24,6 +24,14 @@ class ToolFailed(CopilotError):
         )
 
 
+class BreakerOpen(ToolFailed):
+    """The dependency's breaker is open after earlier cases exhausted their attempts."""
+
+    def __init__(self, dependency: str):
+        self.dependency = dependency
+        super().__init__(0, {"error": "breaker_open", "dependency": dependency}, 0)
+
+
 class OutsideCheckpoint(CopilotError):
     pass
 

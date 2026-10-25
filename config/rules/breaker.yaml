@@ -1,0 +1,8 @@
+# Cross-case circuit breaker, one per read dependency (ADR-30).
+# It never reduces the three attempts inside a case. It opens only after
+# failure_threshold consecutive cases exhausted every attempt on the same
+# dependency, skips that dependency for cooldown_s, then lets one probe case
+# through with its full attempts.
+enabled: true
+failure_threshold: 3
+cooldown_s: 30

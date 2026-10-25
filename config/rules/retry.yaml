@@ -1,0 +1,11 @@
+# Read-tool retry policy. The procedure allows three total attempts per case.
+# max_attempts above 3 is rejected at load.
+max_attempts: 3
+retryable_status_codes: [503]
+retry_on_timeout: true
+# Exponential backoff with capped jitter: wait after attempt N is
+# min(max_delay_s, base_delay_s * 2^(N-1)), halved, plus up to the other half.
+base_delay_s: 0.05
+max_delay_s: 0.2
+# Per-request HTTP timeout. A timed-out request counts as a retryable attempt.
+http_timeout_s: 10
