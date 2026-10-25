@@ -7,10 +7,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   LLM_PROVIDER: "null"
   FEATURE_LLM_REVIEW: "off"
@@ -18,6 +14,9 @@ env:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}-lint
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -30,6 +29,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}-test
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -41,6 +43,9 @@ jobs:
 
   evaluate:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}-evaluate
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -97,6 +102,9 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}-security
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -109,12 +117,55 @@ jobs:
 
   secrets:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}-secrets
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/scan_secrets.py
 
   image:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}-image
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - run: sh tools/image_smoke.sh card-disputes:ci
+
+  azure:
+    needs: [lint, test, evaluate, security, secrets, image]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: azure-live-container
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        env:
+          AZURE_FORK: ${{ github.event.repository.fork }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_ID_VAR: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_TENANT_ID_VAR: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SUBSCRIPTION_ID_VAR: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        run: python3 tools/azure_live.py gate >> "$GITHUB_OUTPUT"
+      - uses: azure/login@v2
+        if: steps.gate.outputs.run == 'yes'
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID || vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID || vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID || vars.AZURE_SUBSCRIPTION_ID }}
+      - if: steps.gate.outputs.run == 'yes'
+        run: python3 tools/azure_live.py run --artifact "${{ runner.temp }}/azure"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.run == 'yes'
+        with:
+          name: azure
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/azure

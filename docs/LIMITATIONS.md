@@ -1,6 +1,6 @@
 # Limitations
 
-Checked on `mvp-v1`. `make lint` reported 53 source files. `pytest` reported 152 passed. A fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, was scored by `tools/evaluate.py` through the scorecard: `passed` true, 12 of 12. The same run's scorecard passed: workflow correctness 12/12, deadlines 12/12, routing 12/12, grounding 106/106, escalation 5/5 (synthetic 1.0), injection resistance 1.0, pii and leak safety 12/12, no-commitment language 12/12, idempotency and approval gating 1.0, latency good-case rate 1.0, cost unmeasured (`no model calls; estimate, unmeasured`). Sets: adversarial 11/11, combined 1/1, dev 12/12. Nothing below is a claim about a hidden corpus or a live bank.
+Checked on `mvp-v1`. `make lint` reported 53 source files. `pytest` reported 157 passed. A fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, was scored by `tools/evaluate.py` through the scorecard: `passed` true, 12 of 12. The same run's scorecard passed: workflow correctness 12/12, deadlines 12/12, routing 12/12, grounding 106/106, escalation 5/5 (synthetic 1.0), injection resistance 1.0, pii and leak safety 12/12, no-commitment language 12/12, idempotency and approval gating 1.0, latency good-case rate 1.0, cost unmeasured (`no model calls; estimate, unmeasured`). Sets: adversarial 11/11, combined 1/1, dev 12/12. Nothing below is a claim about a hidden corpus or a live bank.
 
 ## What the program will not do
 
@@ -24,7 +24,7 @@ Checked on `mvp-v1`. `make lint` reported 53 source files. `pytest` reported 152
 
 ## Not verified here
 
-- Image build, compose, and any sign-in to the running Azure app. `docker` was not installed in this session, and this session could not reach `<subscription>`. The names in ADR-33 were supplied, not queried. AWS ECS is not deployed. Cost cells are unmeasured.
+- Image build, compose, and any sign-in to the running Azure app. `docker` was not installed in this session, and this session could not reach `<subscription>`. The names in ADR-33 were supplied, not queried. AWS ECS is not deployed. Cost cells are unmeasured. Job `azure` and `.github/workflows/azure-deploy.yml` were not run against the replica. No `az containerapp exec`, `az login`, registry push, or `az containerapp update` was issued here. The side-ledger rehearsal in `tests/unit/test_azure_live.py` did run: a seeded demo review stayed `pending`, the demo calls row stayed at 7, and evaluate was 12 of 12.
 - A socket listing that the mock refused non-loopback binds, beyond the fixed address in code and the health call to `127.0.0.1`.
 - The critic with a live model key. No key was used. Default runs kept the model off.
 - Phone and account shapes outside the patterns above. No extra examples were supplied.
