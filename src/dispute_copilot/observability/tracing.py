@@ -20,6 +20,8 @@ from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import CASE_ID
 
 LOGGER = logging.getLogger("dispute_copilot")
+LOGGER.addHandler(logging.NullHandler())
+LOGGER.propagate = False
 _MAX_TEXT = 160
 _current: ContextVar["Tracer | None"] = ContextVar("dispute_copilot_tracer", default=None)
 
