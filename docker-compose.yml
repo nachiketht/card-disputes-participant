@@ -1,0 +1,42 @@
+# Local rehearsal of the Azure layout.
+# Both containers use the same image and share localhost.
+# The mock sees only dataset.json. The app sees only documents/ and policies/.
+
+services:
+  mock:
+    build: .
+    image: card-disputes:local
+    command:
+      - python
+      - tools/runtime.py
+      - serve
+      - --data
+      - /data
+      - --state
+      - /state/run.sqlite
+      - --port
+      - "8765"
+    volumes:
+      - ./data/dev/dataset.json:/data/dataset.json:ro
+      - mock-state:/state
+
+  app:
+    image: card-disputes:local
+    network_mode: "service:mock"
+    depends_on:
+      - mock
+    command: ["sleep", "infinity"]
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /data
+      SUBMISSIONS_DIR: /submissions
+      MOCK_BASE_URL: http://127.0.0.1:8765
+    volumes:
+      - ./data/dev/documents:/data/documents:ro
+      - ./data/dev/policies:/data/policies:ro
+      - app-submissions:/submissions
+
+volumes:
+  mock-state:
+  app-submissions:

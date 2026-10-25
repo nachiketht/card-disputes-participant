@@ -1,0 +1,13 @@
+.git
+.venv
+.env
+.env.*
+.state
+data
+submissions
+reports
+tests
+**/__pycache__
+**/*.pyc
+**/*.sqlite
+**/*.sqlite-*
