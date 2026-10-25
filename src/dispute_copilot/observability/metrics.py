@@ -60,6 +60,7 @@ def compute(records: list[dict], slo: dict | None = None) -> dict:
     skips = [r for r in events if r["name"] == "breaker.skip"]
     opens = [r for r in events if r["name"] == "breaker.transition" and r["attrs"].get("to_state") == "open"]
     flagged = {r[CASE_ID] for r in events if r["name"] == "security.untrusted_instruction"}
+    injected = {r[CASE_ID] for r in events if r["name"] == "injection_detected"}
     blocked = [r for r in events if r["name"] == "review.gate" and r["attrs"].get("passed") is False]
     routed = {}
     for r in drafted:
@@ -92,6 +93,7 @@ def compute(records: list[dict], slo: dict | None = None) -> dict:
         "breaker_opens": len(opens),
         "breaker_skips": len(skips),
         "untrusted_instruction_cases": len(flagged),
+        "injection_detected": len(injected),
         "gate_blocked": len(blocked),
         "routes": routed,
         "manual_review_rate": _ratio(routed.get(Routing.MANUAL_REVIEW.value, 0), len(drafted)),

@@ -13,6 +13,7 @@ from pathlib import Path
 from dispute_copilot.contract import validate_draft
 from dispute_copilot.errors import ContractError
 from dispute_copilot.evidence.redaction import Redactor
+from dispute_copilot.evidence.untrusted import instruction_flags
 from dispute_copilot.fields import (
     CASE_ID,
     CITATION_QUOTE,
@@ -117,10 +118,41 @@ def format_reviewer_note(draft: dict, approval: dict) -> str:
             f"Amount: {amount_text}",
             f"Route: {draft.get(ROUTING, '')}",
             f"Deadline: {draft.get(DEADLINE, '')}",
-            "A pass does not approve the case.",
         ]
     )
+    note = approval.get("injection_note") if isinstance(approval, dict) else None
+    if isinstance(note, str) and note.strip():
+        lines.append(note.strip())
+    lines.append("A pass does not approve the case.")
     return "\n".join(lines)
+
+
+def injection_note(case_id: str, draft: dict, trace_dir: Path | None = None) -> str | None:
+    """Short checklist line. Pattern names only; the untrusted text is not copied."""
+    categories: set[str] = set(instruction_flags(json.dumps(draft, ensure_ascii=False)))
+    if trace_dir is not None:
+        path = trace_dir / f"{case_id}.jsonl"
+        if path.is_file():
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if record.get("name") != "injection_detected":
+                    continue
+                attrs = record.get("attrs") if isinstance(record.get("attrs"), dict) else {}
+                found = attrs.get("category")
+                if isinstance(found, list):
+                    categories.update(str(item) for item in found)
+                elif isinstance(found, str) and found:
+                    categories.add(found)
+    if not categories:
+        return None
+    listed = ", ".join(sorted(categories))
+    sentence = f"Untrusted text matched instruction patterns ({listed}) and was treated as data."
+    return Redactor().mask(sentence)
 
 
 def record_agent_review(
@@ -130,8 +162,10 @@ def record_agent_review(
     version: int,
     *,
     critic=None,
+    trace_dir: Path | None = None,
 ) -> dict:
     checks = checklist(draft)
+    noted = injection_note(case_id, draft, trace_dir)
     mode = os.environ.get("FEATURE_LLM_REVIEW", "off").strip().lower()
     llm_review = None
     if mode == "block" and all(checks.values()):
@@ -147,6 +181,7 @@ def record_agent_review(
         "run_id": uuid.uuid4().hex,
         "llm_review": llm_review,
         "contract_version": CONTRACT_VERSION,
+        "injection_note": noted,
     }
     current().event(
         "review.agent_checklist",

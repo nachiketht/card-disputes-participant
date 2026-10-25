@@ -207,13 +207,25 @@ def prepare(
 
 def _flag_untrusted(source_id: str, text: object, flags: list[str] | None = None) -> None:
     found = instruction_flags(text) if flags is None else flags
-    if found:
-        current().event(
-            "security.untrusted_instruction",
+    if not found:
+        return
+    tracer = current()
+    category = list(found)
+    tracer.event(
+        "security.untrusted_instruction",
+        level="warning",
+        source=source_id,
+        patterns=category,
+        action="treated_as_data",
+    )
+    with tracer.span("injection.scan", source=source_id) as span:
+        span.set(injection_detected=True, category=category)
+        tracer.event(
+            "injection_detected",
             level="warning",
             source=source_id,
-            patterns=found,
-            action="treated_as_data",
+            category=category,
+            **{CASE_ID: tracer.case_id},
         )
 
 
@@ -255,7 +267,9 @@ def _attachment_status(corpus: Corpus, case_id: str, case: dict) -> str | None:
         source_id = str(item)
         if not source_id.endswith("-ATTACHMENT"):
             continue
-        parsed = parse_attachment(_document(corpus, case_id, source_id))
+        text = _document(corpus, case_id, source_id)
+        _flag_untrusted(source_id, text)
+        parsed = parse_attachment(text)
         if parsed.get("attachment_status") == ATTACHMENT_MISSING:
             status = ATTACHMENT_MISSING
     return status

@@ -86,7 +86,14 @@ def main(argv: list[str] | None = None) -> int:
 def _review_command(command: str, case_id: str, settings: Settings, ledger: HttpCaseSystem) -> int:
     if command == "agent-review":
         _path, draft, version = latest_draft(settings.submissions_dir, case_id)
-        approval = record_agent_review(settings.submissions_dir, case_id, draft, version, critic=build_critic())
+        approval = record_agent_review(
+            settings.submissions_dir,
+            case_id,
+            draft,
+            version,
+            critic=build_critic(),
+            trace_dir=settings.reports_dir / "traces",
+        )
         print(format_reviewer_note(draft, approval), file=sys.stderr)
         print(json.dumps(approval, indent=2))
         return 0 if approval.get("passed") is True else 2
