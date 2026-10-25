@@ -1,9 +1,9 @@
 """Run metrics from trace records, and alert evaluation against config/rules/slo.yaml.
 
-The SLO measure is the good-case rate: a case is good when it produced a
-contract-valid draft within the latency target. The other metrics explain a
-miss: per-case latency, tool exhaustion, retries, breaker opens and flagged
-untrusted content.
+The SLO measure is the good-case rate: a case is good when its case span has
+outcome drafted and duration_ms at or under the latency target. The route is
+not read. The other metrics explain a miss: per-case latency, tool exhaustion,
+retries, breaker opens and flagged untrusted content.
 """
 
 import json
