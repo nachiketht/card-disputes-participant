@@ -108,6 +108,16 @@ Brief check: scored fields are identical across every committed prompt version. 
 Rollback: move the pin back to the previous version.
 Status: accepted 2026-10-23. Not yet built.
 
+# ADR-30. Cross-case circuit breaker, supersedes ADR-24
+
+Context: ADR-24 (plan v3.9, CR-09, client decision 4 of 2026-10-22) chose no circuit breaker, because the procedure fixes three total attempts per case and the audit is expected to show them (CARD-D07: 3 transaction attempts, CARD-D10: 2). The Week 10 hardening review asks for a breaker on every dependency-backed failure case. During a sustained outage, the no-breaker design spends three attempts on every case against a service known to be down.
+Decision: one breaker per read dependency (transactions, merchant), counted in whole cases, not attempts. Closed: every case gets the full retry budget, unchanged. It opens only after `failure_threshold` consecutive cases exhausted all three attempts on the same dependency (default 3). Open: later cases skip that call and take the existing degradation path, the same one a failed read takes (transactions unavailable: amount and currency null, `manual_review`, outage sentence cited; merchant unavailable: merchant context unavailable). The narrative says the call was skipped by the breaker. After `cooldown_s` (default 30) one case is let through as a probe with its full three attempts; success closes the breaker, exhaustion reopens it. Settings in `config/rules/breaker.yaml`, overridable with `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S`. Every transition and skip is a trace event. Code: `reliability/breaker.py`, used by `adapters/tools.py:read_with_retries`.
+Why it respects the procedure: no case ever gets fewer than three attempts while the breaker lets a call through, and a skipped case takes the same documented degradation as an exhausted one, so no amount is invented and no outage is read as an empty history. With default settings the dev run never opens the breaker: CARD-D07 is the only exhausted case, so D07 still shows 3 attempts and D10 still shows 2, and evaluation stays 12/12 (`tests/integration/test_live_checkpoint.py`, `evidence/week10/04_scenarios.txt`).
+Alternatives: keep ADR-24 (fails the hardening rubric, wastes attempts in a long outage); a per-attempt breaker that can cut attempts inside a case (breaks the procedure and the audit counts).
+Consequence: a skipped case shows 0 attempts for that dependency in the audit. That only happens after an outage on earlier consecutive cases, and the trace records why.
+Rollback: `BREAKER_ENABLED=0` or `enabled: false` restores ADR-24 behavior with no code change.
+Status: accepted 2026-10-25. Built.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
