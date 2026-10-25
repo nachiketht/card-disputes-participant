@@ -1,0 +1,40 @@
+# Service level objective and alert thresholds. See docs/SLO.md.
+slo:
+  name: case_drafted_within_target
+  description: >-
+    A case is good when run produces a contract-valid draft with the correct
+    escalation decision within latency_target_ms of the case starting.
+  latency_target_ms: 2000
+  objective: 0.95
+  window: rolling 7 days
+alerts:
+  - name: tool_exhausted_rate_high
+    metric: tool_exhausted_rate
+    op: ">"
+    threshold: 0.25
+    severity: page
+    why: A read dependency is failing all three attempts on more than one case in four. Cases are degrading to manual_review.
+  - name: good_case_rate_below_slo
+    metric: good_case_rate
+    op: "<"
+    threshold: 0.95
+    severity: page
+    why: The SLO itself is being missed for this window. The error budget is burning.
+  - name: breaker_opened
+    metric: breaker_opens
+    op: ">"
+    threshold: 0
+    severity: ticket
+    why: A dependency outage lasted long enough to open its breaker.
+  - name: untrusted_instruction_spike
+    metric: untrusted_instruction_cases
+    op: ">"
+    threshold: 2
+    severity: ticket
+    why: Several cases carried instruction-like text. Possible coordinated injection attempt.
+  - name: unapproved_create_attempt
+    metric: gate_blocked
+    op: ">"
+    threshold: 0
+    severity: page
+    why: Something tried to create a record without a passing approval gate.

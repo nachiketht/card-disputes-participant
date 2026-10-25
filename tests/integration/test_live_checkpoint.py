@@ -82,6 +82,23 @@ def test_live_development_cases_and_the_create_boundary(tmp_path: Path):
         assert attempts == [1, 2, 3]
         assert [row for row in audit if row["event"] == "record_created"] == []
 
+        traces = tmp_path / "reports" / "traces"
+        outage_trace = _trace(traces / "CARD-D07.jsonl")
+        calls = [r for r in outage_trace if r["name"] == "tool.call" and r["attrs"]["dependency"] == "transactions"]
+        assert [c["attrs"]["outcome"] for c in calls] == ["exhausted"]
+        assert len([r for r in outage_trace if r["name"] == "retry.backoff" and r["attrs"]["dependency"] == "transactions"]) == 2
+        assert not [r for r in outage_trace if r["name"] == "breaker.skip"]
+        attack_trace = _trace(traces / "CARD-D08.jsonl")
+        flagged = [r for r in attack_trace if r["name"] == "security.untrusted_instruction"]
+        assert flagged and flagged[0]["attrs"]["action"] == "treated_as_data"
+        all_trace_text = "\n".join(path.read_text(encoding="utf-8") for path in traces.glob("*.jsonl"))
+        assert "SYNTHETIC-PRIVATE" not in all_trace_text
+        assert "SYSTEM OVERRIDE" not in all_trace_text
+        metrics = json.loads((tmp_path / "reports" / "metrics.json").read_text(encoding="utf-8"))["metrics"]
+        assert metrics["cases_total"] == 12
+        assert metrics["valid_contract_rate"] == 1.0
+        assert metrics["breaker_opens"] == 0
+
         reviewed = _copilot(port, submissions, "agent-review", "CARD-D01")
         assert reviewed.returncode == 0, reviewed.stderr + reviewed.stdout
         submitted = _copilot(port, submissions, "submit-review", "CARD-D01")
@@ -153,6 +170,7 @@ def test_a_down_mock_writes_no_file(tmp_path: Path):
 def _copilot(port: int, submissions: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["LLM_PROVIDER"] = "null"
+    env["REPORTS_DIR"] = str(submissions.parent / "reports")
     return subprocess.run(
         [
             sys.executable,
@@ -187,6 +205,10 @@ def _wait_until_healthy(port: int, server: subprocess.Popen[str]) -> None:
         if response.status_code == 200:
             return
     raise AssertionError("mock did not become healthy")
+
+
+def _trace(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def _audit(state: Path) -> list[dict]:

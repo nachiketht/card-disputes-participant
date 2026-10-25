@@ -33,6 +33,7 @@ from dispute_copilot.fields import (
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
+from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import digest
 
 from .handles import handle_path, read_handle, write_handle
@@ -147,6 +148,14 @@ def record_agent_review(
         "llm_review": llm_review,
         "contract_version": CONTRACT_VERSION,
     }
+    current().event(
+        "review.agent_checklist",
+        level="info" if approval["passed"] else "warning",
+        passed=approval["passed"],
+        failed_checks=sorted(name for name, ok in checks.items() if not ok),
+        llm_mode=mode,
+        draft_version=version,
+    )
     path = handle_path(submissions, case_id)
     handle = read_handle(path)
     handle["agent_approval"] = approval

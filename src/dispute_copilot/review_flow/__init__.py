@@ -12,6 +12,7 @@ from pathlib import Path
 from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
 from dispute_copilot.errors import CreateRejected
 from dispute_copilot.fields import CASE_ID
+from dispute_copilot.observability.tracing import current
 from dispute_copilot.review_flow.gate import approval_gate
 from dispute_copilot.review_flow.handles import handle_path, read_handle, write_handle
 from dispute_copilot.serialization import digest, idempotency_key
@@ -44,9 +45,13 @@ def submit_review(case_id: str, submissions: Path, case_system: Ledger) -> dict:
     _path, draft, version = latest_draft(submissions, case_id)
     destination = handle_path(submissions, case_id)
     existing = read_handle(destination) if destination.is_file() else {}
-    if not agent_approval_matches(existing, case_id, draft):
+    matched = agent_approval_matches(existing, case_id, draft)
+    current().event("review.step1_check", passed=matched, draft_version=version)
+    if not matched:
         raise CreateRejected(400, {"error": "agent_approval_required"})
-    submitted = case_system.submit_review(case_id, draft)
+    with current().span("review.submit") as span:
+        submitted = case_system.submit_review(case_id, draft)
+        span.set(review=submitted.review_id, status=submitted.status)
     handle = dict(existing)
     handle["review_id"] = submitted.review_id
     handle["draft_hash"] = submitted.draft_hash
@@ -57,8 +62,12 @@ def submit_review(case_id: str, submissions: Path, case_system: Ledger) -> dict:
 
 def create_record(case_id: str, submissions: Path, case_system: Ledger) -> dict:
     handle = load_handle(handle_path(submissions, case_id))
-    existing = case_system.get_record(case_id)
+    tracer = current()
+    with tracer.span("record.precheck") as span:
+        existing = case_system.get_record(case_id)
+        span.set(found=existing.found, http_status=existing.http_status, record=existing.record_id)
     if existing.found:
+        tracer.event("idempotency.existing_record", record=existing.record_id, posted=False)
         return {
             "http_status": existing.http_status,
             "record_id": existing.record_id,
@@ -73,12 +82,24 @@ def create_record(case_id: str, submissions: Path, case_system: Ledger) -> dict:
     if not isinstance(draft, dict) or draft.get(CASE_ID) != case_id:
         raise CreateRejected(400, {"error": "draft_case_mismatch"})
     server_hash = review.draft_hash
-    if not approval_gate(handle.get("agent_approval"), review, case_id=case_id, server_hash=server_hash):
+    passed = approval_gate(handle.get("agent_approval"), review, case_id=case_id, server_hash=server_hash)
+    tracer.event(
+        "review.gate",
+        level="info" if passed else "warning",
+        passed=passed,
+        review=review.review_id,
+        review_status=review.status,
+        reviewer_present=bool(review.reviewer),
+    )
+    if not passed:
         raise CreateRejected(403, {"error": "approval_gate", "status": review.status})
     if digest(draft) != server_hash:
+        tracer.event("review.hash_mismatch", level="warning", review=review.review_id)
         raise CreateRejected(403, {"error": "hash_mismatch"})
     key = idempotency_key(case_id, review.review_id, server_hash)
-    result = case_system.create_record(case_id, review.review_id, draft, key)
+    with tracer.span("record.create", idempotency_key=key[:15] + "...") as span:
+        result = case_system.create_record(case_id, review.review_id, draft, key)
+        span.set(http_status=result.http_status, record=result.record_id or result.existing_record_id)
     return {
         "http_status": result.http_status,
         "record_id": result.record_id or result.existing_record_id,

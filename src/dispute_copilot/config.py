@@ -10,13 +10,15 @@ class Settings:
     mock_base_url: str
     data_dir: Path
     submissions_dir: Path
+    reports_dir: Path = Path("reports")
 
     @classmethod
     def from_sources(cls, mock_url: str | None, data_dir: Path | None, submissions: Path | None) -> "Settings":
         base = (mock_url or os.environ.get("MOCK_BASE_URL") or "http://127.0.0.1:8765").rstrip("/")
         data = data_dir or _env_path("DATA_DIR") or Path.cwd() / "data" / "dev"
         folder = submissions or _env_path("SUBMISSIONS_DIR") or Path.cwd() / "submissions"
-        return cls(base, data, folder)
+        reports = _env_path("REPORTS_DIR") or Path.cwd() / "reports"
+        return cls(base, data, folder, reports)
 
 
 def _env_path(name: str) -> Path | None:
