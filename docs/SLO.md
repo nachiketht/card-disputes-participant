@@ -2,7 +2,7 @@
 
 ## SLO
 
-**95% of case spans are drafted within 2 seconds of the case starting, measured over a rolling 7 days.**
+**95% of case spans are drafted within 2 seconds of the case starting, measured per evaluation run.** A rolling 7-day aggregation across runs is a production follow-up; `dispute-copilot metrics` computes each run on its own.
 
 - A case is *good* when its `case` span has `outcome` `drafted` and `duration_ms` at or under 2000. `good_case_rate` is that count divided by every `case` span. The metric does not read the route.
 - A case is *bad* when that span was not written, or it is slower than 2000 ms.
@@ -11,14 +11,14 @@
 
 ## Why 2 seconds
 
-Measured on the local mock with default settings (`evidence/week10/04_scenarios.txt`, 2026-10-25):
+Measured on the local mock with default settings (`evidence/week10/04_scenarios.txt` and `evidence/week10/reports/metrics.json`, 2026-10-25, commit a91535d):
 
 | Measure | Value |
 |---|---|
 | Cases | 12 |
-| Median case latency | 9.8 ms |
-| p95 / max | 145 ms (CARD-D07: 3 attempts plus two backoff waits) |
-| Transient retry case (CARD-D10) | 44 ms |
+| Median case latency | 12.9 ms |
+| p95 / max | 155.9 ms (CARD-D07: 3 attempts plus two backoff waits) |
+| Transient retry case (CARD-D10) | 51.7 ms |
 | Valid-contract rate | 12/12 |
 
 The worst case today is three attempts with backoff capped at 0.2 s. With the 10 s HTTP timeout, a hung dependency can cost up to about 30 s per case, which is what the SLO is meant to catch. 2 s leaves room for real network latency to the transaction and merchant services while still flagging a hung dependency.
