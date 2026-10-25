@@ -14,8 +14,9 @@ from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.contract import validate_draft
 from dispute_copilot.drafting import Drafter
-from dispute_copilot.errors import LeakError, OutsideCheckpoint, ToolFailed
+from dispute_copilot.errors import BreakerOpen, LeakError, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
+from dispute_copilot.evidence.untrusted import instruction_flags, payload_flags
 from dispute_copilot.fields import (
     CITATION_CLAIM,
     CITATION_QUOTE,
@@ -44,6 +45,7 @@ from dispute_copilot.rules.deadline import add_calendar_days
 from dispute_copilot.rules.documents import line_starting, parse_attachment, parse_followup, parse_intake
 from dispute_copilot.rules.questions import follow_up_questions
 from dispute_copilot.rules.routing import choose_routing
+from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import citation_source_text
 
 Corpus = FileCorpus | MemoryCorpus
@@ -79,58 +81,79 @@ def prepare(
     case: dict | None = None,
     drafter: Drafter | None = None,
 ) -> dict:
+    tracer = current()
     if case is None:
         case = _find_case(tools.list_cases(), case_id)
     _require_case_shape(case_id, case)
     intake_id = str(case["intake_source"])
-    intake_text = _document(corpus, case_id, intake_id)
-    try:
-        intake = parse_intake(intake_text)
-    except ValueError as exc:
-        raise OutsideCheckpoint(f"{case_id} intake could not be read: {exc}") from exc
-    followups = _followups(corpus, case_id, case, intake_id)
-    attachment_status = _attachment_status(corpus, case_id, case)
-    decision = classify(
-        intake["complaint"],
-        intake["authorization"],
-        [item[1] for item in followups],
-        intake.get(MissingId.PROMISED_SERVICE_DATE.value),
-        intake.get(MissingId.PURCHASE_RECEIPT.value),
-        attachment_status,
-    )
+    with tracer.span("intake.parse", source=intake_id) as span:
+        intake_text = _document(corpus, case_id, intake_id)
+        try:
+            intake = parse_intake(intake_text)
+        except ValueError as exc:
+            raise OutsideCheckpoint(f"{case_id} intake could not be read: {exc}") from exc
+        span.set(labeled_lines=len(intake))
+    _flag_untrusted(intake_id, intake_text)
+    with tracer.span("documents.followups") as span:
+        followups = _followups(corpus, case_id, case, intake_id)
+        attachment_status = _attachment_status(corpus, case_id, case)
+        span.set(followups=len(followups), attachment_status=attachment_status)
+    for source_id, _authorization, text in followups:
+        _flag_untrusted(source_id, text)
+    with tracer.span("rules.classify") as span:
+        decision = classify(
+            intake["complaint"],
+            intake["authorization"],
+            [item[1] for item in followups],
+            intake.get(MissingId.PROMISED_SERVICE_DATE.value),
+            intake.get(MissingId.PURCHASE_RECEIPT.value),
+            attachment_status,
+        )
+        span.set(decision=decision.classification, missing_ids=list(decision.missing), conflict=decision.conflict)
     reported = _reported_date(case_id, intake.get(FACT_REPORTED_DATE))
     transaction_id = intake.get(FACT_TRANSACTION_ID)
     if not isinstance(transaction_id, str) or not transaction_id:
         raise OutsideCheckpoint(f"{case_id} intake has no transaction id")
-    transactions, transaction_attempts, transactions_down = _transactions(tools, case_id)
+    transactions, transaction_attempts, transactions_down, transactions_skipped = _transactions(tools, case_id)
     merchant_note, merchant_attempts = _merchant(tools, case_id)
-    try:
-        resolver = PolicyResolver(corpus)
-        selection = resolver.select(reported)
-    except (ValueError, KeyError) as exc:
-        raise OutsideCheckpoint(f"{case_id} policy lookup failed: {exc}") from exc
+    with tracer.span("policy.select", reported=reported.isoformat()) as span:
+        try:
+            resolver = PolicyResolver(corpus)
+            selection = resolver.select(reported)
+        except (ValueError, KeyError) as exc:
+            raise OutsideCheckpoint(f"{case_id} policy lookup failed: {exc}") from exc
+        span.set(policy=selection.policy_id, in_range=selection.in_range)
     if not selection.in_range or selection.policy_id is None or selection.policy_text is None:
+        tracer.event("policy.out_of_range", level="warning", reported=reported.isoformat())
         raise OutsideCheckpoint(
             f"{case_id} reported date {reported.isoformat()} is outside every loaded policy. Nothing was written."
         )
     named, amount, currency, transactions_unavailable = _named_facts(transactions, transaction_id, transactions_down)
-    routing = choose_routing(decision.classification, decision.missing, transactions_unavailable)
-    deadline = _deadline(case_id, decision, selection, reported)
-    citations = _citations(
-        case_id,
-        decision,
-        intake_id,
-        intake_text,
-        intake,
-        followups,
-        selection,
-        deadline,
-        transactions,
-        transaction_id,
-        amount,
-        transactions_unavailable,
-    )
-    existing = case_system.get_record(case_id)
+    with tracer.span("rules.routing") as span:
+        routing = choose_routing(decision.classification, decision.missing, transactions_unavailable)
+        deadline = _deadline(case_id, decision, selection, reported)
+        span.set(route=routing, transactions_unavailable=transactions_unavailable, deadline_set=deadline is not None)
+    if transactions_unavailable:
+        tracer.event("degradation.applied", level="warning", kind="transactions_unavailable", route=routing)
+    with tracer.span("citations.build") as span:
+        citations = _citations(
+            case_id,
+            decision,
+            intake_id,
+            intake_text,
+            intake,
+            followups,
+            selection,
+            deadline,
+            transactions,
+            transaction_id,
+            amount,
+            transactions_unavailable,
+        )
+        span.set(count=len(citations))
+    with tracer.span("ledger.lookup") as span:
+        existing = case_system.get_record(case_id)
+        span.set(found=existing.found, http_status=existing.http_status)
     narrative = _narrative(
         classification=decision.classification,
         routing=routing,
@@ -146,6 +169,7 @@ def prepare(
         merchant_note=merchant_note,
         ledger_id=existing.record_id if existing.found else None,
         posted_split=_posted_split(named, resolver, selection.policy_id),
+        transactions_skipped=transactions_skipped,
     )
     # Callers may still pass a drafter. The saved customer sentence stays the template.
     del drafter
@@ -166,10 +190,24 @@ def prepare(
         FOLLOW_UP_QUESTIONS: follow_up_questions(decision.missing),
         NARRATIVE: narrative,
     }
-    draft = validate_draft(payload)
-    rendered = json.dumps(draft, ensure_ascii=False)
-    Redactor().assert_clean(rendered)
+    with tracer.span("contract.validate"):
+        draft = validate_draft(payload)
+    with tracer.span("redaction.check"):
+        rendered = json.dumps(draft, ensure_ascii=False)
+        Redactor().assert_clean(rendered)
     return draft
+
+
+def _flag_untrusted(source_id: str, text: object, flags: list[str] | None = None) -> None:
+    found = instruction_flags(text) if flags is None else flags
+    if found:
+        current().event(
+            "security.untrusted_instruction",
+            level="warning",
+            source=source_id,
+            patterns=found,
+            action="treated_as_data",
+        )
 
 
 def _find_case(cases: list[dict], case_id: str) -> dict:
@@ -225,12 +263,13 @@ def _reported_date(case_id: str, raw: object) -> date:
         raise OutsideCheckpoint(f"{case_id} reported date is not an ISO date") from None
 
 
-def _transactions(tools: Tools, case_id: str) -> tuple[dict | None, int, bool]:
+def _transactions(tools: Tools, case_id: str) -> tuple[dict | None, int, bool, bool]:
     try:
         payload, attempts = tools.transactions(case_id)
     except ToolFailed as exc:
-        return None, exc.attempts, True
-    return payload, attempts, False
+        return None, exc.attempts, True, isinstance(exc, BreakerOpen)
+    _flag_untrusted(str(payload.get(CITATION_SOURCE_ID, "transactions")), None, payload_flags(payload))
+    return payload, attempts, False, False
 
 
 def _named_facts(
@@ -275,6 +314,7 @@ def _merchant(tools: Tools, case_id: str) -> tuple[str, int]:
         payload, attempts = tools.merchant(case_id)
     except ToolFailed as exc:
         return "Merchant context is unavailable.", exc.attempts
+    _flag_untrusted(str(payload.get(CITATION_SOURCE_ID, "merchant")), None, payload_flags(payload))
     display = payload.get("display_name")
     if not isinstance(display, str) or not display.strip():
         return "Merchant context is unavailable.", attempts
@@ -451,6 +491,7 @@ def _narrative(
     merchant_note: str,
     ledger_id: str | None,
     posted_split: str,
+    transactions_skipped: bool = False,
 ) -> str:
     if missing:
         needed = ", ".join(item.value for item in missing)
@@ -468,6 +509,11 @@ def _narrative(
         )
     else:
         purchase = "The named purchase was returned."
+    if transactions_skipped:
+        purchase += (
+            " The transactions call was skipped because its circuit breaker was open after earlier cases"
+            " exhausted every attempt."
+        )
     if deadline:
         deadline_text = f"The supplied training-policy deadline is {deadline}."
     else:
