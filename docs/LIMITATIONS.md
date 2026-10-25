@@ -1,6 +1,6 @@
 # Limitations
 
-Checked on `mvp-v1`. `make lint` reported 47 source files. `pytest` reported 129 passed. `tools/evaluate.py` against a fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, reported `passed` true, 12 of 12. Nothing below is a claim about a hidden corpus or a live bank.
+Checked on `mvp-v1`. `make lint` reported 47 source files. `pytest` reported 126 passed, 3 skipped (the MCP stdio tests, which need the optional `mcp` extra; with it they pass 6/6). `tools/evaluate.py` against a fresh `run-all` on the development corpus, with the mock on `127.0.0.1` and a temporary state file, reported `passed` true, 12 of 12. Nothing below is a claim about a hidden corpus or a live bank.
 
 ## What the program will not do
 

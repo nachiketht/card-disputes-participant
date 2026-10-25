@@ -546,7 +546,7 @@ That file checks:
 - `src/` does not mention `runtime.py` and does not call `approve` or `reject`.
 - Tracked files do not contain a credential-shaped value, and `.env` is not tracked.
 
-Related files in the same suite: `tests/unit/test_gates.py`, `tests/unit/test_approval.py`. The full suite is `make test` (98 passed on this tree).
+Related files in the same suite: `tests/unit/test_gates.py`, `tests/unit/test_approval.py`. The full suite is `make test` (126 passed, 3 skipped on this tree; the 3 skips are `tests/integration/test_mcp_stdio.py`, which needs the optional `mcp` extra: `uv run --locked --extra mcp pytest -q tests/integration/test_mcp_stdio.py` gives 6 passed).
 
 `CARD-D08` on a live `run-all` writes a draft, flags `security.untrusted_instruction`, and does not create a record. Do not paste the merchant payload. `docs/RUNBOOK.md` is the response for that case.
 
@@ -559,7 +559,7 @@ make check
 make daily
 ```
 
-`make lint` runs `uv run --locked python tools/lint_gates.py` and prints `lint gates passed (46 source files)`. Exit 1 lists problems on stderr. The gate scans `src/**/*.py` for a mention of the fixture file, a restricted marker, an `approve` definition or call, and a contract name spelled outside `fields.py`.
+`make lint` runs `uv run --locked python tools/lint_gates.py` and prints `lint gates passed (47 source files)`. Exit 1 lists problems on stderr. The gate scans `src/**/*.py` for a mention of the fixture file, a restricted marker, an `approve` definition or call, and a contract name spelled outside `fields.py`.
 
 `tools/lint_gates.py` has no help parser. The only recognized argument is `--staged`, which also rejects an index path under `.state/`. Any other argument, including `--help`, is ignored and the gates still run.
 
