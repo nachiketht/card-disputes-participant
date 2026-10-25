@@ -1,0 +1,66 @@
+{
+  "case_id": "CARD-D09",
+  "classification": "duplicate_charge",
+  "routing": "manual_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-D02",
+    "amount": null,
+    "currency": null,
+    "reported_date": "2026-10-02"
+  },
+  "missing_information": [],
+  "deadline": "2026-11-16",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Duplicate deadline days: 45"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use duplicate_charge for a report of two charges for one purchase; retrieve both transaction records."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "service_outage",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Never treat service failure as an empty transaction history. Retry a transient failure at most twice"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D09-INTAKE",
+      "quote": "Morrow Supplies charged me 134 crowns twice for one purchase. My statement shows TX-D02 and TX-D02-B. Please investigate the extra charge."
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D09-INTAKE",
+      "quote": "Reported date: 2026-10-02"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D09-INTAKE",
+      "quote": "Transaction ID: TX-D02"
+    },
+    {
+      "claim": "duplicate_delivery",
+      "source_id": "CARD-D09-INTAKE",
+      "quote": "Delivery note: this is a redelivery of the earlier complaint, not a new purchase."
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: duplicate_charge complaint for TX-D02, reported 2026-10-02. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 0; merchant tool attempts 1. The named purchase was not returned. Amount and currency stay empty. That is unknown evidence, not an empty history, and no other purchase was substituted. The transactions call was skipped because its circuit breaker was open after earlier cases exhausted every attempt. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline is 2026-11-16. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

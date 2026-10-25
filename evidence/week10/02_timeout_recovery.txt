@@ -1,0 +1,96 @@
+# Retry with backoff: recovery from a simulated timeout
+# 2026-10-25 16:07:43 EDT  commit 941c128  branch mvp-v1
+Policy file:
+# Read-tool retry policy. The procedure allows three total attempts per case.
+# max_attempts above 3 is rejected at load.
+max_attempts: 3
+retryable_status_codes: [503]
+retry_on_timeout: true
+# Exponential backoff with capped jitter: wait after attempt N is
+# min(max_delay_s, base_delay_s * 2^(N-1)), halved, plus up to the other half.
+base_delay_s: 0.05
+max_delay_s: 0.2
+# Per-request HTTP timeout. A timed-out request counts as a retryable attempt.
+http_timeout_s: 10
+
+$ uv run --locked python scripts/fault_demo.py timeout
+HTTP_TIMEOUT_S=0.3  backoff base=0.05s cap=0.2s  max_attempts=3
+Test double: request 1 hangs 1.0 s (past the timeout), request 2 returns 503, request 3 returns 200.
+CASE DEMO-TIMEOUT: recovered on attempt 3; source_id=DEMO-TIMEOUT-TRANSACTIONS
+    attempt 1: TIMEOUT  (301 ms)
+    backoff 38.7 ms before attempt 2
+    attempt 2: HTTP 503  (2 ms)
+    backoff 56.5 ms before attempt 3
+    attempt 3: HTTP 200  (2 ms)
+    -> transactions: ok after 3 attempt(s)
+
+Test double: every request hangs past the timeout.
+CASE DEMO-DOWN: fails predictably: tool failed with status 0 after 3 attempt(s); no amount was invented (total 1.02 s, no hang)
+    workflow fallback: amount and currency stay null, routing manual_review
+    attempt 1: TIMEOUT  (301 ms)
+    backoff 43.6 ms before attempt 2
+    attempt 2: TIMEOUT  (301 ms)
+    backoff 67.3 ms before attempt 3
+    attempt 3: TIMEOUT  (301 ms)
+    -> transactions: exhausted after 3 attempt(s)
+[exit 0]
+
+Supplied mock faults (prompt 503 upstream_timeout). CARD-D10 is transient, CARD-D07 is persistent.
+
+$ env SUBMISSIONS_DIR=.state/week10/sub-timeout REPORTS_DIR=.state/week10/rep-timeout uv run --locked dispute-copilot --mock-url http://127.0.0.1:8766 run CARD-D10
+{
+  "draft": ".state/week10/sub-timeout/drafts/CARD-D10/v1.json",
+  "case_id": "CARD-D10",
+  "classification": "service_not_received",
+  "routing": "ready_for_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "deadline": "2026-12-02",
+  "facts": {
+    "transaction_id": "TX-D10",
+    "amount": 270,
+    "currency": "XCR",
+    "reported_date": "2026-10-03"
+  }
+}
+[exit 0]
+20:07:46.095 span  tool.attempt                   3.16 ms ok    attempt=1 dependency="transactions" http_status=503 timed_out=false
+20:07:46.095 event retry.backoff                          info  attempt=1 backoff_ms=32.3 dependency="transactions" http_status=503 timed_out=false
+20:07:46.132 span  tool.attempt                   4.12 ms ok    attempt=2 dependency="transactions" http_status=200 timed_out=false
+20:07:46.132 span  tool.call                     39.96 ms ok    attempts=2 breaker_state="closed" dependency="transactions" max_attempts=3 outcome="ok"
+20:07:46.134 span  tool.attempt                   2.00 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
+20:07:46.134 span  tool.call                      2.12 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+20:07:46.134 span  rules.routing                  0.02 ms ok    deadline_set=true route="ready_for_review" transactions_unavailable=false
+
+$ env SUBMISSIONS_DIR=.state/week10/sub-timeout REPORTS_DIR=.state/week10/rep-timeout uv run --locked dispute-copilot --mock-url http://127.0.0.1:8766 run CARD-D07
+{
+  "draft": ".state/week10/sub-timeout/drafts/CARD-D07/v1.json",
+  "case_id": "CARD-D07",
+  "classification": "unauthorized",
+  "routing": "manual_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "deadline": "2026-10-31",
+  "facts": {
+    "transaction_id": "TX-D07",
+    "amount": null,
+    "currency": null,
+    "reported_date": "2026-10-01"
+  }
+}
+[exit 0]
+20:07:46.388 span  tool.attempt                   2.28 ms ok    attempt=1 dependency="transactions" http_status=503 timed_out=false
+20:07:46.388 event retry.backoff                          info  attempt=1 backoff_ms=37.2 dependency="transactions" http_status=503 timed_out=false
+20:07:46.431 span  tool.attempt                   5.64 ms ok    attempt=2 dependency="transactions" http_status=503 timed_out=false
+20:07:46.431 event retry.backoff                          info  attempt=2 backoff_ms=51.4 dependency="transactions" http_status=503 timed_out=false
+20:07:46.487 span  tool.attempt                   4.56 ms ok    attempt=3 dependency="transactions" http_status=503 timed_out=false
+20:07:46.487 event tool.exhausted                         warning attempts=3 dependency="transactions"
+20:07:46.488 span  tool.call                    101.77 ms error attempts=3 breaker_state="closed" dependency="transactions" http_status=503 max_attempts=3 outcome="exhausted"
+20:07:46.490 span  tool.attempt                   2.86 ms ok    attempt=1 dependency="merchant" http_status=200 timed_out=false
+20:07:46.491 span  tool.call                      2.95 ms ok    attempts=1 breaker_state="closed" dependency="merchant" max_attempts=3 outcome="ok"
+20:07:46.491 span  rules.routing                  0.02 ms ok    deadline_set=true route="manual_review" transactions_unavailable=true
+20:07:46.491 event degradation.applied                    warning kind="transactions_unavailable" route="manual_review"

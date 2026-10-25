@@ -1,0 +1,54 @@
+# Package, lint gates and tests
+# 2026-10-25 16:07:40 EDT  commit 941c128  branch mvp-v1
+
+$ uv run --locked python tools/validate_package.py
+Fixture integrity passed: 12 cases; 52 sources.
+[exit 0]
+
+$ uv run --locked python tools/lint_gates.py
+lint gates passed (46 source files)
+[exit 0]
+
+$ uv run --locked pytest -q
+........................................................................ [ 73%]
+..........................                                               [100%]
+98 passed in 2.27s
+[exit 0]
+
+$ uv run --locked pytest -v tests/unit/test_reliability.py tests/unit/test_security.py tests/unit/test_observability.py
+============================= test session starts ==============================
+platform linux -- Python 3.12.15, pytest-9.1.1, pluggy-1.7.0 -- /workspace/card-disputes-participant/.venv/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /workspace/card-disputes-participant
+configfile: pyproject.toml
+plugins: anyio-4.15.1, hypothesis-6.170.5
+collecting ... collected 24 items
+
+tests/unit/test_reliability.py::test_backoff_is_exponential_with_capped_jitter PASSED [  4%]
+tests/unit/test_reliability.py::test_policy_loader_reads_config_and_rejects_more_than_three_attempts PASSED [  8%]
+tests/unit/test_reliability.py::test_env_overrides_timeout_and_backoff PASSED [ 12%]
+tests/unit/test_reliability.py::test_backoff_waits_between_attempts_and_recovers PASSED [ 16%]
+tests/unit/test_reliability.py::test_a_real_http_timeout_is_retried_then_recovers PASSED [ 20%]
+tests/unit/test_reliability.py::test_timeouts_on_every_attempt_fail_predictably_after_three PASSED [ 25%]
+tests/unit/test_reliability.py::test_a_404_is_not_retried PASSED         [ 29%]
+tests/unit/test_reliability.py::test_breaker_config_defaults_and_env PASSED [ 33%]
+tests/unit/test_reliability.py::test_breaker_never_cuts_attempts_inside_a_case PASSED [ 37%]
+tests/unit/test_reliability.py::test_breaker_opens_skips_probes_and_closes PASSED [ 41%]
+tests/unit/test_reliability.py::test_a_failed_probe_reopens_after_its_full_attempts PASSED [ 45%]
+tests/unit/test_reliability.py::test_a_success_between_failures_resets_the_count PASSED [ 50%]
+tests/unit/test_reliability.py::test_default_breaker_does_not_open_on_one_outage_case PASSED [ 54%]
+tests/unit/test_reliability.py::test_an_open_breaker_takes_the_existing_degradation_path PASSED [ 58%]
+tests/unit/test_security.py::test_injected_merchant_note_is_treated_as_data PASSED [ 62%]
+tests/unit/test_security.py::test_plain_merchant_text_is_not_flagged PASSED [ 66%]
+tests/unit/test_security.py::test_the_only_mock_writes_are_review_submission_and_record_creation PASSED [ 70%]
+tests/unit/test_security.py::test_no_source_calls_the_operator_commands PASSED [ 75%]
+tests/unit/test_security.py::test_no_credentials_in_tracked_files PASSED [ 79%]
+tests/unit/test_observability.py::test_spans_nest_and_attributes_are_redacted PASSED [ 83%]
+tests/unit/test_observability.py::test_no_tracer_is_a_no_op PASSED       [ 87%]
+tests/unit/test_observability.py::test_metrics_and_alerts_follow_the_slo PASSED [ 91%]
+tests/unit/test_observability.py::test_a_healthy_run_fires_no_page PASSED [ 95%]
+tests/unit/test_observability.py::test_percentile_nearest_rank PASSED    [100%]
+
+============================== 24 passed in 0.24s ==============================
+[exit 0]

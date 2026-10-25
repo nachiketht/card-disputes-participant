@@ -1,0 +1,182 @@
+# Human boundary enforced in code
+# 2026-10-25 16:07:51 EDT  commit 941c128  branch mvp-v1
+Raw POST /v1/records with no approved review (mock rejects):
+
+$ curl -s -X POST http://127.0.0.1:8766/v1/records -H 'Idempotency-Key: probe-1' -d '{case_id: CARD-D01, review_id: rev_none, draft: {...}}'
+{"error": "approval_missing_or_draft_changed"}
+
+
+$ env SUBMISSIONS_DIR=.state/week10/submissions uv run --locked python scripts/idempotency_demo.py prepare
+$ dispute-copilot run CARD-D02
+  {
+    "draft": ".state/week10/submissions/drafts/CARD-D02/v2.json",
+    "case_id": "CARD-D02",
+    "classification": "duplicate_charge",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "deadline": "2026-11-16",
+    "facts": {
+      "transaction_id": "TX-D02",
+      "amount": 134,
+      "currency": "XCR",
+      "reported_date": "2026-10-02"
+    }
+  }
+  exit=0
+$ dispute-copilot agent-review CARD-D02
+  {
+    "case_id": "CARD-D02",
+    "draft_version": 2,
+    "draft_hash": "d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true
+    },
+    "run_id": "4df27535a21546a78fdd3b5a6502938c",
+    "llm_review": null,
+    "contract_version": "1.0"
+  }
+  Reviewer note for CARD-D02
+  No model reason. The checklist result still stands.
+  Type: duplicate_charge
+  Purchase: TX-D02
+  Amount: 134 XCR
+  Route: ready_for_review
+  Deadline: 2026-11-16
+  A pass does not approve the case.
+  exit=0
+$ dispute-copilot submit-review CARD-D02
+  {
+    "agent_approval": {
+      "case_id": "CARD-D02",
+      "draft_version": 2,
+      "draft_hash": "d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3",
+      "passed": true,
+      "checks": {
+        "contract_valid": true,
+        "redaction_clean": true,
+        "commitment_guard": true,
+        "citations_present": true,
+        "narrative_marked_draft": true
+      },
+      "run_id": "4df27535a21546a78fdd3b5a6502938c",
+      "llm_review": null,
+      "contract_version": "1.0"
+    },
+    "review_id": "rev_50cc82967e81",
+    "draft_hash": "d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3",
+    "draft_version": 2
+  }
+  Reviewer note for CARD-D02
+  No model reason. The checklist result still stands.
+  Type: duplicate_charge
+  Purchase: TX-D02
+  Amount: 134 XCR
+  Route: ready_for_review
+  Deadline: 2026-11-16
+  A pass does not approve the case.
+  exit=0
+$ dispute-copilot run CARD-D09
+  {
+    "draft": ".state/week10/submissions/drafts/CARD-D09/v2.json",
+    "case_id": "CARD-D09",
+    "classification": "duplicate_charge",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "deadline": "2026-11-16",
+    "facts": {
+      "transaction_id": "TX-D02",
+      "amount": 134,
+      "currency": "XCR",
+      "reported_date": "2026-10-02"
+    }
+  }
+  exit=0
+$ dispute-copilot agent-review CARD-D09
+  {
+    "case_id": "CARD-D09",
+    "draft_version": 2,
+    "draft_hash": "fb775b6c2a5c55f226e76482f8f4f3c9fab0a1688a0cfa65d11a76a6074f0228",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true
+    },
+    "run_id": "2a17a901f1dc43f2bb2d17f7669d6dd9",
+    "llm_review": null,
+    "contract_version": "1.0"
+  }
+  Reviewer note for CARD-D09
+  No model reason. The checklist result still stands.
+  Type: duplicate_charge
+  Purchase: TX-D02
+  Amount: 134 XCR
+  Route: ready_for_review
+  Deadline: 2026-11-16
+  A pass does not approve the case.
+  exit=0
+$ dispute-copilot submit-review CARD-D09
+  {
+    "agent_approval": {
+      "case_id": "CARD-D09",
+      "draft_version": 2,
+      "draft_hash": "fb775b6c2a5c55f226e76482f8f4f3c9fab0a1688a0cfa65d11a76a6074f0228",
+      "passed": true,
+      "checks": {
+        "contract_valid": true,
+        "redaction_clean": true,
+        "commitment_guard": true,
+        "citations_present": true,
+        "narrative_marked_draft": true
+      },
+      "run_id": "2a17a901f1dc43f2bb2d17f7669d6dd9",
+      "llm_review": null,
+      "contract_version": "1.0"
+    },
+    "review_id": "rev_b01b2cd29df9",
+    "draft_hash": "fb775b6c2a5c55f226e76482f8f4f3c9fab0a1688a0cfa65d11a76a6074f0228",
+    "draft_version": 2
+  }
+  Reviewer note for CARD-D09
+  No model reason. The checklist result still stands.
+  Type: duplicate_charge
+  Purchase: TX-D02
+  Amount: 134 XCR
+  Route: ready_for_review
+  Deadline: 2026-11-16
+  A pass does not approve the case.
+  exit=0
+
+Create before approval must be refused:
+$ dispute-copilot create-record CARD-D02
+  record was not created (status 403)
+  exit=2
+  records created for CARD-D02: 0
+
+HUMAN STEP. Approve the review, then run the duplicate step:
+  uv run --locked python tools/runtime.py approve rev_50cc82967e81 --reviewer <your-name> --state .state/week10.sqlite
+  scripts/week10_duplicate.sh
+[exit 0]
+
+Static checks: no approve or reject callable in src, no operator command in src, writes limited to reviews and records:
+
+$ uv run --locked pytest -q tests/unit/test_security.py tests/unit/test_gates.py tests/unit/test_approval.py
+...........                                                              [100%]
+11 passed in 0.29s
+[exit 0]
+
+$ grep -rnE 'def approve|\.approve\(|runtime.py' src/ || echo none
+  none
