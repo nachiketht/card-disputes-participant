@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 openai = ["openai"]
+mcp = ["mcp"]
 
 [project.scripts]
 dispute-copilot = "dispute_copilot.cli:main"

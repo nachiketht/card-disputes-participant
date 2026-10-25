@@ -147,7 +147,8 @@ def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpTo
     return 0
 
 
-def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str) -> int:
+def run_all_report(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str) -> dict:
+    """Draft every listed case and return the same payload the command prints."""
     written = []
     skipped = []
     records: list[dict] = []
@@ -168,10 +169,19 @@ def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledg
         records.extend(traced)
         written.append(_summary(draft, path))
     report = write_report(settings.reports_dir / "metrics.json", records, {"run_id": run_id})
-    print(json.dumps({"written": written, "not_written": skipped, "run_id": run_id,
-                      "metrics": str(settings.reports_dir / "metrics.json"),
-                      "alerts_fired": report["alerts_fired"]}, indent=2))
-    return 0 if not skipped else 2
+    return {
+        "written": written,
+        "not_written": skipped,
+        "run_id": run_id,
+        "metrics": str(settings.reports_dir / "metrics.json"),
+        "alerts_fired": report["alerts_fired"],
+    }
+
+
+def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str) -> int:
+    payload = run_all_report(settings, corpus, tools, ledger, drafter, run_id)
+    print(json.dumps(payload, indent=2))
+    return 0 if not payload["not_written"] else 2
 
 
 def _summary(draft: dict, path: Path) -> dict:

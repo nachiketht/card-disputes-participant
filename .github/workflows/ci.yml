@@ -12,7 +12,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - run: uv sync --locked
-      - run: uv run --locked python tools/validate_package.py
-      - run: uv run --locked python tools/lint_gates.py
-      - run: uv run --locked pytest
+      - run: uv sync --locked --extra mcp
+      - run: uv run --locked --extra mcp python tools/validate_package.py
+      - run: uv run --locked --extra mcp python tools/lint_gates.py
+      - run: uv run --locked --extra mcp pytest

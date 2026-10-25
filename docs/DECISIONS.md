@@ -118,11 +118,35 @@ Consequence: a skipped case shows 0 attempts for that dependency in the audit. T
 Rollback: `BREAKER_ENABLED=0` or `enabled: false` restores ADR-24 behavior with no code change.
 Status: accepted 2026-10-25. Built.
 
+# ADR-31. Stdio context server, optional library
+
+Context: a client that speaks the Model Context Protocol may call the same commands the CLI already runs. A network listener would be another place a draft could be reached. The base install should keep working when that library is absent.
+Decision: `src/dispute_copilot/mcp_server.py` speaks stdio only. Startup calls `run_stdio_async`. There is no host, no port, and no HTTP route. An extra argument exits 2. The package `mcp` (this checkpoint resolved 2.3.0, class `MCPServer`) is an optional extra named `mcp`. `uv sync --locked` without that extra still installs the copilot. If the extra is missing, the module exits 1 and does not open a session. Each call wraps the existing functions (`prepare` and `write_draft` through the same case trace the CLI uses, `run_all_report`, `latest_draft`, `record_agent_review`, `submit_review`, `create_record`, trace reads, and `write_report`). The same case-id check, redactor, and approval gate apply. The call list has no approve, reject, or reset operation. This module does not read the fixture file. Complaint text and evidence quotes are returned as data marked `untrusted`. A failure the code expects is a protocol error whose text is a small JSON object (`code`, `message`, and `status` when the workflow returned one). The message has no traceback. A case id that fails the path check, or that the redactor flags, is not copied into that message. Every call writes a span named `mcp.tool` and a log event `mcp.call` that includes `latency_ms`.
+Why this library: it already implements the stdio session and the error result. A hand-written JSON-RPC loop was the alternative and was not needed. An HTTP transport was rejected because it would bind a port.
+The saved draft is a `get_draft` result, not a resource URI. The library attaches the requested URI to a resource error, which would repeat a rejected case id. The read-only resources are the policy guide and the output contract.
+Status: implemented. CI installs the extra so the stdio session runs there. The container image was not rebuilt for this extra.
+
+# ADR-32. Checklist, then human approval, joined by a fail-closed gate
+
+Context: the procedure says a person approves the exact draft before a record is created. A checklist that passes is easy to mistake for that approval.
+Decision: two steps, joined by `approval_gate` in `review_flow/gate.py`. Step one is `record_agent_review` (`dispute-copilot agent-review`). It stores `agent_approval` on the review handle. `passed` is true only when every checklist item passed. The reviewer note says a pass does not approve the case. `submit_review` posts the saved draft only when that object passed, names the same case, and hashes to the same draft. Otherwise it raises `CreateRejected` with status 400 and error `agent_approval_required`, and it does not post. Step two is the human command `tools/runtime.py approve`, outside this package. `create_record` re-fetches the review and calls `approval_gate`. The gate returns true only when the checklist passed, the case matches, the server hash matches, the review status is `approved`, and the reviewer is a non-empty string. Any other shape, including an exception inside the gate, returns false. A false gate raises `CreateRejected` with status 403 and error `approval_gate` and does not post. The local file is not the create body. ADR-6 still holds: this package has no approve command. A second human approval (ADR-14) is a separate rule and is not this gate.
+Status: implemented. Code: `review_flow/agent_review.py`, `review_flow/gate.py`, `review_flow/__init__.py`, and `tools/runtime.py` for the human command.
+
+# ADR-33. Container layout files, cloud choice still open
+
+Context: rehearsal files describe one image and two containers that share localhost. Which cloud is used first has not been chosen. This note does not choose one.
+Decision: the tree contains `Dockerfile`, `docker-compose.yml`, and `deploy/azure/containerapp.yaml`. They are a layout, not a choice of cloud.
+- The image is `python:3.12-slim`. It copies the project and runs `pip install .`. `uv.lock` is copied and is not passed to that install. `config` and `prompts` are symlinked into the interpreter library directory. The default command is `python tools/runtime.py serve` with `--port 8765` and no host flag. The mock code binds `127.0.0.1`.
+- Compose builds one image. The mock service mounts the fixture file and a state volume. The app service sets `network_mode: service:mock`, `MOCK_BASE_URL=http://127.0.0.1:8765`, and mounts `documents/` and `policies/` only. Its command is `sleep infinity`. It lists `env_file: .env`. That file is not in the repository. The compose file has no host flag.
+- `deploy/azure/containerapp.yaml` names two containers, `mock` and `app`, in one app. It has no ingress field. Secrets are placeholders. The data mounts use AzureFile. The ledger and the submissions volumes use EmptyDir. The app's `MOCK_BASE_URL` is `http://127.0.0.1:8765`. The mock command has no host flag.
+Which cloud is used first remains an open choice. These files do not settle it.
+Status: the files are in the tree. `docker` was not installed in this session, so the image was not built and compose was not started. No cloud sign-in was run.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-9 through ADR-15 and ADR-18 and ADR-19 in the plan: claim-line search beyond labeled lines, ask-once, second approval, stdio MCP wrapper, fixed-clock display, one container image, and the change-control freeze after the 12/12 line.
+- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The container files are ADR-33; which cloud is used first is still open, and an image build was not run.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note

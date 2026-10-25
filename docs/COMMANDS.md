@@ -39,6 +39,8 @@ uv sync --locked --extra openai
 
 Leave that extra out for the walkthrough below.
 
+A second optional extra, `mcp`, installs the Model Context Protocol library used by the stdio server below. `uv sync --locked` without `--extra mcp` still installs the copilot. The walkthrough does not need it.
+
 ### Environment
 
 The process reads `.env` from the working directory and from the repository root. A variable already set in the process wins. Blank lines and `#` comments are skipped.
@@ -75,6 +77,55 @@ This checkout already tracks files under `submissions/` and some files under `re
 A check of these files did not have Docker installed. `docker build`, `docker compose up`, and the exec flow (`run`, `agent-review`, `submit-review`, approve, `create-record`, `run-all`, evaluate) were not run in a container. The commands in the rest of this guide were run on the host against a loopback mock. Do not treat the compose file as proven until it has been started.
 
 The compose file lists `env_file: .env`. That file is not in the repository.
+
+## Stdio context server
+
+`make mcp` starts `python -m dispute_copilot.mcp_server`. The process reads stdin and writes protocol messages on stdout. It does not take a port, and it does not bind one. Logs and traces go under `REPORTS_DIR` (`reports/logs/mcp.jsonl` and `reports/traces/`).
+
+```sh
+uv sync --locked --extra mcp
+export LLM_PROVIDER=null
+export FEATURE_LLM_REVIEW=off
+make mcp
+```
+
+Start the mock first if the call needs it (`make mock`, or `tools/runtime.py serve` on `127.0.0.1`). `MOCK_BASE_URL` defaults to `http://127.0.0.1:8765`.
+
+A client that starts a stdio process can use:
+
+```json
+{
+  "mcpServers": {
+    "dispute-copilot": {
+      "command": "uv",
+      "args": ["run", "--locked", "--extra", "mcp", "python", "-m", "dispute_copilot.mcp_server"],
+      "env": {
+        "MOCK_BASE_URL": "http://127.0.0.1:8765",
+        "LLM_PROVIDER": "null",
+        "FEATURE_LLM_REVIEW": "off"
+      }
+    }
+  }
+}
+```
+
+Calls, each a wrapper around the existing command:
+
+| Call | What it runs |
+|---|---|
+| `run_case` | `run` for one case |
+| `run_all` | `run-all` |
+| `get_draft` | the saved draft |
+| `agent_review` | the checklist. A pass does not approve the case |
+| `submit_review` | `submit-review` |
+| `review_status` | the mock review status |
+| `create_record` | `create-record`, still stopped by the existing gate until a person has approved |
+| `explain_trace` | span names and `duration_ms` for one case |
+| `metrics` | the metrics report |
+
+Read-only resources: `guide://policy` and `contract://output`. The saved draft is returned by `get_draft`. Complaint text and evidence quotes in that result are marked `untrusted` data. They are not instructions. There is no approve, reject, or reset call. The server does not read the fixture file.
+
+Without the extra, `python -m dispute_copilot.mcp_server` prints a one-line message on stderr and exits 1. An extra argument, including a port, exits 2.
 
 ## Mock
 
