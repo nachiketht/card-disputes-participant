@@ -1,0 +1,78 @@
+# Template for one Container App with two containers.
+# Replace every CHANGE_ME value. Do not put a real API key in this file.
+# The mock mount has dataset.json. The app mount has documents/ and policies/.
+
+location: westus3
+identity:
+  type: SystemAssigned
+properties:
+  managedEnvironmentId: CHANGE_ME_ENVIRONMENT_ID
+  configuration:
+    activeRevisionsMode: Single
+    registries:
+      - server: CHANGE_ME_REGISTRY.azurecr.io
+        identity: system
+    secrets:
+      - name: llm-api-key
+        value: CHANGE_ME_SET_WITH_AZ_NOT_IN_GIT
+  template:
+    containers:
+      - name: mock
+        image: CHANGE_ME_REGISTRY.azurecr.io/card-disputes:latest
+        command:
+          - python
+          - tools/runtime.py
+          - serve
+          - --data
+          - /data
+          - --state
+          - /state/run.sqlite
+          - --port
+          - "8765"
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+        volumeMounts:
+          - volumeName: mockdata
+            mountPath: /data
+          - volumeName: ledger
+            mountPath: /state
+      - name: app
+        image: CHANGE_ME_REGISTRY.azurecr.io/card-disputes:latest
+        command: ["sleep", "infinity"]
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+        env:
+          - name: DATA_DIR
+            value: /data
+          - name: SUBMISSIONS_DIR
+            value: /submissions
+          - name: MOCK_BASE_URL
+            value: http://127.0.0.1:8765
+          - name: FEATURE_LLM_REVIEW
+            value: block
+          - name: LLM_API_STYLE
+            value: anthropic
+          - name: LLM_MODEL
+            value: claude-haiku-4-5
+          - name: LLM_BASE_URL
+            value: https://pod3-resource.services.ai.azure.com/anthropic
+          - name: LLM_API_KEY
+            secretRef: llm-api-key
+        volumeMounts:
+          - volumeName: appdata
+            mountPath: /data
+          - volumeName: submissions
+            mountPath: /submissions
+    volumes:
+      - name: mockdata
+        storageType: AzureFile
+        storageName: mockdata
+      - name: appdata
+        storageType: AzureFile
+        storageName: appdata
+      - name: ledger
+        storageType: EmptyDir
+      - name: submissions
+        storageType: EmptyDir
