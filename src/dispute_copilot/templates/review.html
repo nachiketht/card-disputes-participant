@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if selected %}Review {{ selected }}{% else %}Dispute drafts{% endif %}</title>
+  <link rel="stylesheet" href="/static/review.css">
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <p class="brand">Lumen Bank</p>
+      <h1>Dispute drafts</h1>
+      <p class="aside-note">Read the saved draft. This screen cannot accept a case.</p>
+      <nav>
+        {% for item in cases %}
+        <a class="{% if item.id == selected %}current{% endif %}" href="/cases/{{ item.id }}">
+          <span>{{ item.id }}</span>
+          <small>{{ item.type_value }}</small>
+        </a>
+        {% else %}
+        <p class="aside-empty">No drafts yet. Use dispute-copilot run first.</p>
+        {% endfor %}
+      </nav>
+    </aside>
+    <main>
+      {% if notice_text %}
+      <p class="banner{% if notice_warn %} warn{% endif %}" role="status">{{ notice_text }}</p>
+      {% endif %}
+      {% if not has_draft %}
+      <section class="empty">
+        <h2>Nothing open</h2>
+        <p>{{ empty_reason }}</p>
+      </section>
+      {% else %}
+      <header class="case-head">
+        <div>
+          <p class="eyebrow">Draft v{{ version }}</p>
+          <h2>{{ case_label }}</h2>
+          <p class="status">
+            <span class="chip">{{ check_status }}</span>
+            <span class="chip">{{ review_status }}</span>
+          </p>
+          {% if review_id or record_id or reviewer %}
+          <p class="ids-line">
+            {% if review_id %}<span>Review id</span> <code>{{ review_id }}</code>{% endif %}
+            {% if reviewer %}<span>Reviewer</span> {{ reviewer }}{% endif %}
+            {% if record_id %}<span>Record id</span> <code>{{ record_id }}</code>{% endif %}
+          </p>
+          {% endif %}
+        </div>
+        <div class="actions">
+          <form method="post" action="/cases/{{ selected }}/check"><button type="submit">Check draft</button></form>
+          <form method="post" action="/cases/{{ selected }}/submit"><button type="submit">Submit for review</button></form>
+          <form method="post" action="/cases/{{ selected }}/create"><button class="primary" type="submit">Create record after approval</button></form>
+          <p class="muted">A person accepts the review with the operator command. This screen cannot do that step.</p>
+        </div>
+      </header>
+      <section class="judge-note {{ judge_verdict }}">
+        <h3>Judge note</h3>
+        {% if judge_verdict %}
+        <p class="verdict">{{ judge_verdict }}</p>
+        {% if judge_reason %}<p class="prose">{{ judge_reason }}</p>{% endif %}
+        {% else %}
+        <p class="muted">No judge note yet. Check draft asks the model when that step is on.</p>
+        {% endif %}
+        {% if checks %}
+        <ul class="checks">
+          {% for item in checks %}
+          <li class="{% if item.passed %}pass{% else %}block{% endif %}">{{ item.label }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        <p class="muted">This note does not accept the case.</p>
+      </section>
+      <section class="summary">
+        <div class="decision">
+          <article>
+            <h3>Type</h3>
+            <p>{{ type_value }}</p>
+          </article>
+          <article>
+            <h3>Route</h3>
+            <p class="route {{ route_tone }}">{{ route_value }}</p>
+          </article>
+          <article>
+            <h3>Policy and procedure</h3>
+            {% if policies %}
+            <p class="ids">{{ policies | join(", ") }}</p>
+            {% else %}
+            <p class="muted">None</p>
+            {% endif %}
+          </article>
+        </div>
+        <dl class="facts">
+          {% for fact in fact_rows %}
+          <div>
+            <dt>{{ fact.label }}</dt>
+            <dd class="{% if fact.is_null %}is-null{% endif %}">{{ fact.value }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </section>
+      <section class="brief">
+        <div>
+          <h3>Deadline</h3>
+          <p class="{% if deadline_open %}is-null{% endif %}">{{ deadline_text }}</p>
+        </div>
+        <div class="{% if missing %}is-missing{% endif %}">
+          <h3>Missing</h3>
+          {% if missing %}
+          <p>{{ missing | join(", ") }}</p>
+          {% else %}
+          <p class="muted">None</p>
+          {% endif %}
+        </div>
+        <div>
+          <h3>Questions</h3>
+          {% if questions %}
+          <ul class="questions">
+            {% for item in questions %}
+            <li><span>{{ item.field_id }}</span> {{ item.prompt }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="muted">None</p>
+          {% endif %}
+        </div>
+      </section>
+      <section class="message-block">
+        <h3>Draft</h3>
+        {% if customer_message %}
+        <p class="message">{{ customer_message }}</p>
+        {% else %}
+        <p class="muted">No separate customer message is marked in this draft.</p>
+        {% endif %}
+      </section>
+      <section class="cites">
+        <h3>Citations</h3>
+        {% if citation_rows %}
+        {% for item in citation_rows %}
+        <details class="cite">
+          <summary>{{ item.claim_text }} · {{ item.source }}</summary>
+          <blockquote>{{ item.excerpt }}</blockquote>
+        </details>
+        {% endfor %}
+        {% else %}
+        <p class="muted">None</p>
+        {% endif %}
+      </section>
+      <details class="fold">
+        <summary>Narrative</summary>
+        <p class="prose">{{ narrative_text }}</p>
+      </details>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

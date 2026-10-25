@@ -32,7 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
     case_id = getattr(args, "case", None)
-    if args.command != "run-all" and not isinstance(case_id, str):
+    if args.command not in {"run-all", "review-page"} and not isinstance(case_id, str):
         print("case id is required", file=sys.stderr)
         return 1
     if not _safe_case(case_id if isinstance(case_id, str) else None):
@@ -53,6 +53,8 @@ def main(argv: list[str] | None = None) -> int:
             print(str(exc), file=sys.stderr)
             return 1
         try:
+            if args.command == "review-page":
+                return _serve_review_page(settings, ledger)
             drafter = build_drafter()
             if args.command == "run":
                 return _run_one(case_id, settings, corpus, tools, ledger, drafter)
@@ -84,6 +86,15 @@ def main(argv: list[str] | None = None) -> int:
         except (OutsideCheckpoint, ToolFailed, CopilotError, CreateRejected) as exc:
             print(str(exc), file=sys.stderr)
             return 2
+
+
+def _serve_review_page(settings: Settings, ledger: HttpCaseSystem) -> int:
+    import uvicorn
+
+    from dispute_copilot.review_page import create_app
+
+    uvicorn.run(create_app(settings.submissions_dir, ledger), host="127.0.0.1", port=8080)
+    return 0
 
 
 def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter) -> int:
@@ -168,6 +179,7 @@ def _parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run", parents=[common])
     run.add_argument("case", metavar="CASE")
     commands.add_parser("run-all", parents=[common])
+    commands.add_parser("review-page", parents=[common])
     review = commands.add_parser("agent-review", parents=[common])
     review.add_argument("case", metavar="CASE")
     submit = commands.add_parser("submit-review", parents=[common])
