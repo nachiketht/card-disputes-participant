@@ -39,6 +39,22 @@ def connect(path):
     return db
 
 
+def _redact_audit(text):
+    """Mask restricted values in audit output. The server itself stays loopback-only."""
+    src = ROOT / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    from dispute_copilot.evidence.redaction import Redactor
+
+    redactor = Redactor()
+    if not redactor.contains_restricted(text):
+        return text
+    masked = redactor.mask(text)
+    if redactor.contains_restricted(masked):
+        return json.dumps({"redacted": True})
+    return masked
+
+
 def audit(db, event, case_id="", **detail):
     db.execute("INSERT INTO audit(at,event,case_id,detail) VALUES(?,?,?,?)",
                (datetime.now(timezone.utc).isoformat(), event, case_id, canonical(detail)))
@@ -209,7 +225,8 @@ def main():
         elif a.command == "pending":
             print(json.dumps([dict(x) for x in db.execute("SELECT * FROM reviews WHERE status='pending'")], indent=2))
         elif a.command == "audit":
-            print(json.dumps([dict(x) for x in db.execute("SELECT * FROM audit ORDER BY seq")], indent=2))
+            raw = json.dumps([dict(x) for x in db.execute("SELECT * FROM audit ORDER BY seq")], indent=2)
+            print(_redact_audit(raw))
         elif a.command == "reset":
             for table in ["reviews", "records", "keys", "calls", "audit"]:
                 db.execute(f"DELETE FROM {table}")

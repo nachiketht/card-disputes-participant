@@ -13,6 +13,7 @@ from pathlib import Path
 
 import yaml
 
+from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import CASE_ID, Routing
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -129,8 +130,14 @@ def write_report(path: Path, records: list[dict], extra: dict | None = None) -> 
         "alert_rules": slo["alerts"],
         **(extra or {}),
     }
+    report = Redactor().scrub(report)
+    rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    redactor = Redactor()
+    if redactor.contains_restricted(rendered):
+        masked = redactor.mask(rendered)
+        rendered = masked if not redactor.contains_restricted(masked) else json.dumps({"redacted": True}) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(rendered, encoding="utf-8")
     return report
 
 

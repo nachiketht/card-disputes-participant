@@ -21,6 +21,9 @@ class JsonFormatter(logging.Formatter):
         redactor = Redactor()
         if not redactor.contains_restricted(rendered):
             return rendered
+        masked = redactor.mask(rendered)
+        if not redactor.contains_restricted(masked):
+            return masked
         safe_line = {"level": line.get("level", "info"), "name": line.get("name", "log"), "message": "[redacted]"}
         case_id = line.get(CASE_ID)
         if isinstance(case_id, str) and not redactor.contains_restricted(case_id):

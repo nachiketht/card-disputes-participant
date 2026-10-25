@@ -121,6 +121,7 @@ class Tracer:
         }
 
     def _emit(self, record: dict) -> None:
+        record = self.redactor.scrub(record)
         text = json.dumps(record, ensure_ascii=False, sort_keys=True)
         if self.redactor.contains_restricted(text):
             record = {**record, "attrs": {"redacted": True}}
