@@ -6,6 +6,7 @@ read the tool APIs again, so a check does not add mock attempts.
 
 import json
 import os
+import re
 import uuid
 from pathlib import Path
 
@@ -17,13 +18,26 @@ from dispute_copilot.fields import (
     CITATION_QUOTE,
     CITATION_SOURCE_ID,
     CITATIONS,
+    CLASSIFICATION,
     CONTRACT_VERSION,
+    DEADLINE,
+    FACT_AMOUNT,
+    FACT_CURRENCY,
+    FACT_REPORTED_DATE,
+    FACT_TRANSACTION_ID,
+    FACTS,
+    MISSING_INFORMATION,
     NARRATIVE,
+    ROUTING,
 )
+from dispute_copilot.llm.base import LLMError
 from dispute_copilot.llm.guard import rejects
+from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.serialization import digest
 
 from .handles import handle_path, read_handle, write_handle
+
+UNUSABLE_REASON = "The model reply was not usable."
 
 
 def checklist(draft: dict) -> dict[str, bool]:
@@ -59,21 +73,70 @@ def apply_critic(checks: dict[str, bool], *, verdict: str | None, errored: bool)
     return updated
 
 
+def interpret_critic_text(text: str) -> tuple[str, str]:
+    """A usable reply is pass or block plus two to four sentences. Anything else blocks."""
+    payload = _json_object(text)
+    if payload is None:
+        return "block", UNUSABLE_REASON
+    verdict = payload.get("verdict")
+    reason = payload.get("reason")
+    if verdict not in {"pass", "block"} or not isinstance(reason, str):
+        return "block", UNUSABLE_REASON
+    lines = reason.strip().splitlines()
+    sentences = _sentence_count(reason)
+    if not lines or len(lines) > 4 or any(not line.strip() for line in lines):
+        return "block", UNUSABLE_REASON
+    if sentences < 2 or sentences > 4:
+        return "block", UNUSABLE_REASON
+    return verdict, reason.strip()
+
+
+def format_reviewer_note(draft: dict, approval: dict) -> str:
+    """Plain note for the person who approves. It is not sent to the mock."""
+    facts = draft.get(FACTS)
+    if not isinstance(facts, dict):
+        facts = {}
+    amount = facts.get(FACT_AMOUNT)
+    currency = facts.get(FACT_CURRENCY)
+    if amount is None:
+        amount_text = "empty"
+    else:
+        amount_text = f"{amount} {currency}".strip() if currency else str(amount)
+    review = approval.get("llm_review") if isinstance(approval, dict) else None
+    lines = [f"Reviewer note for {draft.get(CASE_ID, '')}"]
+    if isinstance(review, dict) and review.get("verdict"):
+        lines.append(f"Verdict: {review.get('verdict')}")
+        lines.append(f"Reason: {review.get('reason')}")
+    else:
+        lines.append("No model reason. The checklist result still stands.")
+    lines.extend(
+        [
+            f"Type: {draft.get(CLASSIFICATION, '')}",
+            f"Purchase: {facts.get(FACT_TRANSACTION_ID, '')}",
+            f"Amount: {amount_text}",
+            f"Route: {draft.get(ROUTING, '')}",
+            f"Deadline: {draft.get(DEADLINE, '')}",
+            "A pass does not approve the case.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def record_agent_review(
     submissions: Path,
     case_id: str,
     draft: dict,
     version: int,
     *,
-    critic_verdict: str | None = None,
-    critic_errored: bool = False,
+    critic=None,
 ) -> dict:
     checks = checklist(draft)
     mode = os.environ.get("FEATURE_LLM_REVIEW", "off").strip().lower()
     llm_review = None
-    if mode == "block":
-        checks = apply_critic(checks, verdict=critic_verdict, errored=critic_errored)
-        llm_review = {"mode": mode, "verdict": "error" if critic_errored else critic_verdict}
+    if mode == "block" and all(checks.values()):
+        verdict, reason = _ask_critic(draft, critic)
+        checks = apply_critic(checks, verdict=verdict, errored=False)
+        llm_review = {"mode": mode, "verdict": verdict, "reason": reason}
     approval = {
         CASE_ID: case_id,
         "draft_version": version,
@@ -89,3 +152,72 @@ def record_agent_review(
     handle["agent_approval"] = approval
     write_handle(path, handle)
     return approval
+
+
+def _ask_critic(draft: dict, critic) -> tuple[str, str]:
+    if critic is None:
+        return "block", UNUSABLE_REASON
+    try:
+        system, user = _critic_messages(draft)
+        completion = critic.complete(system=system, user=user)
+    except (LLMError, OSError, ValueError, TypeError):
+        return "block", UNUSABLE_REASON
+    text = completion.text if isinstance(getattr(completion, "text", None), str) else ""
+    return interpret_critic_text(text)
+
+
+def _critic_messages(draft: dict) -> tuple[str, str]:
+    citations = draft.get(CITATIONS)
+    facts = draft.get(FACTS)
+    if not isinstance(facts, dict):
+        facts = {}
+    missing = draft.get(MISSING_INFORMATION)
+    if isinstance(missing, list) and missing:
+        missing_text = ", ".join(str(item) for item in missing)
+    else:
+        missing_text = "none"
+    amount = facts.get(FACT_AMOUNT)
+    rendered = PromptRegistry().render(
+        "critic",
+        {
+            CLASSIFICATION: str(draft.get(CLASSIFICATION, "")),
+            ROUTING: str(draft.get(ROUTING, "")),
+            "citation_count": str(len(citations) if isinstance(citations, list) else 0),
+            "redaction_clean": "true",
+            NARRATIVE: str(draft.get(NARRATIVE, "")),
+            FACT_TRANSACTION_ID: str(facts.get(FACT_TRANSACTION_ID) or ""),
+            FACT_AMOUNT: "empty" if amount is None else str(amount),
+            FACT_CURRENCY: str(facts.get(FACT_CURRENCY) or ""),
+            FACT_REPORTED_DATE: str(facts.get(FACT_REPORTED_DATE) or ""),
+            DEADLINE: str(draft.get(DEADLINE) or ""),
+            "missing_fields": missing_text,
+        },
+    )
+    return rendered.system, "Return one JSON object only."
+
+
+def _sentence_count(reason: str) -> int:
+    parts = re.split(r"[.!?]+", reason.strip())
+    return len([part for part in parts if part.strip()])
+
+
+def _json_object(text: str) -> dict | None:
+    raw = text.strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`").strip()
+        if raw[:4].casefold() == "json":
+            raw = raw[4:].strip()
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start < 0 or end <= start:
+            return None
+        try:
+            value = json.loads(raw[start : end + 1])
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(value, dict):
+        return None
+    return value

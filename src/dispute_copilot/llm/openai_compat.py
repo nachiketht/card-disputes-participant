@@ -1,12 +1,12 @@
-"""One OpenAI-compatible provider, pointed at Amazon Bedrock for Claude Haiku 5.5.
+"""One provider client for Bedrock.
 
-The default wire format is the Anthropic Messages API that Bedrock publishes
-for this model (`POST {base}/v1/messages` with a bearer key). `style="openai"`
-speaks chat completions for any other OpenAI-compatible base URL. There is
-no second model class.
+The default wire format is the Anthropic Messages API (`POST {base}/v1/messages`).
+`style="openai"` speaks chat completions. `style="converse"` speaks the Bedrock
+Converse API, with the model id in the URL and message text in `[{"text": ...}]`.
 """
 
 import os
+from urllib.parse import quote
 
 import httpx
 
@@ -56,6 +56,8 @@ class OpenAIProvider:
         try:
             if self.style == "openai":
                 return self._openai(system, user)
+            if self.style == "converse":
+                return self._converse(system, user)
             return self._anthropic(system, user)
         except LLMError:
             raise
@@ -112,6 +114,25 @@ class OpenAIProvider:
             self.model,
         )
 
+    def _converse(self, system: str, user: str) -> Completion:
+        model_id = quote(self.model, safe=".")
+        payload = {
+            "system": [{"text": system}],
+            "messages": [{"role": "user", "content": [{"text": user}]}],
+        }
+        body = self._post(
+            f"{self.base_url}/model/{model_id}/converse",
+            payload,
+            {"Authorization": f"Bearer {self.api_key}"},
+        )
+        usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
+        return Completion(
+            _converse_text(body),
+            _count(usage.get("inputTokens")),
+            _count(usage.get("outputTokens")),
+            self.model,
+        )
+
     def _post(self, url: str, payload: dict, headers: dict[str, str]) -> dict:
         request_headers = {"content-type": "application/json", **headers}
         with httpx.Client(timeout=self.timeout_s, transport=self._transport) as client:
@@ -154,6 +175,22 @@ def _anthropic_text(body: dict) -> str:
     parts: list[str] = []
     for block in content:
         if isinstance(block, dict) and block.get("type") == "text" and isinstance(block.get("text"), str):
+            parts.append(block["text"])
+    text = "\n".join(part.strip() for part in parts if part.strip())
+    if not text:
+        raise LLMError("provider response has no text")
+    return text
+
+
+def _converse_text(body: dict) -> str:
+    output = body.get("output")
+    message = output.get("message") if isinstance(output, dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(content, list):
+        raise LLMError("provider response has no content")
+    parts: list[str] = []
+    for block in content:
+        if isinstance(block, dict) and isinstance(block.get("text"), str):
             parts.append(block["text"])
     text = "\n".join(part.strip() for part in parts if part.strip())
     if not text:

@@ -41,6 +41,8 @@ def test_submit_posts_the_saved_draft(tmp_path: Path):
     ledger = FakeCaseSystem()
     handle = submit_review("CARD-D01", tmp_path, ledger)
     assert ledger.submitted == [saved]
+    assert "verdict" not in ledger.submitted[0]
+    assert "llm_review" not in ledger.submitted[0]
     assert handle["review_id"] == "rev_1"
     assert json.loads((tmp_path / "reviews" / "CARD-D01.json").read_text(encoding="utf-8"))["draft_version"] == 1
 

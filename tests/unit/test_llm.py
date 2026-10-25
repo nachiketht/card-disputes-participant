@@ -117,6 +117,47 @@ def test_haiku_request_uses_the_bedrock_messages_api():
     assert completion.text.startswith("Draft for human review:")
 
 
+def test_converse_request_uses_text_blocks_and_returns_the_reply():
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["path"] = request.url.raw_path.decode()
+        seen["body"] = json.loads(request.content.decode())
+        assert request.headers.get("authorization") == "Bearer test-key"
+        return httpx.Response(
+            200,
+            json={
+                "output": {
+                    "message": {
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "text": '```json\n{"verdict": "pass", "reason": "Citations are present."}\n```'
+                            }
+                        ],
+                    }
+                },
+                "usage": {"inputTokens": 62, "outputTokens": 41},
+            },
+        )
+
+    provider = OpenAIProvider(
+        base_url="https://bedrock-runtime.us-east-1.amazonaws.com",
+        model="us.amazon.nova-2-lite-v1:0",
+        api_key="test-key",
+        style="converse",
+        transport=httpx.MockTransport(handler),
+    )
+    completion = provider.complete(system="system", user="user")
+    assert "/model/us.amazon.nova-2-lite-v1%3A0/converse" in seen["path"]
+    assert seen["body"]["system"] == [{"text": "system"}]
+    assert seen["body"]["messages"] == [{"role": "user", "content": [{"text": "user"}]}]
+    assert completion.text.startswith("```json")
+    assert '"verdict": "pass"' in completion.text
+    assert completion.tokens_in == 62
+    assert completion.tokens_out == 41
+
+
 def test_provider_http_error_is_an_llm_error():
     def handler(request: httpx.Request) -> httpx.Response:
         del request
@@ -170,5 +211,8 @@ def test_model_prose_does_not_change_scored_fields():
     )
     assert draft[CLASSIFICATION] == "unauthorized"
     assert draft["facts"]["amount"] == 117
-    assert "configured model" in draft["narrative"]
-    assert scripted.calls == 1
+    assert (
+        "Customer message draft: We have prepared your complaint for review. "
+        "We cannot confirm an outcome. No case has been created yet; human approval remains required."
+    ) in draft["narrative"]
+    assert scripted.calls == 0

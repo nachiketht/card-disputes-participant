@@ -13,7 +13,7 @@ from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.contract import validate_draft
-from dispute_copilot.drafting import Drafter, drafter_variables
+from dispute_copilot.drafting import Drafter
 from dispute_copilot.errors import LeakError, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import (
@@ -147,23 +147,8 @@ def prepare(
         ledger_id=existing.record_id if existing.found else None,
         posted_split=_posted_split(named, resolver, selection.policy_id),
     )
-    if drafter is not None:
-        narrative = _with_customer_message(
-            narrative,
-            drafter.customer_message(
-                drafter_variables(
-                    classification=decision.classification.value,
-                    routing=routing.value,
-                    transaction_id=transaction_id,
-                    reported_date=reported.isoformat(),
-                    deadline=deadline,
-                    policy_id=selection.policy_id,
-                    missing_fields=", ".join(item.value for item in decision.missing),
-                    transaction_attempts=transaction_attempts,
-                    quotes=json.dumps(citations, ensure_ascii=False),
-                )
-            ),
-        )
+    # Callers may still pass a drafter. The saved customer sentence stays the template.
+    del drafter
     payload = {
         CASE_ID: case_id,
         CLASSIFICATION: decision.classification,

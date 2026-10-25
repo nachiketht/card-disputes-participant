@@ -16,6 +16,23 @@ def provider_name() -> str:
     return "null"
 
 
+def build_critic():
+    """The step-1 judge. None means the call cannot be made and the review blocks."""
+    name = provider_name()
+    if name in {"", "null", "template", "templates", "off"}:
+        return None
+    key = resolve_api_key()
+    if not key:
+        return None
+    return OpenAIProvider(
+        base_url=os.environ.get("LLM_BASE_URL", "").strip() or default_base_url(),
+        model=os.environ.get("LLM_MODEL", "").strip() or HAIKU_MODEL,
+        api_key=key,
+        timeout_s=_timeout(),
+        style=os.environ.get("LLM_API_STYLE", "anthropic").strip().lower() or "anthropic",
+    )
+
+
 def build_drafter() -> Drafter | None:
     """None keeps the original template narrative. A Drafter may still fall back to it."""
     name = provider_name()

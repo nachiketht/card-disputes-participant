@@ -20,9 +20,9 @@ from dispute_copilot.adapters.tools import HttpToolClient
 from dispute_copilot.config import Settings
 from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable, OutsideCheckpoint, ToolFailed
 from dispute_copilot.fields import CASE_ID, CLASSIFICATION, DEADLINE, FACTS, POLICY_IDS, ROUTING
-from dispute_copilot.llm.factory import build_drafter
+from dispute_copilot.llm.factory import build_critic, build_drafter
 from dispute_copilot.review import create_record, submit_review
-from dispute_copilot.review_flow.agent_review import record_agent_review
+from dispute_copilot.review_flow.agent_review import format_reviewer_note, record_agent_review
 from dispute_copilot.storage import latest_draft, write_draft
 from dispute_copilot.workflow import prepare
 
@@ -60,11 +60,16 @@ def main(argv: list[str] | None = None) -> int:
                 return _run_all(settings, corpus, tools, ledger, drafter)
             if args.command == "agent-review":
                 _path, draft, version = latest_draft(settings.submissions_dir, case_id)
-                approval = record_agent_review(settings.submissions_dir, case_id, draft, version)
+                approval = record_agent_review(
+                    settings.submissions_dir, case_id, draft, version, critic=build_critic()
+                )
+                print(format_reviewer_note(draft, approval), file=sys.stderr)
                 print(json.dumps(approval, indent=2))
                 return 0 if approval.get("passed") is True else 2
             if args.command == "submit-review":
+                _path, draft, _version = latest_draft(settings.submissions_dir, case_id)
                 handle = submit_review(case_id, settings.submissions_dir, ledger)
+                print(format_reviewer_note(draft, handle.get("agent_approval") or {}), file=sys.stderr)
                 print(json.dumps(handle, indent=2))
                 return 0
             outcome = create_record(case_id, settings.submissions_dir, ledger)

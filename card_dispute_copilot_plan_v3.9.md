@@ -393,7 +393,7 @@ flowchart LR
       passed: bool
       checks: tuple[AgentCheck, ...]
       run_id: str
-      llm_review: str      # "off" | "pass" | "block"
+      llm_review: str | dict  # "off", or {"verdict": "pass"|"block", "reason": str} when the critic runs
       contract_version: str
 
   REQUIRED_CHECKS = (
@@ -413,10 +413,10 @@ flowchart LR
       checks = tuple(check_fn(draft, ctx) for check_fn in CHECKS)       # CHECKS is an ordered tuple of callables
       names = {c.name for c in checks}
       passed = all(c.passed for c in checks) and set(config.required_checks) <= names
-      llm_review = "off"
+      llm_review: str | dict = "off"
       if passed and config.llm_review == "block":
-          llm_review = run_llm_critic(draft, ctx)                        # returns "pass" or "block"; errors -> "pass" is NOT allowed: errors -> "block"
-          passed = passed and llm_review == "pass"
+          llm_review = run_llm_critic(draft, ctx)                        # {"verdict", "reason"}; a bad reply is verdict "block"
+          passed = passed and llm_review["verdict"] == "pass"
       return AgentApproval(ctx.case_id, ctx.draft_version, hash_canonical(draft), passed, checks,
                            ctx.run_id, llm_review, ctx.contract_version)
   ```
@@ -461,10 +461,10 @@ flowchart LR
 
 ### Step 4: Optional LLM critic inside step 1, block-only (days 6-8, Teammate 2, after Monday)
 
-- **What:** `FEATURE_LLM_REVIEW=off|block` in `config/rules/approval.yaml` (`llm_review: off` default, CI `off`). In `block` mode, after the deterministic checklist passes, the configured provider is given the structured facts, the verified quotes and the narrative, and asked for a JSON verdict `{verdict: "pass"|"block", reasons: [...]}` against a fixed rubric (uncertainty visible, drafts marked, no commitment, missing fields each have a question). `block` turns `passed` to false and records the reasons (redacted) in the agent approval. `pass` changes nothing. A provider error, timeout or schema failure counts as `block` (fail closed), and the operator can rerun with `--llm-review off` after reading the reasons.
+- **What:** `FEATURE_LLM_REVIEW=off|block` in `config/rules/approval.yaml` (`llm_review: off` default, CI `off`). In `block` mode, after the deterministic checklist passes, the configured provider is given the structured facts, the verified quotes and the narrative, and asked for a JSON verdict `{"verdict": "pass"|"block", "reason": "<one or two lines>"}` against a fixed rubric (uncertainty visible, drafts marked, no commitment, missing fields each have a question). Both `pass` and `block` include that reason. The reason is plain text, one or two lines, and is stored on `agent_approval` in `submissions/reviews/<case_id>.json` either way, so the human can read it before `runtime.py approve`. `agent-review` prints the verdict and the reason. Only `block` changes `passed` to false. A `pass` leaves the gate passed. The draft text stays unchanged. A missing reason, a reason longer than two lines, a provider error, a timeout, or any other schema failure counts as `block` (fail closed), and the stored reason says the model reply was not usable. The operator can rerun with `--llm-review off` after reading that reason.
 - **Why block-only:** this is how an LLM can take part in an approval step without ever becoming an approver. It can only make the system more conservative. It keeps ADR 1 intact (the model never sets a scored field) and it keeps the critical gates intact (a model cannot talk the system into a write).
 - **Why after Monday:** the provider is chosen Monday; building the critic on fakes before that is fine, but turning it on in the demo path waits for the named endpoint and key.
-- **Tests:** fake provider returning `block` flips a passing D01 to `passed False` with the reasons; fake returning `pass` leaves everything identical; fake raising -> `block`; scored fields of the draft are byte-identical before and after (the critic never edits the draft).
+- **Tests:** fake provider returning `block` flips a passing D01 to `passed False` and stores its one-to-two line reason; fake returning `pass` keeps `passed True` and stores its reason; a missing reason, a reason longer than two lines, or a raised provider error counts as `block` with the fixed unusable-reply reason; scored fields of the draft are byte-identical before and after (the critic never edits the draft).
 - **Exit (day 8):** `FEATURE_LLM_REVIEW=block` on D08 with a fake critic that flags the injected sentence blocks the review; with the real provider, D01 passes.
 
 ### Step 5: Provider on in the demo, exactly one fallback (days 6-8, Teammate 2; Monday decides the name)
@@ -1519,7 +1519,7 @@ After day 5 the scope-freeze rule applies (only D or small S changes, logged in 
 1. Value and boundaries (2 min).
 2. Normal case D01 (5 min, CLI; HTML page if built):
    - Run it and show `submissions/drafts/CARD-D01/v1.json`, the citations and the trace.
-   - **Step 1, agentic:** `dispute-copilot agent-review CARD-D01`; show the checklist output (ten checks, all pass) and, if enabled, the critic verdict; show that `submit-review` is refused when you point it at a draft with a dropped citation.
+   - **Step 1, agentic:** `dispute-copilot agent-review CARD-D01`; show the checklist output (ten checks, all pass) and, if enabled, the critic verdict and its one-to-two line reason; show that `submit-review` is refused when you point it at a draft with a dropped citation.
    - **Step 2, human:** submit the review; a teammate approves with `runtime.py approve` (say out loud that the app never runs this command).
    - Create the record from the server draft and show the `record_id` and the audit (`review_requested`, `human_approved`, `record_created`, nothing blocked).
    - Say that step 1 is the pod's agentic gate (client decision 1) and step 2 is the human boundary the brief requires. *v3.8 (superseded): the second-review beat on a null amount or 100000.01 XCR.*
