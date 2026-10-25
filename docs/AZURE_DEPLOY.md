@@ -4,6 +4,21 @@ This is a rehearsal deploy. The assessed path stays on your machine until a faci
 
 Nothing in this file logs in to Azure or builds an image. Run the commands yourself, in order. Stop and ask before changing a subscription, a region, or a secret.
 
+## What was checked
+
+The layout files were read on `mvp-v1` after `azure-deploy` was merged. `azure-deploy` was not deleted. Docker was not installed in that check, so none of the following were run: `docker build`, `docker compose up`, `docker compose exec`, `az login`, a container-app create, or the copilot flow inside a container (`run`, `run-all`, `agent-review`, `submit-review`, approve, `create-record`, evaluate).
+
+File checks that did run:
+
+- `Dockerfile`, `docker-compose.yml`, and `deploy/azure/containerapp.yaml` parse. The compose file is YAML with two services. The container-app file is YAML with `properties.managedEnvironmentId`, `configuration.registries`, `configuration.secrets`, and `template.containers` named `mock` and `app`.
+- The image copies `pyproject.toml`, `uv.lock`, `README.md`, `src`, `tools`, `config`, and `prompts`. Those paths exist in the repo. `.dockerignore` excludes `data`, so case files are not in the build context.
+- The mock command has no host flag. `tools/runtime.py` binds `127.0.0.1`. Compose gives the app `network_mode: service:mock` and `MOCK_BASE_URL=http://127.0.0.1:8765`. The app mounts `documents/` and `policies/` only. The mock mounts `dataset.json` only.
+- `uv.lock` is copied and not given to the installer. The image runs `pip install .`. Whether that install succeeds was not run.
+- `docker-compose.yml` sets `env_file: .env`. That file is not in git, and `.dockerignore` excludes it. A compose start with a missing `.env` was not run; the file reference is still a requirement of the compose file as written.
+- Resource names in the steps below (`Momentum(sandboxes)`, `pod3-resource`, `westus3`, `card-disputes-rg`) were already in this note. This check did not sign in, so it did not confirm they exist.
+
+Until a machine with Docker runs the compose block, treat every container command below as unread by an engine.
+
 ## What this deploy is
 
 One image holds the copilot code and the mock program. It does not hold case files.
@@ -34,11 +49,10 @@ flowchart LR
 
 ## Step 1. Use this branch
 
-The files for this deploy are on `azure-deploy`, cut from `mvp`.
+These files are on `mvp-v1`. They were merged from `azure-deploy`. That branch is still on the remote; do not delete it to deploy.
 
 ```sh
-cd /workspace/card-disputes-participant
-git switch azure-deploy
+git switch mvp-v1
 ```
 
 Do not commit `.env`, `submissions/`, or `reports/dev.json`.
@@ -85,7 +99,7 @@ Use `DefaultResourceGroup-CIN` instead of a new group if you are not allowed to 
 
 ## Step 4. Create the registry and push the image
 
-The registry stores the image. Both containers pull the same tag.
+The registry stores the image. The two containers pull the same tag.
 
 ```sh
 az acr create --name CHANGE_ME_REGISTRY --resource-group card-disputes-rg --sku Basic --admin-enabled false
@@ -304,7 +318,7 @@ Use the `review_id` from submit in the approve command. Approve runs in `mock` b
 
 - No public ingress and no load balancer.
 - No second cloud.
-- The Foundry agent is not called. The judge still uses the Haiku deployment URL.
+- The Foundry resource is not called as its own service. The judge still uses the Haiku deployment URL.
 - Restarting the replica clears the ledger and the drafts. Run `reset` only when you mean to:
 
 ```sh

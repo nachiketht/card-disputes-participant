@@ -68,6 +68,14 @@ export FEATURE_LLM_REVIEW=off
 
 This checkout already tracks files under `submissions/` and some files under `reports/`. Point `SUBMISSIONS_DIR`, `REPORTS_DIR`, and `--report` at a directory you do not commit if the tree should stay clean. `.state/` is ignored.
 
+## Container files
+
+`Dockerfile`, `docker-compose.yml`, and `deploy/azure/containerapp.yaml` are on this branch. `docs/AZURE_DEPLOY.md` is the longer note. The mock command in those files has no host flag; `tools/runtime.py` listens on `127.0.0.1`.
+
+A check of these files did not have Docker installed. `docker build`, `docker compose up`, and the exec flow (`run`, `agent-review`, `submit-review`, approve, `create-record`, `run-all`, evaluate) were not run in a container. The commands in the rest of this guide were run on the host against a loopback mock. Do not treat the compose file as proven until it has been started.
+
+The compose file lists `env_file: .env`. That file is not in the repository.
+
 ## Mock
 
 Start it in one terminal and leave it running. `make mock` uses port `8765` and state `.state/run.sqlite`:

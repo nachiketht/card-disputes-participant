@@ -1,5 +1,5 @@
 # Local rehearsal of the Azure layout.
-# Both containers use the same image and share localhost.
+# The two containers use the same image and share localhost.
 # The mock sees only dataset.json. The app sees only documents/ and policies/.
 
 services:

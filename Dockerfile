@@ -1,4 +1,4 @@
-# One image for both containers. Case files are not copied in.
+# One image for the two containers. Case files are not copied in.
 # The mock container mounts dataset.json. The app container mounts documents/ and policies/.
 FROM python:3.12-slim
 
