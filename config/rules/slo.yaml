@@ -2,8 +2,9 @@
 slo:
   name: case_drafted_within_target
   description: >-
-    A case is good when run produces a contract-valid draft with the correct
-    escalation decision within latency_target_ms of the case starting.
+    A case is good when its case span has outcome drafted and duration_ms
+    at or under latency_target_ms. The rate divides that count by every
+    case span. The route is not read.
   latency_target_ms: 2000
   objective: 0.95
   window: rolling 7 days

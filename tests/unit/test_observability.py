@@ -52,6 +52,25 @@ def test_metrics_and_alerts_follow_the_slo():
     assert {"tool_exhausted_rate_high", "good_case_rate_below_slo"} <= fired
 
 
+def test_a_good_case_is_a_draft_inside_the_latency_target_and_ignores_route():
+    slo = load_slo()
+    description = slo["slo"]["description"].casefold()
+    assert slo["slo"]["latency_target_ms"] == 2000
+    assert "draft" in description
+    assert "not read" in description
+    assert "escalation" not in description
+    records = [
+        _case(100, route="manual_review"),
+        _case(2000, route="ready_for_review"),
+        _case(2001, route="ready_for_review"),
+        _case(10, outcome="not_written", route="manual_review"),
+    ]
+    metrics = compute(records, slo)
+    assert metrics["cases_total"] == 4
+    assert metrics["cases_drafted"] == 3
+    assert metrics["good_case_rate"] == 0.5
+
+
 def test_a_healthy_run_fires_no_page():
     metrics = compute([_case(10) for _ in range(20)] + [_call("ok") for _ in range(20)])
     assert [a for a in evaluate_alerts(metrics) if a["severity"] == "page"] == []
