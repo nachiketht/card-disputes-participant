@@ -23,6 +23,6 @@ for _ in $(seq 1 50); do curl -sf "http://127.0.0.1:$PORT/health" >/dev/null && 
   echo "[exit $?]"
   echo
   for f in "$REPORTS_DIR"/traces/CARD-D02.create-record.jsonl "$REPORTS_DIR"/traces/CARD-D09.create-record.jsonl; do
-    [ -f "$f" ] && uv run --locked python scripts/trace_view.py "$f"
+    if [ -f "$f" ]; then uv run --locked python scripts/trace_view.py "$f"; fi
   done
 } 2>&1 | tee "$OUT/09_idempotency.txt"
