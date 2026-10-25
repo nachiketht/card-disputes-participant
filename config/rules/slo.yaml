@@ -7,7 +7,7 @@ slo:
     case span. The route is not read.
   latency_target_ms: 2000
   objective: 0.95
-  window: rolling 7 days
+  window: "measured per evaluation run; rolling 7-day aggregation is a production follow-up"
 alerts:
   - name: tool_exhausted_rate_high
     metric: tool_exhausted_rate
