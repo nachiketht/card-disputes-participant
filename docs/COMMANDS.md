@@ -10,6 +10,320 @@ Hard rules, visible on every run:
 
 A passing checklist does not approve a case. The reviewer note says so.
 
+## Run everything
+
+Copy these from the repository root, in this order. Python is 3.12. A variable already set in the process wins over `.env`. Use placeholders. Do not paste a real endpoint or a key into a file you commit.
+
+### 1. Setup
+
+```sh
+uv sync --locked --extra mcp
+uv run --locked python tools/validate_package.py
+```
+
+`uv sync --locked` without the extra still installs `dispute-copilot`. `--extra mcp` adds the stdio server library. `--extra openai` is declared and is not required for the commands below. A healthy fixture print is `Fixture integrity passed: 12 cases; 52 sources.`
+
+`make sync` is `uv sync --locked` and does not pass `--extra mcp`. Use the `uv` line above when you want the stdio server.
+
+### 2. Mock
+
+Leave this running in its own terminal. It listens on `127.0.0.1` only.
+
+```sh
+make mock
+```
+
+That is `uv run --locked python tools/runtime.py serve --port 8765 --state .state/run.sqlite`. The startup line is `Fictional training mock at http://127.0.0.1:8765; Ctrl-C stops it.` Health from a second terminal:
+
+```sh
+curl -s http://127.0.0.1:8765/health
+```
+
+A live mock answers `{"status": "ok", ...}`. Later `approve`, `reject`, `pending`, `audit`, and `reset` must use this same `--state`.
+
+### 3. Environment
+
+No model. The checklist does not call one. Put this in the shell, or in a `.env` you do not commit:
+
+```sh
+export LLM_PROVIDER=null
+export FEATURE_LLM_REVIEW=off
+```
+
+Azure judge, Claude Haiku 4.5. The id is `claude-haiku-4-5`. Prices for that id are in `config/rules/cost.yaml`. The call can only fail a checklist that already passed. It does not approve.
+
+```sh
+export FEATURE_LLM_REVIEW=block
+export LLM_MODEL=claude-haiku-4-5
+export LLM_API_STYLE=anthropic
+export LLM_BASE_URL=https://<resource>.services.ai.azure.com/anthropic
+export LLM_API_KEY=<key>
+unset LLM_PROVIDER
+```
+
+AWS Bedrock. Leave `LLM_PROVIDER` unset so a key selects that client. The sample id below is the one in `.env.example`.
+
+```sh
+export FEATURE_LLM_REVIEW=block
+export AWS_REGION=<region>
+export LLM_MODEL=us.amazon.nova-2-lite-v1:0
+export LLM_API_STYLE=converse
+export LLM_BASE_URL=https://bedrock-runtime.<region>.amazonaws.com
+export AWS_API_KEY=<key>
+unset LLM_PROVIDER
+```
+
+`LLM_API_KEY` is also accepted in place of `AWS_API_KEY`. Do not commit either value.
+
+### 4. One case, then every development case
+
+```sh
+uv run --locked dispute-copilot run CARD-D01 --label local
+uv run --locked dispute-copilot run-all --label local
+```
+
+`run` prints JSON with `draft`, `case_id`, `classification`, `routing`, `policy_ids`, `deadline`, and `facts`. Exit 0 means that case was written. `run-all` exit 0 means every case was written. Exit 2 means `not_written` lists the cases that were skipped.
+
+### 5. Draft view
+
+Each write adds `submissions/drafts/CARD-D01/vN.json`. The highest `N` is the draft later commands read. `submissions/results.json` is the array `tools/evaluate.py` scores.
+
+```sh
+python3 -m json.tool submissions/drafts/CARD-D01/v1.json
+```
+
+### 6. Checklist, with and without the critic
+
+Without a model (`FEATURE_LLM_REVIEW=off`). Stderr is a reviewer note. It includes `No model reason. The checklist result still stands.` and ends `A pass does not approve the case.` Stdout JSON has `"passed": true` and `"llm_review": null` on a clean draft. Exit 0 is a pass. Exit 2 is a failed checklist.
+
+```sh
+export LLM_PROVIDER=null
+export FEATURE_LLM_REVIEW=off
+uv run --locked dispute-copilot agent-review CARD-D01
+```
+
+With the critic (`FEATURE_LLM_REVIEW=block`), and the Azure or Bedrock block from step 3. Stderr then has `Verdict: pass` or `Verdict: block`, then `Reason:`. A `block` verdict fails the checklist. A missing key, a refused call, or a reply that is not usable is `Verdict: block` and `Reason: The model reply was not usable.`
+
+```sh
+export FEATURE_LLM_REVIEW=block
+uv run --locked dispute-copilot agent-review CARD-D01
+```
+
+### 7. Submit
+
+Posts the saved draft only after that checklist passed for the same draft. Skipping the checklist exits 2 and posts nothing.
+
+```sh
+uv run --locked dispute-copilot submit-review CARD-D01
+```
+
+### 8. Human approval, then create
+
+The next two commands are the person, not the app. `approve` prints `approved`.
+
+```sh
+uv run --locked python tools/runtime.py pending --state .state/run.sqlite
+uv run --locked python tools/runtime.py approve REVIEW_ID --reviewer NAME --state .state/run.sqlite
+uv run --locked dispute-copilot create-record CARD-D01
+```
+
+Replace `REVIEW_ID` with the id from `pending` or from `submit-review`. Replace `NAME` with the reviewer string you want stored.
+
+### 9. Reject and reset
+
+`reject` prints `rejected`. `create-record` then exits 2 and does not post.
+
+```sh
+uv run --locked python tools/runtime.py reject REVIEW_ID --reviewer NAME --state .state/run.sqlite
+```
+
+`reset` deletes the mock ledger in that state file. Stop clients first.
+
+```sh
+uv run --locked python tools/runtime.py reset --confirm --state .state/run.sqlite
+```
+
+`audit` prints the ledger events. Redirect it only after `reports/` exists.
+
+```sh
+uv run --locked python tools/runtime.py audit --state .state/run.sqlite
+```
+
+### 10. Trace and metrics
+
+`scripts/trace_view.py` prints one trace file. It takes paths, not flags.
+
+```sh
+uv run --locked python scripts/trace_view.py reports/traces/CARD-D01.jsonl
+```
+
+`explain_trace` is the stdio-server call for the same span list. It is not a `dispute-copilot` subcommand. See the server block below.
+
+```sh
+uv run --locked dispute-copilot metrics
+```
+
+Stdout is JSON with `metrics` and `alerts_fired`. The same report is written to `reports/metrics.json`.
+
+### 11. SLO and budget
+
+`metrics.good_case_rate` is the share of `case` spans that were drafted in 2000 ms or less. The target and the alert lines are `config/rules/slo.yaml`. `metrics.error_budget` has `allowed_bad_cases`, `bad_cases`, and `remaining_fraction`. `remaining_fraction` is the share of that budget still left (`1.0` means none of it was used). The share used is one minus `remaining_fraction`. `good_case_rate_below_slo` is present in `alerts_fired` when `good_case_rate` is under 0.95.
+
+```sh
+uv run --locked python -c 'import json; d=json.load(open("reports/metrics.json")); print(d["metrics"]["good_case_rate"]); print(d["metrics"]["error_budget"]); print(d["alerts_fired"])'
+```
+
+### 12. Evals and the scorecard
+
+`make evals` starts a loopback mock, drafts the development cases, and prints the scorecard. The judge stays off.
+
+```sh
+make evals
+```
+
+To score a submission you already wrote:
+
+```sh
+uv run --locked dispute-copilot evals --submission submissions/results.json --report reports/evals.json
+```
+
+Exit 1 means a category missed the minimum in `config/rules/evals.yaml`. The case checker, separate from the scorecard:
+
+```sh
+uv run --locked python tools/evaluate.py --data data/dev --gold feedback/dev_gold.json --submission submissions/results.json --report reports/dev.json
+```
+
+### 13. Guardrail checks and adversarial cases
+
+```sh
+uv run --locked pytest tests/adversarial tests/unit/test_security.py tests/unit/test_leak_patterns.py tests/unit/test_approval.py
+uv run --locked --extra mcp python tools/check_mcp_names.py
+```
+
+`check_mcp_names.py` fails if the stdio server registers an approve, reject, or reset call.
+
+### 14. Status page
+
+Export writes one HTML file and exits. The serve form binds `127.0.0.1:8754` and answers GET only.
+
+```sh
+uv run --locked dispute-copilot dashboard --export reports/status.html
+uv run --locked dispute-copilot dashboard
+```
+
+Tag a run before you compare places. A place appears only when a saved run has it.
+
+```sh
+uv run --locked dispute-copilot run-all --label local
+uv run --locked dispute-copilot run-all --label azure
+```
+
+On the page, replay speeds are `0.5x`, `1x`, `2x`, and `5x`, with pause, restart, and a position control. Replay reads the saved trace. It does not call the mock or a model.
+
+### 15. Stdio server
+
+```sh
+uv sync --locked --extra mcp
+export LLM_PROVIDER=null
+export FEATURE_LLM_REVIEW=off
+make mcp
+```
+
+`make mcp` is `uv run --locked --extra mcp python -m dispute_copilot.mcp_server`. An extra argument exits 2 and prints `this server speaks stdio only`. Without the extra, the same module exits 1 and prints `the mcp extra is not installed`.
+
+A client config, with placeholders only:
+
+```json
+{
+  "mcpServers": {
+    "dispute-copilot": {
+      "command": "uv",
+      "args": ["run", "--locked", "--extra", "mcp", "python", "-m", "dispute_copilot.mcp_server"],
+      "env": {
+        "MOCK_BASE_URL": "http://127.0.0.1:8765",
+        "LLM_PROVIDER": "null",
+        "FEATURE_LLM_REVIEW": "off"
+      }
+    }
+  }
+}
+```
+
+Calls: `run_case`, `run_all`, `get_draft`, `agent_review`, `submit_review`, `review_status`, `create_record`, `explain_trace`, `metrics`. Resources: `guide://policy`, `contract://output`. There is no approve, reject, or reset call.
+
+### 16. Make targets
+
+| Target | Command |
+|---|---|
+| `sync` | `uv sync --locked` |
+| `lint` | `uv run --locked python tools/lint_gates.py` |
+| `test` | `uv run --locked pytest` |
+| `check` | `lint` then `test` |
+| `mock` | serve on port 8765, state `.state/run.sqlite` |
+| `mcp` | stdio server, with `--extra mcp` |
+| `metrics` | `dispute-copilot metrics` |
+| `dashboard` | `dispute-copilot dashboard` |
+| `secrets` | `python3 tools/scan_secrets.py` |
+| `evals` | `uv run --locked python tools/run_evals.py` |
+| `week10` | `scripts/week10_evidence.sh` |
+
+Also in the Makefile: `daily` runs `check` and prints where to score results. `week10-duplicate` runs `scripts/week10_duplicate.sh`. `regen-gold` refuses and exits 2: `refusing: hidden-style gold is not in this checkpoint, and feedback/dev_gold.json is never rewritten`.
+
+### 17. CI jobs, run locally
+
+Workflow: `.github/workflows/ci.yml`. Jobs: `lint`, `test`, `evaluate`, `security`, `secrets`, `image`, then `azure` on push only. Local equivalents:
+
+```sh
+uv sync --locked --extra mcp
+uv run --locked --extra mcp python tools/validate_package.py
+uv run --locked --extra mcp python tools/lint_gates.py
+uv run --locked --extra mcp pytest
+uv run --locked --extra mcp python tools/check_mcp_names.py
+uv run --locked --extra mcp pytest tests/adversarial tests/unit/test_security.py tests/unit/test_leak_patterns.py tests/unit/test_approval.py tests/integration/test_mcp_stdio.py
+python3 tools/scan_secrets.py
+```
+
+`evaluate` is the mock, `run-all`, `tools/evaluate.py`, `tools/check_fresh_report.py`, a dashboard export, and `dispute-copilot evals`, as written in the workflow. `image` is `sh tools/image_smoke.sh card-disputes:ci` and needs Docker. `azure` is the live-container block below.
+
+### 18. Azure deploy and the live-container check
+
+`tools/azure_live.py` does not print secret values. `gate` with no sign-in exits 0 and prints `Azure sign-in is not configured. The live container was not contacted.` together with the names `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`. `plan` prints the remote commands and does not contact the container.
+
+```sh
+python3 tools/azure_live.py gate
+python3 tools/azure_live.py plan
+python3 tools/azure_live.py run --artifact /tmp/azure-artifact
+```
+
+`run` is what `.github/workflows/ci.yml` job `azure` calls after `azure/login`. The sign-in names are `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`. A repository variable of the same name is also read when the secret is empty.
+
+`.github/workflows/azure-deploy.yml` is `workflow_dispatch` only. It needs `AZURE_DEPLOY_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`. It builds and pushes an image, then updates container app `card-disputes` in resource group `card-disputes-rg`. The app secret name is `llm-api-key`. Do not put the value in git.
+
+`tools/azure_inside.py` is what `azure_live.py` copies into the container. Subcommands: `precheck`, `start`, `run`, `evaluate`, `cleanup`. It refuses the demo ledger `/state/run.sqlite` and the demo drafts `/submissions`.
+
+```sh
+python3 tools/azure_inside.py --help
+```
+
+### 19. Docker
+
+Docker was not on this machine, so these lines are the files, not a run that was watched here.
+
+```sh
+docker build -t card-disputes:local .
+docker compose up --build
+sh tools/image_smoke.sh card-disputes:ci
+```
+
+The image default process is `python tools/runtime.py serve --data /data --state /state/run.sqlite --port 8765`. Compose starts `mock` with that serve command and `app` with `sleep infinity` on the mock network. `docs/AZURE_DEPLOY.md` is the longer container note.
+
+### When something fails
+
+- Judge unreachable: `agent-review` with `FEATURE_LLM_REVIEW=block` prints `Verdict: block` and `Reason: The model reply was not usable.` A connection failure and a timeout take that same path.
+- Bad or missing key: the same `Verdict: block` line. `LLM_PROVIDER=null` never calls the model. For a real call, unset `LLM_PROVIDER` and set `LLM_API_KEY` or `AWS_API_KEY` to a placeholder you replace locally.
+- Mock not running: `dispute-copilot run` prints `mock health check failed` and exits 1. Start `make mock` first.
+- Port in use: `tools/runtime.py serve` exits 1 with `OSError: [Errno 98] Address already in use`. Stop the other process or pass a free `--port` and the matching `--mock-url`.
+
 ## Fresh setup
 
 ```sh
@@ -63,7 +377,7 @@ export FEATURE_LLM_REVIEW=off
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `AWS_API_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `LLM_API_KEY` | model client | First non-empty value is the key. Empty means no model call. |
-| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S`, `AWS_REGION` | model client | See `.env.example`. Unused when the provider is `null`. |
+| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S`, `AWS_REGION` | model client | Placeholders are in [Run everything](#run-everything). Unused when the provider is `null`. The Azure judge id is `claude-haiku-4-5`. |
 | `HTTP_TIMEOUT_S`, `RETRY_BASE_DELAY_S`, `RETRY_MAX_DELAY_S` | read tools | Override `config/rules/retry.yaml`. |
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |

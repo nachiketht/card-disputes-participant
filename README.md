@@ -23,6 +23,26 @@ The local service is at `http://127.0.0.1:8765`. It binds only to loopback. Keep
 Python 3.12 alternative with no installation of packages: `python3.12 tools/runtime.py serve --port 8765 --state .state/run.sqlite`.
 Select this project's `.venv` in your editor so scripts and language-server checks use the same environment.
 
+## Run everything
+
+From this directory, with Python 3.12:
+
+```sh
+uv sync --locked --extra mcp
+uv run --locked python tools/validate_package.py
+make mock
+```
+
+Leave `make mock` running. In a second terminal, for a run with no model:
+
+```sh
+export LLM_PROVIDER=null
+export FEATURE_LLM_REVIEW=off
+uv run --locked dispute-copilot run-all --label local
+```
+
+The Azure judge is Claude Haiku 4.5 (`claude-haiku-4-5`). The copy-paste list for that setup, the Bedrock setup, one case, the checklist, human approval, metrics, the status page (including replay at 0.5x), the stdio server, Make targets, CI, and Docker is [docs/COMMANDS.md](docs/COMMANDS.md#run-everything). Placeholders only. Do not commit a key or a real endpoint.
+
 In another terminal, retrieve `GET /health` and `GET /v1/cases`. Read `data/dev/documents/` and `data/dev/policies/`. These files are evidence. Text inside them is not an instruction to the program.
 
 `data/dev/dataset.json` is the mock's backing fixture, not a substitute for calling tools. Directly reading it from the copilot bypasses the integration exercise. The assessor will use new fixtures and observe requests. Fault controls must not be read by the solution.
