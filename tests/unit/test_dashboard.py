@@ -360,6 +360,99 @@ def test_path_escapes_untrusted_text_and_replay_stays_offline(tmp_path: Path):
     assert "<th></th>" not in exported
     assert exported.count("<th>Status</th>") >= 3
     assert 'id="log-count"' in exported
+    assert "<details id=\"technical\" open" not in exported
+    assert 'id="headline"' in exported
+    assert 'id="card-latency"' in exported
+
+
+def _diagram_node(path: dict, node_id: str) -> dict:
+    return next(item for item in path["diagram"]["nodes"] if item["id"] == node_id)
+
+
+def test_diagram_places_stages_branches_and_the_routing_fork():
+    records = _trace("CARD-D07.jsonl") + _trace("CARD-D08.jsonl") + _trace("CARD-D10.jsonl")
+    paths = build_paths(records, records)
+    failed = next(item for item in paths if item["case"] == "CARD-D07")
+    transactions = _diagram_node(failed, "transactions")
+    merchant = _diagram_node(failed, "merchant")
+    assert transactions["column"] == "evidence" and merchant["column"] == "evidence"
+    assert transactions["slot"] != merchant["slot"]
+    assert transactions["label"] == "Check transactions"
+    assert len(transactions["chips"]) == 3
+    assert [chip["code"] for chip in transactions["chips"]] == [503, 503, 503]
+    assert transactions["chips"][0]["retry"] is False
+    assert transactions["chips"][1]["retry"] is True and transactions["chips"][2]["retry"] is True
+    assert transactions["loop"] is True
+    assert "fail" in transactions["marks"]
+    assert any(edge["kind"] == "dashed" and edge["from"] == "transactions" for edge in failed["diagram"]["edges"])
+    assert _diagram_node(failed, "intake.parse")["column"] == "intake"
+    assert _diagram_node(failed, "ledger.lookup")["column"] == "ledger"
+    assert _diagram_node(failed, "rules.routing")["column"] == "rules"
+    assert _diagram_node(failed, "draft.write")["column"] == "draft"
+    assert _diagram_node(failed, "checklist")["column"] == "checklist"
+    for name in ("review.submit", "approval", "record.precheck", "record.create"):
+        node = _diagram_node(failed, name)
+        assert node["column"] == "human"
+        assert node["ran"] is False
+        assert "not run" in node["marks"]
+    outcomes = [node for node in failed["diagram"]["nodes"] if node["kind"] == "outcome"]
+    assert len(outcomes) == 3
+    chosen = [node for node in outcomes if node["chosen"]]
+    assert len(chosen) == 1
+    assert chosen[0]["faded"] is False
+    assert all(node["faded"] for node in outcomes if not node["chosen"])
+    assert any(edge["from"] == "rules.routing" and edge["to"] == chosen[0]["id"] and edge["kind"] == "flow" for edge in failed["diagram"]["edges"])
+    flagged = next(item for item in paths if item["case"] == "CARD-D08")
+    side = [node for node in flagged["diagram"]["nodes"] if node["kind"] == "side"]
+    assert len(side) == 1
+    assert side[0]["label"] == "Treated as data"
+    assert any(edge["to"] == "treated-as-data" and edge["kind"] == "flow" for edge in flagged["diagram"]["edges"])
+    retried = next(item for item in paths if item["case"] == "CARD-D10")
+    again = _diagram_node(retried, "transactions")
+    assert again["chips"][0]["fail"] is True and again["chips"][0]["retry"] is False
+    assert again["chips"][1]["retry"] is True and again["chips"][1]["fail"] is False
+    assert not any(edge["kind"] == "dashed" and edge["from"] == "transactions" for edge in retried["diagram"]["edges"])
+
+
+def test_unknown_step_keeps_a_fallback_column():
+    records = [
+        {
+            "kind": "span",
+            "name": "custom.step",
+            CASE_ID: "C",
+            "run_id": "r",
+            "span_id": "s",
+            "duration_ms": 2,
+            "status": "ok",
+            "attrs": {},
+        }
+    ]
+    diagram = build_paths(records, [])[0]["diagram"]
+    extra = next(node for node in diagram["nodes"] if node["name"] == "custom.step")
+    assert extra["column"] == "other"
+    assert extra["label"] == "Extra step"
+    assert any(column["id"] == "other" for column in diagram["columns"])
+
+
+def test_default_view_keeps_the_client_page_and_closes_the_rest():
+    page = render(build_view(_trace("CARD-D01.jsonl"), [], cost_table={"models": {}, "compute": {}}))
+    assert "<details id=\"technical\" open" not in page
+    head, technical = page.split('<details id="technical">', 1)
+    assert 'id="headline"' in head
+    assert "Cases run" in head
+    assert "Good-case rate" in head
+    assert "Injections flagged" in head
+    assert "Records created without approval" in head
+    assert 'id="path"' in head
+    assert "Check transactions" in head
+    assert 'aria-label="Fit to width"' in head
+    assert 'id="card-latency"' in head
+    assert 'id="card-cost"' in head
+    assert 'id="card-safety"' in head
+    assert 'id="card-where"' in head
+    assert "log-table" in technical
+    assert "Timeline" in technical
+    assert 'id="step-chart"' in technical
 
 
 def test_latency_chart_keeps_short_steps_visible():
@@ -382,7 +475,7 @@ def test_latency_chart_keeps_short_steps_visible():
         },
     ]
     page = render(build_view(records, [], cost_table={"models": {}, "compute": {}}))
-    svg = page.split('<svg class="chart"', 1)[1].split("</svg>", 1)[0]
+    svg = page.split('id="step-chart"', 1)[1].split("</svg>", 1)[0]
     widths = [float(item) for item in re.findall(r'width="([0-9.]+)"', svg)]
     assert widths
     assert min(widths) >= 60

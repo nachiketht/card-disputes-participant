@@ -62,6 +62,8 @@ def build_view(
     metrics = compute(records, rules)
     spans = [item for item in records if item.get("kind") == "span"]
     events = [item for item in records if item.get("kind") == "event"]
+    approval = _approval(records, audit)
+    security = _security(events, log_rows)
     view = {
         "target_ms": target,
         "overview": _overview(spans, metrics, evaluate_alerts(metrics, rules), target),
@@ -69,10 +71,10 @@ def build_view(
         "latency": _latency(spans, target),
         "cost": _cost(spans, table),
         "logs": _logs(log_rows, records),
-        "security": _security(events, log_rows),
-        "approval": _approval(records, audit),
+        "security": security,
+        "approval": approval,
         "deployment": _deployment(spans, table),
-        "paths": build_paths(records, log_rows),
+        "paths": build_paths(records, log_rows, approval),
     }
     return Redactor().scrub(view)
 
@@ -359,9 +361,6 @@ def _deployment(spans: list[dict], table: dict) -> list[dict]:
 
 
 def _page(view: dict) -> str:
-    overview = view["overview"]
-    counts = overview["counts"]
-    slo = overview["slo"]
     parts = [
         "<!DOCTYPE html>",
         "<html lang=\"en\"><head><meta charset=\"utf-8\">",
@@ -371,49 +370,172 @@ def _page(view: dict) -> str:
         "<header><div class=\"top\"><p class=\"mark\">Read-only</p>"
         "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
         "<h1>Run status</h1>",
-        "<p class=\"lede\">Traces, logs, latency, and cost from the files already written. "
-        "The request path and replay use those same files. "
-        "This page does not approve, reject, reset, or post. "
-        "A served copy listens on 127.0.0.1 only.</p>",
-        "<nav>",
-        "<a href=\"#overview\">Overview</a>",
-        "<a href=\"#path\">Request path</a>",
-        "<a href=\"#timeline\">Timeline</a>",
-        "<a href=\"#latency\">Latency</a>",
-        "<a href=\"#cost\">Cost</a>",
-        "<a href=\"#logs\">Logs</a>",
-        "<a href=\"#security\">Security</a>",
-        "<a href=\"#approval\">Approval</a>",
-        "<a href=\"#deployment\">Deployment</a>",
-        "</nav></header><main>",
-        _section(
-            "1",
-            "Run overview",
-            "overview",
-            _stat_row(counts, slo) + _alert_list(overview["alerts"]) + _overview_table(overview["rows"]),
-        ),
-        _section("2", "Request path", "path", path_markup(view["paths"])),
-        _section("3", "Timeline", "timeline", _timeline(view["waterfall"])),
-        _section("4", "Latency", "latency", _latency_block(view["latency"])),
-        _section("5", "Cost", "cost", _cost_block(view["cost"])),
-        _section("6", "Logs", "logs", _log_block(view["logs"])),
-        _section("7", "Security", "security", _security_block(view["security"])),
-        _section("8", "Approval", "approval", _approval_block(view["approval"])),
-        _section("9", "Deployment", "deployment", _deployment_block(view["deployment"], view["cost"]["compute"])),
-        "</main><footer><p>Token prices are estimates from the cost file. "
-        "A model with no price is not configured. "
-        "Container time is estimate, unmeasured unless a measured usd figure is in that file. "
-        "Values pass through the same redaction as the logs.</p></footer>",
+        "<p class=\"lede\">A read-only view of the runs already saved.</p>",
+        "</header><main>",
+        _headline(view),
+        _section("", "Request path", "path", path_markup(view["paths"])),
+        _summary_cards(view),
+        "<details id=\"technical\"><summary>Technical details</summary><div class=\"tech\">",
+        _section("", "Run overview", "overview", _alert_list(view["overview"]["alerts"]) + _overview_table(view["overview"]["rows"])),
+        _section("", "Timeline", "timeline", _timeline(view["waterfall"])),
+        _section("", "Latency", "latency", _latency_block(view["latency"])),
+        _section("", "Cost", "cost", _cost_block(view["cost"])),
+        _section("", "Logs", "logs", _log_block(view["logs"])),
+        _section("", "Security", "security", _security_block(view["security"])),
+        _section("", "Approval", "approval", _approval_block(view["approval"])),
+        _section("", "Deployment", "deployment", _deployment_block(view["deployment"], view["cost"]["compute"])),
+        "</div></details>",
+        "</main>",
         PAGE_SCRIPT,
         "</body></html>",
     ]
     return "".join(parts)
 
 
-def _section(number: str, title: str, anchor: str, body: str) -> str:
-    return (
-        f"<section id=\"{anchor}\"><h2><span class=\"num\">{number}</span> {escape(title)}</h2>{body}</section>"
+def _headline(view: dict) -> str:
+    counts = view["overview"]["counts"]
+    rate = view["overview"]["slo"].get("good_case_rate")
+    rate_text = "unmeasured" if rate is None else f"{rate:.4f}"
+    flagged = len({item["case"] for item in view["security"]["injections"] if item.get("case")})
+    refusals = len(view["security"]["refusals"])
+    unsafe = sum(
+        1
+        for row in view["approval"]
+        if row.get("record") == "created" and row.get("human") != "approved"
     )
+    cells = [
+        ("Cases run", str(counts["cases"])),
+        ("Passed", str(counts["pass"])),
+        ("Good-case rate", rate_text),
+        ("Alerts", str(counts["alerts"])),
+    ]
+    stats = "".join(f"<div><p>{escape(label)}</p><strong>{escape(value)}</strong></div>" for label, value in cells)
+    safety = (
+        f"Injections flagged: {flagged}. Gate refusals: {refusals}. "
+        f"Records created without approval: {unsafe}."
+    )
+    return (
+        "<section id=\"headline\" class=\"strip\">"
+        f"<div class=\"stats\">{stats}</div>"
+        f"<p class=\"safety-line\">{escape(safety)}</p>"
+        "<p class=\"note\">Passed means drafted inside the latency target.</p>"
+        "</section>"
+    )
+
+
+def _summary_cards(view: dict) -> str:
+    return (
+        "<section id=\"summaries\" class=\"summary-grid\">"
+        + _latency_card(view)
+        + _cost_card(view["cost"])
+        + _safety_card(view)
+        + _where_card(view["deployment"])
+        + "</section>"
+    )
+
+
+def _latency_card(view: dict) -> str:
+    latency = view["latency"]
+    timing = view["overview"].get("latency_ms") or {}
+    p50 = _num(timing.get("median"))
+    p95 = _num(timing.get("p95"))
+    slow = _slowest_line(view)
+    chart = _svg_bars(
+        [(item["case"], item["duration_ms"]) for item in latency["by_case"]],
+        target=None,
+        unit="ms",
+        scale="log",
+        chart_id="case-chart",
+    )
+    return (
+        "<article id=\"card-latency\"><h2>Latency</h2>"
+        f"<p class=\"note\">p50 {escape(p50)} ms. p95 {escape(p95)} ms. {escape(slow)}</p>"
+        f"{chart}</article>"
+    )
+
+
+def _slowest_line(view: dict) -> str:
+    cases = view["latency"]["by_case"]
+    if not cases:
+        return "No case timing was recorded."
+    slow = max(cases, key=lambda item: item["duration_ms"] or 0)
+    reason = "it was the longest draft"
+    for path in view["paths"]:
+        if path["case"] != slow["case"]:
+            continue
+        for node in path["nodes"]:
+            dependency = node["attrs"].get("dependency")
+            if "fail" not in node["marks"]:
+                continue
+            if dependency == "transactions":
+                reason = "the transaction check failed"
+            elif dependency == "merchant" and reason == "it was the longest draft":
+                reason = "the merchant check failed"
+    return f"{slow['case']} took {_num(slow['duration_ms'])} ms because {reason}."
+
+
+def _cost_card(cost: dict) -> str:
+    run = cost["run"]
+    if run.get("status") != "estimate":
+        return "<article id=\"card-cost\"><h2>Cost</h2><p>Not configured.</p></article>"
+    bits = [f"{item['case']} {_money(item)}" for item in cost["by_case"]]
+    per_case = (", ".join(bits)) if bits else "No per-case figure."
+    return (
+        "<article id=\"card-cost\"><h2>Cost</h2>"
+        f"<p class=\"note\">Total {_money(run)}. {escape(per_case)}</p></article>"
+    )
+
+
+def _safety_card(view: dict) -> str:
+    rows = view["approval"]
+    passed = sum(1 for row in rows if row.get("checklist") == "passed")
+    humans = {row.get("human") for row in rows}
+    if humans == {"unmeasured"} or not humans:
+        human_line = "Human approval is unmeasured."
+    else:
+        approved = sum(1 for row in rows if row.get("human") == "approved")
+        human_line = f"Human approval recorded for {approved} of {len(rows)}."
+    flagged = len({path["case"] for path in view["paths"] if path.get("injection")})
+    treated = (
+        "1 case treated untrusted text as data."
+        if flagged == 1
+        else f"{flagged} cases treated untrusted text as data."
+    )
+    line = f"{passed} of {len(rows)} checklists passed. {human_line} {treated}"
+    return (
+        "<article id=\"card-safety\"><h2>Safety and approval</h2>"
+        f"<p class=\"note\">{escape(line)}</p></article>"
+    )
+
+
+def _where_card(rows: list[dict]) -> str:
+    body = []
+    for item in rows:
+        if item["label"] not in COMPARE_LABELS:
+            continue
+        cost = item["cost_status"] if item["cost_usd"] is None else _money({"status": item["cost_status"], "usd": item["cost_usd"]})
+        body.append(
+            "<tr>"
+            f"<td>{escape(item['label'])}</td>"
+            f"<td class=\"num\">{escape(_num(item['p50']))}</td>"
+            f"<td class=\"num\">{escape(_num(item['p95']))}</td>"
+            f"<td>{escape(str(cost))}</td>"
+            "</tr>"
+        )
+    table = (
+        "<table><thead><tr><th>Place</th><th>p50</th><th>p95</th><th>Cost</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table>"
+    )
+    return (
+        "<article id=\"card-where\"><h2>Where it runs</h2>"
+        "<p class=\"note\">Latency and cost for each place.</p>"
+        f"{table}</article>"
+    )
+
+
+def _section(number: str, title: str, anchor: str, body: str) -> str:
+    prefix = f"<span class=\"num\">{escape(number)}</span> " if number else ""
+    return f"<section id=\"{anchor}\"><h2>{prefix}{escape(title)}</h2>{body}</section>"
 
 
 def _stat_row(counts: dict, slo: dict) -> str:
@@ -504,6 +626,7 @@ def _latency_block(latency: dict) -> str:
         target=None,
         unit="ms",
         scale="log",
+        chart_id="step-chart",
     )
     head = (
         f"<p class=\"note\">p50, p95, and max use the nearest rank above the fraction "
@@ -718,6 +841,7 @@ def _svg_bars(
     target: float | None,
     unit: str,
     scale: str = "linear",
+    chart_id: str = "",
 ) -> str:
     measured = [(name, value) for name, value in items if isinstance(value, (int, float)) and not isinstance(value, bool)]
     if not measured:
@@ -733,7 +857,7 @@ def _svg_bars(
     height = row_h * len(items) + 10
     width = label_w + chart_w + 92
     parts = [
-        f'<svg class="chart" viewBox="0 0 {width} {height}" role="img" aria-label="{escape(unit)}">',
+        f'<svg class="chart" id="{escape(chart_id)}" viewBox="0 0 {width} {height}" role="img" aria-label="{escape(unit)}">',
     ]
     for index, (name, value) in enumerate(items):
         y = 6 + index * row_h
@@ -1061,8 +1185,8 @@ _CSS = """
 }
 * { box-sizing: border-box; }
 body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.6 "Inter", system-ui, sans-serif; }
-header, main, footer { width:min(1120px, calc(100% - 48px)); margin:0 auto; }
-header { padding:48px 0 12px; }
+header, main { width:min(1120px, calc(100% - 48px)); margin:0 auto; }
+header { padding:48px 0 8px; }
 .top { display:flex; justify-content:space-between; align-items:center; gap:16px; }
 .mark { letter-spacing:.16em; text-transform:uppercase; font-size:12px; color:var(--accent); margin:0; }
 #theme-toggle, .replay button, .path-picks select, .filters input, .filters select {
@@ -1070,12 +1194,18 @@ header { padding:48px 0 12px; }
 }
 #theme-toggle { padding:6px 14px; }
 h1, h2, h3 { font-family:"Instrument Serif", Georgia, serif; font-weight:400; }
-h1 { font-size:56px; line-height:1.05; margin:18px 0 12px; }
-.lede { max-width:62ch; color:var(--ink-soft); margin:0 0 8px; }
-nav { display:flex; flex-wrap:wrap; gap:12px 18px; padding:18px 0 28px; }
-nav a { color:var(--ink-soft); text-decoration:none; border-bottom:1px solid var(--line); }
-main { display:grid; gap:28px; padding-bottom:48px; }
-section { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px 32px 32px; box-shadow:var(--shadow); }
+h1 { font-size:52px; line-height:1.05; margin:18px 0 12px; }
+.lede { max-width:62ch; color:var(--ink-soft); margin:0 0 28px; }
+main { display:grid; gap:28px; padding-bottom:64px; min-width:0; }
+section { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px 32px 32px; box-shadow:var(--shadow); min-width:0; }
+#headline, #summaries { background:transparent; border:0; box-shadow:none; padding:0; }
+.safety-line { margin:16px 0 0; }
+.summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.summary-grid article { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px 24px 18px; box-shadow:var(--shadow); }
+.summary-grid h2 { font-size:28px; }
+#technical { background:transparent; border:0; box-shadow:none; padding:0 0 12px; }
+#technical > summary { font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; cursor:pointer; width:max-content; }
+.tech { display:grid; gap:28px; margin-top:18px; }
 h2 { font-size:32px; line-height:1.15; margin:0 0 18px; }
 h3 { font-size:22px; margin:28px 0 10px; }
 .num { color:var(--accent); margin-right:10px; }
@@ -1092,8 +1222,8 @@ th { color:var(--ink-soft); font-weight:600; font-size:12px; letter-spacing:.04e
 td.pass { color:var(--accent); font-weight:600; }
 td.fail { color:var(--bad); font-weight:600; }
 td.num { text-align:right; }
-details { border-top:1px solid var(--line); padding:12px 0; }
-summary { font-weight:600; }
+.tech details { border-top:1px solid var(--line); padding:12px 0; }
+.tech summary { font-weight:600; }
 summary em { color:var(--ink-soft); font-style:normal; font-weight:400; margin-left:8px; }
 .step { display:grid; grid-template-columns:minmax(140px, 220px) minmax(80px, 1fr) 72px minmax(80px, 220px); gap:8px; align-items:center; margin:6px 0; font-size:13px; }
 .step.sub .step-name { color:var(--ink-soft); }
@@ -1106,27 +1236,55 @@ summary em { color:var(--ink-soft); font-style:normal; font-weight:400; margin-l
 .chart rect { fill:var(--accent); }
 .filters, .path-picks, .replay { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 0 16px; }
 .filters input, .filters select, .path-picks select { border-radius:12px; padding:8px 10px; }
-.path-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
-.path-pane { background:var(--bg); border-radius:16px; padding:16px; }
-.path-summary { min-height:1.6em; color:var(--ink-soft); }
-.path-graph { display:flex; flex-direction:column; align-items:stretch; gap:0; }
-.path-arrow { width:1px; height:18px; margin:0 auto; background:var(--line); }
-.path-node {
-  display:grid; gap:2px; text-align:left; width:100%;
-  background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:12px 14px;
+.path-grid { display:flex; flex-direction:column; gap:28px; }
+.path-pane { background:var(--bg); border-radius:16px; padding:16px 16px 12px; min-width:0; }
+.path-summary { min-height:1.6em; color:var(--ink-soft); margin:0 0 8px; }
+.zoom { display:flex; gap:8px; margin:0 0 10px; }
+.zoom button, .replay button { padding:6px 12px; }
+.flow-scroll { overflow:auto; max-width:100%; min-width:0; padding-bottom:8px; }
+.flow-scale { transform-origin: top left; }
+.flow { display:block; }
+.col-title { fill:var(--ink); font-family:"Instrument Serif", Georgia, serif; font-size:18px; }
+.human-band { fill:var(--bg-soft); stroke:var(--line); }
+.edge { fill:none; }
+.edge-flow { stroke:var(--accent); stroke-width:2.4; }
+.edge-faint { stroke:var(--ink-faint); stroke-width:1; opacity:.55; }
+.edge-dashed { stroke:var(--bad); stroke-width:1.6; stroke-dasharray:5 4; }
+.edge-travel { stroke:var(--accent); stroke-width:3; }
+.arrow-flow { fill:var(--accent); }
+.arrow-faint { fill:var(--ink-faint); }
+.arrow-dashed { fill:var(--bad); }
+.loop-arrow { stroke:var(--warn); stroke-width:1.4; }
+.join-shape { fill:var(--card); stroke:var(--accent); stroke-width:1.4; }
+.travel-dot { fill:var(--accent); }
+.node {
+  width:100%; height:100%; box-sizing:border-box; text-align:left; position:relative;
+  background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px;
+  padding:8px 10px 8px 14px; cursor:pointer; font:12.5px/1.35 "Inter", system-ui, sans-serif;
 }
-.path-name { font-weight:600; }
-.path-meta, .path-ms { color:var(--ink-soft); font-size:13px; }
-.path-marks { color:var(--accent); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
-.path-node.is-fail { background:var(--bad-bg); }
-.path-node.is-fail .path-marks { color:var(--bad); }
-.path-node.is-retry .path-marks { color:var(--warn); }
-.path-node.is-injection { box-shadow:inset 0 0 0 1px var(--warn); }
-.path-node.is-branch { box-shadow:inset 3px 0 0 var(--accent); }
-.path-node.is-skipped { border-style:dashed; color:var(--ink-soft); }
-.path-node.is-future { opacity:.35; }
-.path-node.is-current { outline:2px solid var(--accent); outline-offset:2px; }
-.replay button { padding:6px 12px; }
+.node .stripe { position:absolute; left:0; top:0; bottom:0; width:5px; border-radius:16px 0 0 16px; background:var(--accent); }
+.node-label { display:block; font-weight:600; }
+.node-meta, .node-state { display:block; color:var(--ink-soft); }
+.node-state { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); }
+.badge { display:inline-block; margin-top:4px; padding:1px 6px; border-radius:999px; background:var(--warn-bg); color:var(--warn); font-size:11px; }
+.chip { display:inline-block; margin:4px 4px 0 0; padding:1px 6px; border-radius:999px; border:1px solid var(--line); background:var(--bg-soft); color:var(--ink); font-size:11px; }
+.chip.is-fail { background:var(--bad-bg); color:var(--bad); }
+.chip.is-retry { box-shadow:inset 0 0 0 1px var(--warn); }
+.node.is-fail { background:var(--bad-bg); }
+.node.is-fail .stripe { background:var(--bad); }
+.node.is-fail .node-state { color:var(--bad); }
+.node.is-retry .node-state { color:var(--warn); }
+.node.is-injection { box-shadow:inset 0 0 0 1px var(--warn); }
+.node.is-chosen { box-shadow:inset 0 0 0 1.5px var(--accent); }
+.node.is-faded { background:transparent; border-style:dashed; }
+.node.is-faded .stripe { background:var(--line); }
+.node.is-faded .node-state { color:var(--ink-soft); }
+.node.is-skipped { border-style:dashed; color:var(--ink-soft); }
+.node.is-skipped .stripe { background:var(--line); }
+.node.is-skipped .node-state { color:var(--ink-soft); }
+.node.is-future, .chip.is-future { opacity:.38; }
+.node.is-current { outline:2px solid var(--accent); outline-offset:2px; }
+.chip.is-current { outline:1px solid var(--accent); }
 .replay button[aria-pressed="true"] { background:var(--accent-soft); color:var(--ink); }
 .scrub { display:flex; align-items:center; gap:8px; color:var(--ink-soft); flex:1; min-width:160px; }
 .scrub input { flex:1; accent-color:var(--accent); }
@@ -1135,13 +1293,12 @@ summary em { color:var(--ink-soft); font-style:normal; font-weight:400; margin-l
   background:var(--bg-soft); border-radius:12px; padding:12px; min-height:3em; color:var(--ink);
 }
 .log-scroll { max-height:420px; overflow:auto; }
-footer { color:var(--ink-soft); font-size:13px; padding-bottom:48px; }
 code { font-size:.92em; }
 :focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
 @media (max-width: 800px) {
   h1 { font-size:40px; }
   section { padding:20px; border-radius:16px; }
-  .path-grid { grid-template-columns:1fr; }
+  .summary-grid { grid-template-columns:1fr; }
   .step { grid-template-columns:minmax(0, 1fr) 64px; }
   .detail { display:none; }
 }
