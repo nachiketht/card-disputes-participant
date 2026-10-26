@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if selected %}Review {{ selected }}{% else %}Dispute drafts{% endif %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/review.css">
 </head>
 <body>
@@ -155,5 +158,21 @@
       {% endif %}
     </main>
   </div>
+  <script>
+    (function () {
+      var known = new Set({{ cases | map(attribute='id') | list | tojson }});
+      window.setInterval(function () {
+        fetch("/draft-ids").then(function (response) {
+          return response.json();
+        }).then(function (body) {
+          var ids = body.ids || [];
+          var grew = ids.some(function (id) { return !known.has(id); });
+          if (grew) {
+            window.location.reload();
+          }
+        }).catch(function () {});
+      }, 5000);
+    })();
+  </script>
 </body>
 </html>

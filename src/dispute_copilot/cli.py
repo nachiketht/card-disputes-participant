@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             if args.command == "review-page":
-                return _serve_review_page(settings, ledger)
+                return _serve_review_page(settings, ledger, corpus, tools)
             drafter = build_drafter()
             if args.command == "run":
                 return _run_one(case_id, settings, corpus, tools, ledger, drafter)
@@ -88,12 +88,18 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
 
-def _serve_review_page(settings: Settings, ledger: HttpCaseSystem) -> int:
+def _serve_review_page(
+    settings: Settings, ledger: HttpCaseSystem, corpus: FileCorpus, tools: HttpToolClient
+) -> int:
     import uvicorn
 
     from dispute_copilot.review_page import create_app
 
-    uvicorn.run(create_app(settings.submissions_dir, ledger), host="127.0.0.1", port=8080)
+    uvicorn.run(
+        create_app(settings.submissions_dir, ledger, corpus, tools),
+        host="127.0.0.1",
+        port=8080,
+    )
     return 0
 
 

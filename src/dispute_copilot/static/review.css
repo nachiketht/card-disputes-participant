@@ -1,21 +1,56 @@
 :root {
   color-scheme: light;
-  --ink: #1c2430;
-  --muted: #5c6570;
-  --paper: #f3efe6;
-  --card: #fffdf8;
-  --line: #e3d9c8;
-  --rail: #1b2836;
-  --rail-text: #f6f1e7;
-  --accent: #0e6e6b;
-  --accent-ink: #f4fffe;
-  --ready: #e5f4f1;
-  --ask: #f8efd8;
-  --hold: #f6e4dc;
+  --bg: #f4f6f7;
+  --bg-soft: #e8eef0;
+  --ink: #1a1f22;
+  --ink-soft: #5a656c;
+  --ink-faint: #8a969d;
+  --line: #1a1f221f;
+  --teal: #2f5f63;
+  --teal-soft: #c5d5d7;
+  --card: #fbfcfc;
+  --shadow: 0 30px 60px #1a1f2214;
+  --focus: #2f5f6373;
+  --live: #2f5f6314;
+  --paper: var(--bg);
+  --muted: var(--ink-soft);
+  --rail: var(--bg);
+  --rail-text: var(--ink);
+  --accent: var(--ink);
+  --accent-ink: var(--bg);
+  --ready: #e4f0f1;
+  --ask: #f4efe4;
+  --hold: #f4e7e3;
   --warn: #8a4b08;
-  --warn-bg: #f8e7cf;
+  --warn-bg: #f6ead8;
   --pass: #1d6b45;
   --block: #8d3b2f;
+  --radius: 22px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #121618;
+    --bg-soft: #1a2022;
+    --ink: #e8ecee;
+    --ink-soft: #a3adb3;
+    --ink-faint: #7a858c;
+    --line: #e8ecee1f;
+    --teal: #7eb0b4;
+    --teal-soft: #2a4548;
+    --card: #1a1f22;
+    --shadow: 0 30px 60px #00000073;
+    --focus: #7eb0b480;
+    --live: #7eb0b41f;
+    --ready: #1d3336;
+    --ask: #3a3428;
+    --hold: #3a2c2a;
+    --warn: #e2b07a;
+    --warn-bg: #3a3024;
+    --pass: #8fceb0;
+    --block: #e2a59c;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -23,10 +58,11 @@
 body {
   margin: 0;
   color: var(--ink);
-  background: var(--paper);
-  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  font-family: Inter, system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app {
@@ -36,8 +72,9 @@ body {
 }
 
 aside {
-  background: var(--rail);
-  color: var(--rail-text);
+  background: var(--bg);
+  color: var(--ink);
+  border-right: 1px solid var(--line);
   padding: 28px 22px;
 }
 
@@ -46,19 +83,22 @@ aside {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-size: 12px;
-  color: #b7c3c2;
+  font-weight: 500;
+  color: var(--ink-faint);
 }
 
 aside h1 {
   margin: 8px 0 12px;
-  font-family: Georgia, "Iowan Old Style", Palatino, serif;
-  font-size: 28px;
-  font-weight: 500;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  font-size: 32px;
+  line-height: 1.05;
 }
 
 .aside-note,
 .aside-empty {
-  color: #c9d2d4;
+  color: var(--ink-soft);
   font-size: 14px;
 }
 
@@ -73,21 +113,26 @@ nav a {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  color: var(--rail-text);
+  color: var(--ink);
   text-decoration: none;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 10px 12px;
+  font-weight: 500;
 }
 
 nav a small {
-  color: #b7c3c2;
+  color: var(--ink-faint);
+  font-weight: 400;
 }
 
-nav a.current,
 nav a:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+nav a.current {
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
+  border-color: transparent;
 }
 
 main {
@@ -106,21 +151,24 @@ main {
 .empty h2,
 h3,
 summary {
-  font-family: Georgia, "Iowan Old Style", Palatino, serif;
-  font-weight: 500;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 .case-head h2 {
   margin: 0;
-  font-size: 34px;
+  font-size: 40px;
+  line-height: 1;
 }
 
 .eyebrow {
-  margin: 0 0 4px;
-  color: var(--muted);
-  letter-spacing: 0.08em;
+  margin: 0 0 8px;
+  color: var(--ink-faint);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .status {
@@ -138,8 +186,9 @@ summary {
 }
 
 .banner {
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--ready);
+  border: 1px solid var(--line);
   padding: 12px 14px;
 }
 
@@ -161,27 +210,28 @@ details.fold {
 .fold {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 4%, transparent);
 }
 
 .judge-note {
   margin-top: 14px;
-  padding: 12px 16px;
+  padding: 16px 18px;
 }
 
 .judge-note h3 {
   margin: 0;
   font-size: 13px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-faint);
 }
 
 .judge-note .verdict {
   margin: 4px 0 0;
-  font-size: 18px;
+  font-size: 22px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
 
 .judge-note.pass { background: var(--ready); }
@@ -190,7 +240,7 @@ details.fold {
 .summary,
 .brief,
 .message-block {
-  padding: 14px 16px;
+  padding: 16px 18px;
 }
 
 .summary {
@@ -209,9 +259,11 @@ article h3,
 .brief h3,
 .cites h3 {
   margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
@@ -226,7 +278,7 @@ article p,
 }
 
 .ids-line span {
-  color: var(--muted);
+  color: var(--ink-soft);
   margin-right: 4px;
 }
 
@@ -252,12 +304,12 @@ article p,
 }
 
 .facts div {
-  border-left: 2px solid var(--line);
+  border-left: 2px solid var(--teal-soft);
   padding-left: 10px;
 }
 
 .facts dt {
-  color: var(--muted);
+  color: var(--ink-soft);
   font-size: 13px;
 }
 
@@ -274,7 +326,7 @@ article p,
 
 .brief .is-missing {
   background: var(--warn-bg);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 8px 10px;
 }
 
@@ -294,7 +346,7 @@ article p,
 
 .questions li span,
 .judge span {
-  color: var(--muted);
+  color: var(--ink-soft);
   margin-right: 6px;
 }
 
@@ -314,7 +366,7 @@ article p,
 .cite summary,
 .fold summary {
   cursor: pointer;
-  padding: 10px 14px;
+  padding: 12px 16px;
   list-style: none;
 }
 
@@ -326,7 +378,7 @@ article p,
 .cite summary::before,
 .fold summary::before {
   content: "▸ ";
-  color: var(--accent);
+  color: var(--teal);
 }
 
 .cite[open] summary::before,
@@ -339,11 +391,11 @@ article p,
 .fold .checks,
 .fold .judge,
 .fold .muted {
-  margin: 0 14px 12px;
+  margin: 0 16px 14px;
 }
 
 .cite blockquote {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--teal);
   padding-left: 10px;
 }
 
@@ -354,7 +406,10 @@ article p,
 
 .message-block .message {
   margin: 0;
-  font-size: 18px;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 22px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
 }
 
 .checks {
@@ -383,26 +438,42 @@ article p,
 }
 
 button {
-  border: 1px solid var(--line);
-  background: var(--card);
+  border: 1px solid var(--ink);
+  background: transparent;
   color: var(--ink);
   border-radius: 999px;
-  padding: 10px 16px;
+  padding: 12px 20px;
   font: inherit;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+button:hover {
+  transform: translateY(-1px);
 }
 
-.muted { color: var(--muted); }
+button.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+button.primary:hover {
+  opacity: 0.92;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.muted { color: var(--ink-soft); }
 
 code {
   font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
-  background: var(--paper);
+  background: var(--bg-soft);
   border-radius: 6px;
   padding: 2px 6px;
 }
@@ -414,6 +485,7 @@ code {
 
 @media (max-width: 800px) {
   .app { grid-template-columns: 1fr; }
+  aside { border-right: 0; border-bottom: 1px solid var(--line); }
   .case-head,
   .summary,
   .brief,
@@ -421,4 +493,5 @@ code {
   .actions { justify-content: flex-start; max-width: none; }
   .facts div { margin-top: 8px; }
   main { padding: 24px 16px 48px; }
+  .case-head h2 { font-size: 32px; }
 }

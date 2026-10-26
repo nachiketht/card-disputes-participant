@@ -4,6 +4,7 @@ import hashlib
 import json
 import sqlite3
 import sys
+import threading
 import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -44,9 +45,42 @@ def audit(db, event, case_id="", **detail):
                (datetime.now(timezone.utc).isoformat(), event, case_id, canonical(detail)))
 
 
+class _DatasetCache:
+    """Reload the fixture when its mtime changes. A bad read keeps the last good copy."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self._lock = threading.Lock()
+        self.dataset, self.case_map, self.mtime = self._parse(self.path.read_text())
+
+    def _parse(self, text):
+        loaded = json.loads(text)
+        cases = loaded["cases"]
+        if not isinstance(loaded, dict) or not isinstance(cases, list):
+            raise ValueError("fixture is not a case list")
+        case_map = {}
+        for item in cases:
+            case_map[item["case_id"]] = item
+        return loaded, case_map, self.path.stat().st_mtime_ns
+
+    def current(self):
+        with self._lock:
+            try:
+                mtime = self.path.stat().st_mtime_ns
+            except OSError:
+                return self.dataset, self.case_map
+            if mtime == self.mtime:
+                return self.dataset, self.case_map
+            try:
+                dataset, case_map, seen = self._parse(self.path.read_text())
+            except (OSError, ValueError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
+                return self.dataset, self.case_map
+            self.dataset, self.case_map, self.mtime = dataset, case_map, seen
+            return self.dataset, self.case_map
+
+
 def create_server(data_dir, state, host="127.0.0.1", port=8765):
-    dataset = json.loads((Path(data_dir) / "dataset.json").read_text())
-    case_map = {x["case_id"]: x for x in dataset["cases"]}
+    fixture = _DatasetCache(Path(data_dir) / "dataset.json")
     connect(state).close()
 
     class Handler(BaseHTTPRequestHandler):
@@ -63,6 +97,7 @@ def create_server(data_dir, state, host="127.0.0.1", port=8765):
 
         def do_GET(self):
             from urllib.parse import urlsplit
+            dataset, case_map = fixture.current()
             path = urlsplit(self.path).path
             if path == "/health":
                 return self.reply(200, {"status": "ok", "dataset": dataset["name"],
@@ -104,6 +139,7 @@ def create_server(data_dir, state, host="127.0.0.1", port=8765):
             return self.reply(200, payload)
 
         def do_POST(self):
+            dataset, case_map = fixture.current()
             try:
                 size = int(self.headers.get("Content-Length", "0"))
                 if size < 1 or size > 262144:

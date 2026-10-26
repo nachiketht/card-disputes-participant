@@ -11,12 +11,14 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
-from dispute_copilot.errors import CreateRejected, MockUnavailable
+from dispute_copilot.adapters.corpus import FileCorpus
+from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
+from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import (
     CASE_ID,
@@ -43,7 +45,8 @@ from dispute_copilot.fields import (
 from dispute_copilot.review_flow import create_record, submit_review
 from dispute_copilot.review_flow.agent_review import record_agent_review
 from dispute_copilot.review_flow.handles import handle_path, read_handle
-from dispute_copilot.storage import latest_draft
+from dispute_copilot.storage import latest_draft, write_draft
+from dispute_copilot.workflow import prepare
 
 PACKAGE = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(PACKAGE / "templates"))
@@ -73,22 +76,42 @@ _NOTICES = {
 _WARNINGS = {"agent_approval_required", "approval_gate", "refused"}
 
 
-def create_app(submissions: Path, case_system: Ledger) -> FastAPI:
-    """Serve the review screen for one submissions folder and one ledger client."""
+def create_app(
+    submissions: Path,
+    case_system: Ledger,
+    corpus: FileCorpus | None = None,
+    tools: HttpToolClient | FakeToolClient | None = None,
+) -> FastAPI:
+    """Serve the review screen for one submissions folder and one ledger client.
+
+    When corpus and tools are passed, a case that the mock lists and that has
+    no saved draft is drafted on the next page load. Existing drafts are left
+    as they are.
+    """
     app = FastAPI(title="Dispute review", docs_url=None, redoc_url=None, openapi_url=None)
     app.mount("/static", StaticFiles(directory=str(PACKAGE / "static")), name="assets")
 
+    def _sync() -> None:
+        sync_missing_drafts(submissions, case_system, corpus, tools)
+
     @app.get("/", response_model=None)
     def home() -> RedirectResponse | HTMLResponse:
+        _sync()
         cases = list_cases(submissions)
         if not cases:
             return _render(submissions, case_system, None, None)
         return RedirectResponse(f"/cases/{quote(str(cases[0]['id']))}", status_code=303)
 
+    @app.get("/draft-ids", response_model=None)
+    def draft_ids() -> JSONResponse:
+        _sync()
+        return JSONResponse({"ids": [row["id"] for row in list_cases(submissions)]})
+
     @app.get("/cases/{case_id}", response_model=None)
     def show_case(case_id: str, notice: str | None = None) -> HTMLResponse:
         if not _safe_case(case_id):
             return HTMLResponse("This case cannot be opened.", status_code=404)
+        _sync()
         return _render(submissions, case_system, case_id, notice)
 
     @app.post("/cases/{case_id}/check", response_model=None)
@@ -137,6 +160,43 @@ def create_app(submissions: Path, case_system: Ledger) -> FastAPI:
         return _redirect(case_id, "existing")
 
     return app
+
+
+def sync_missing_drafts(
+    submissions: Path,
+    case_system: Ledger,
+    corpus: FileCorpus | None,
+    tools: HttpToolClient | FakeToolClient | None,
+) -> None:
+    """Write a draft for each mock case that does not have one yet."""
+    if corpus is None or tools is None:
+        return
+    corpus.refresh()
+    try:
+        cases = tools.list_cases()
+    except (MockUnavailable, OSError, TypeError, ValueError):
+        return
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        case_id = case.get(CASE_ID)
+        if not isinstance(case_id, str) or not _safe_case(case_id) or _has_draft(submissions, case_id):
+            continue
+        try:
+            draft = prepare(case_id, corpus=corpus, tools=tools, case_system=case_system, case=case)
+        except (CopilotError, OSError, ValueError, TypeError, KeyError):
+            continue
+        if _has_draft(submissions, case_id):
+            continue
+        write_draft(submissions, case_id, draft)
+
+
+def _has_draft(submissions: Path, case_id: str) -> bool:
+    try:
+        latest_draft(submissions, case_id)
+    except FileNotFoundError:
+        return False
+    return True
 
 
 def list_cases(submissions: Path) -> list[dict]:
