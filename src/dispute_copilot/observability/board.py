@@ -34,8 +34,10 @@ CORE_SPANS = (
     "record.precheck",
     "record.create",
 )
-COMPARE_LABELS = ("local", "azure", "aws")
 _LOG_LIMIT = 400
+_TEMPLATES = "templates only (no model)"
+_NOT_RECORDED = "not recorded"
+_LIST_PRICE = "estimate from list price"
 _HOST = "127.0.0.1"
 
 
@@ -73,7 +75,7 @@ def build_view(
         "logs": _logs(log_rows, records),
         "security": security,
         "approval": approval,
-        "deployment": _deployment(spans, table),
+        "deployment": _deployment(spans, table, target),
         "paths": build_paths(records, log_rows, approval),
     }
     return Redactor().scrub(view)
@@ -311,52 +313,82 @@ def _approval(records: list[dict], audit: list[dict]) -> list[dict]:
     return [cases[key] for key in sorted(cases)]
 
 
-def _deployment(spans: list[dict], table: dict) -> list[dict]:
-    grouped: dict[str, list[dict]] = {}
-    for span in spans:
-        if span.get("name") != "case":
+def _deployment(spans: list[dict], table: dict, target: float) -> list[dict]:
+    cases = [span for span in spans if span.get("name") == "case"]
+    calls = [span for span in spans if span.get("name") == "model.call"]
+    calls_by: dict[tuple[str, str], list[dict]] = {}
+    for call in calls:
+        calls_by.setdefault((_case(call), _run(call)), []).append(call)
+    groups: dict[tuple[str, str], dict] = {}
+
+    def group(where: str, model: str) -> dict:
+        return groups.setdefault((where, model), {"cases": [], "calls": []})
+
+    used: set[int] = set()
+    for span in cases:
+        where = _stored_where(span)
+        related = calls_by.get((_case(span), _run(span)), [])
+        if where is None:
+            bucket = group(_label(span), _NOT_RECORDED)
+            bucket["cases"].append(span)
+            for call in related:
+                if id(call) in used or _stored_where(call) is not None:
+                    continue
+                used.add(id(call))
+                bucket["calls"].append(call)
             continue
-        grouped.setdefault(_label(span), []).append(span)
-    labels = list(COMPARE_LABELS)
-    for label in sorted(grouped):
-        if label not in labels:
-            labels.append(label)
+        matched = []
+        for call in related:
+            if id(call) in used:
+                continue
+            if (_stored_where(call) or where) != where:
+                continue
+            used.add(id(call))
+            matched.append(call)
+        if not matched:
+            group(where, _TEMPLATES)["cases"].append(span)
+            continue
+        seen: list[str] = []
+        for call in matched:
+            model = _model_name(call)
+            if model not in seen:
+                seen.append(model)
+                group(where, model)["cases"].append(span)
+            group(where, model)["calls"].append(call)
+    for call in calls:
+        if id(call) in used:
+            continue
+        where = _stored_where(call) or _label(call)
+        model = _model_name(call) if _attrs(call).get("model") else _NOT_RECORDED
+        group(where, model)["calls"].append(call)
     rows = []
-    for label in labels:
-        items = grouped.get(label) or []
+    for (where, model), bucket in groups.items():
+        items = bucket["cases"]
         durations = [value for value in (_ms(item.get("duration_ms")) for item in items) if value is not None]
-        calls = []
-        # Cost for the label is filled by the caller via case ids below.
-        case_ids = {_case(item) for item in items}
+        priced = [_priced_call(call, table) for call in bucket["calls"]]
+        rolled = _rollup(priced)
+        tokens_in = sum(item["tokens_in"] for item in priced)
+        tokens_out = sum(item["tokens_out"] for item in priced)
+        present = bool(items) or bool(bucket["calls"])
         rows.append(
             {
-                "label": label,
+                "where": where,
+                "model": model,
+                "label": where,
                 "cases": len(items),
+                "passed": sum(1 for item in items if _passed(item, target)),
                 "p50": None if not durations else round(percentile(durations, 0.50) or 0, 3),
                 "p95": None if not durations else round(percentile(durations, 0.95) or 0, 3),
                 "max": None if not durations else round(max(durations), 3),
-                "measured": bool(items),
-                "status": "measured" if items else "unmeasured",
-                "case_ids": sorted(case_ids),
+                "tokens_in": tokens_in,
+                "tokens_out": tokens_out,
+                "measured": present,
+                "status": "measured" if present else "unmeasured",
+                "cost_status": rolled["status"] if priced else "unmeasured",
+                "cost_usd": rolled["usd"] if priced else None,
             }
         )
-    priced = _cost(spans, table)
-    by_case = {item["case"]: item for item in priced["by_case"]}
-    for row in rows:
-        if not row["measured"]:
-            row["cost_status"] = "unmeasured"
-            row["cost_usd"] = None
-            continue
-        selected = [by_case[case] for case in row["case_ids"] if case in by_case]
-        if not selected:
-            row["cost_status"] = "unmeasured"
-            row["cost_usd"] = None
-            continue
-        rolled = _rollup(selected)
-        row["cost_status"] = rolled["status"]
-        row["cost_usd"] = rolled["usd"]
-    for row in rows:
-        row.pop("case_ids", None)
+    rows.sort(key=lambda item: (item["where"], item["model"]))
     return rows
 
 
@@ -476,13 +508,18 @@ def _slowest_line(view: dict) -> str:
 
 def _cost_card(cost: dict) -> str:
     run = cost["run"]
-    if run.get("status") != "estimate":
-        return "<article id=\"card-cost\"><h2>Cost</h2><p>Not configured.</p></article>"
+    if not run.get("calls"):
+        return (
+            "<article id=\"card-cost\"><h2>Cost</h2>"
+            "<p class=\"note\">No model call was recorded. "
+            "Prices per million tokens are in config/rules/cost.yaml. "
+            "A listed model is an estimate from list price.</p></article>"
+        )
     bits = [f"{item['case']} {_money(item)}" for item in cost["by_case"]]
-    per_case = (", ".join(bits)) if bits else "No per-case figure."
+    per_case = ". ".join(bits) if bits else "No per-case figure."
     return (
         "<article id=\"card-cost\"><h2>Cost</h2>"
-        f"<p class=\"note\">Total {_money(run)}. {escape(per_case)}</p></article>"
+        f"<p class=\"note\">{escape(_money(run))}. Per case: {escape(per_case)}</p></article>"
     )
 
 
@@ -511,25 +548,33 @@ def _safety_card(view: dict) -> str:
 def _where_card(rows: list[dict]) -> str:
     body = []
     for item in rows:
-        if item["label"] not in COMPARE_LABELS:
-            continue
-        cost = item["cost_status"] if item["cost_usd"] is None else _money({"status": item["cost_status"], "usd": item["cost_usd"]})
         body.append(
             "<tr>"
-            f"<td>{escape(item['label'])}</td>"
+            f"<td>{escape(item['where'])}</td>"
+            f"<td>{escape(item['model'])}</td>"
+            f"<td class=\"num\">{item['cases']}</td>"
+            f"<td class=\"num\">{item['passed']}</td>"
             f"<td class=\"num\">{escape(_num(item['p50']))}</td>"
             f"<td class=\"num\">{escape(_num(item['p95']))}</td>"
-            f"<td>{escape(str(cost))}</td>"
+            f"<td class=\"num\">{item['tokens_in']}</td>"
+            f"<td class=\"num\">{item['tokens_out']}</td>"
+            f"<td>{escape(_priced(item))}</td>"
             "</tr>"
         )
+    empty = '<tr><td colspan="9">No runs loaded.</td></tr>'
     table = (
-        "<table><thead><tr><th>Place</th><th>p50</th><th>p95</th><th>Cost</th></tr></thead>"
-        f"<tbody>{''.join(body)}</tbody></table>"
+        "<table><thead><tr><th>Place</th><th>Model</th><th>Cases</th><th>Passed</th>"
+        "<th>p50</th><th>p95</th><th>Tokens in</th><th>Tokens out</th><th>Cost</th></tr></thead>"
+        f"<tbody>{''.join(body) or empty}</tbody></table>"
     )
+    places = {item["where"] for item in rows}
+    extra = ""
+    if len(places) == 1:
+        extra = "<p class=\"note muted\">Other environments appear when their runs are loaded.</p>"
     return (
         "<article id=\"card-where\"><h2>Where it runs</h2>"
-        "<p class=\"note\">Latency and cost for each place.</p>"
-        f"{table}</article>"
+        "<p class=\"note\">One row for each place and model in the saved runs.</p>"
+        f"{table}{extra}</article>"
     )
 
 
@@ -677,12 +722,13 @@ def _cost_block(cost: dict) -> str:
         f"<div><p>Model calls</p><strong>{run['calls']}</strong></div>"
         f"<div><p>Compute</p><strong>{escape(_money(compute))}</strong></div>"
         "</div>"
-        "<p class=\"note\">Per-call figures use the price table. "
-        "Not configured means the model has no price. "
+        "<p class=\"note\">Per-call figures use config/rules/cost.yaml, USD per million tokens. "
+        "A listed model is an estimate from list price. "
+        "A model with no entry names that model. "
         "Unmeasured means the tokens were not recorded. "
-        "A roll-up is a number only when every included call has an estimate.</p>"
+        "A total is a number only when every included call has a list price.</p>"
     )
-    chart_items = [(item["model"], item["usd"]) for item in cost["calls"] if item["status"] == "estimate"]
+    chart_items = [(item["model"], item["usd"]) for item in cost["calls"] if item["status"] == _LIST_PRICE]
     chart = _svg_bars(chart_items, target=None, unit="usd") if chart_items else "<p class=\"empty\">No priced model call.</p>"
     body = []
     for item in cost["calls"]:
@@ -787,12 +833,13 @@ def _approval_block(rows: list[dict]) -> str:
 
 def _deployment_block(rows: list[dict], compute: dict) -> str:
     note = (
-        "<p class=\"note\">Rows come from the run label (<code>--label</code> or <code>RUN_LABEL</code>). "
-        "local, azure, and aws stay on the page. A label with no traces is unmeasured. "
+        "<p class=\"note\">Each row is a place and a model found in the saved runs. "
+        "A run with no model call is templates only. "
+        "An older run that did not store a place is grouped by its label, and the model reads not recorded. "
         f"Compute for this file: {escape(_money(compute))}.</p>"
     )
     chart = _svg_bars(
-        [(item["label"], item["p95"]) for item in rows if item["measured"]],
+        [(f"{item['where']} / {item['model']}", item["p95"]) for item in rows if item["p95"] is not None],
         target=None,
         unit="ms",
     )
@@ -800,20 +847,24 @@ def _deployment_block(rows: list[dict], compute: dict) -> str:
     for item in rows:
         body.append(
             "<tr>"
-            f"<td>{escape(item['label'])}</td>"
+            f"<td>{escape(item['where'])}</td>"
+            f"<td>{escape(item['model'])}</td>"
             f"<td class=\"num\">{item['cases']}</td>"
+            f"<td class=\"num\">{item['passed']}</td>"
             f"<td class=\"num\">{escape(_num(item['p50']))}</td>"
             f"<td class=\"num\">{escape(_num(item['p95']))}</td>"
-            f"<td class=\"num\">{escape(_num(item['max']))}</td>"
-            f"<td>{escape(item['cost_status'] if item['cost_usd'] is None else _money({'status': item['cost_status'], 'usd': item['cost_usd']}))}</td>"
+            f"<td class=\"num\">{item['tokens_in']}</td>"
+            f"<td class=\"num\">{item['tokens_out']}</td>"
+            f"<td>{escape(_priced(item))}</td>"
             f"<td>{escape(item['status'])}</td>"
             "</tr>"
         )
     table = (
-        "<table><thead><tr><th>Label</th><th>Cases</th><th>p50</th><th>p95</th><th>max</th>"
-        f"<th>Model cost</th><th>Status</th></tr></thead><tbody>{''.join(body)}</tbody></table>"
+        "<table><thead><tr><th>Place</th><th>Model</th><th>Cases</th><th>Passed</th>"
+        "<th>p50</th><th>p95</th><th>Tokens in</th><th>Tokens out</th><th>Cost</th>"
+        f"<th>Status</th></tr></thead><tbody>{''.join(body)}</tbody></table>"
     )
-    return note + (chart or "<p class=\"empty\">No labeled runs to chart.</p>") + table
+    return note + (chart or "<p class=\"empty\">No saved runs to chart.</p>") + table
 
 
 def _named_table(title: str, rows: list[dict], *, with_detail: bool) -> str:
@@ -989,12 +1040,19 @@ def _read_audit(path: Path) -> list[dict]:
 def _rollup(calls: list[dict]) -> dict:
     if not calls:
         return {"status": "unmeasured", "usd": None, "calls": 0}
-    statuses = {item["status"] for item in calls}
-    if statuses == {"estimate"}:
+    statuses = [str(item["status"]) for item in calls]
+    if all(status == _LIST_PRICE for status in statuses):
         total = round(sum(float(item["usd"] or 0) for item in calls), 6)
-        return {"status": "estimate", "usd": total, "calls": len(calls)}
-    if "not configured" in statuses:
-        return {"status": "not configured", "usd": None, "calls": len(calls)}
+        return {"status": _LIST_PRICE, "usd": total, "calls": len(calls)}
+    missing = []
+    for status in statuses:
+        if status.startswith("no price configured for ") and status not in missing:
+            missing.append(status)
+    if missing and len(missing) == len(statuses):
+        status = missing[0] if len(missing) == 1 else "; ".join(missing)
+        return {"status": status, "usd": None, "calls": len(calls)}
+    if missing:
+        return {"status": missing[0] if len(missing) == 1 else "; ".join(missing), "usd": None, "calls": len(calls)}
     return {"status": "unmeasured", "usd": None, "calls": len(calls)}
 
 
@@ -1093,11 +1151,49 @@ def _unique(rows: list[dict]) -> list[dict]:
 
 
 def _money(item: dict) -> str:
-    if item.get("status") == "estimate" and isinstance(item.get("usd"), (int, float)):
-        return f"{item['usd']:.6f}"
-    if item.get("status") == "provided" and isinstance(item.get("usd"), (int, float)):
-        return f"{item['usd']:.6f}"
-    return str(item.get("status") or "unmeasured")
+    status = str(item.get("status") or "unmeasured")
+    usd = item.get("usd")
+    if isinstance(usd, bool) or not isinstance(usd, (int, float)):
+        return status
+    if status == "provided":
+        return f"{usd:.6f}"
+    if status == _LIST_PRICE:
+        return f"{usd:.6f} estimate from list price"
+    return status
+
+
+def _priced(row: dict) -> str:
+    return _money({"status": row.get("cost_status"), "usd": row.get("cost_usd")})
+
+
+def _priced_call(call: dict, table: dict) -> dict:
+    attrs = _attrs(call)
+    tokens_in = _tokens(attrs.get("tokens_in"))
+    tokens_out = _tokens(attrs.get("tokens_out"))
+    model = str(attrs.get("model") or "")
+    if tokens_in is None or tokens_out is None:
+        return {"status": "unmeasured", "usd": None, "tokens_in": 0, "tokens_out": 0}
+    priced = price_call(model, tokens_in, tokens_out, table)
+    return {**priced, "tokens_in": tokens_in, "tokens_out": tokens_out}
+
+
+def _passed(span: dict, target: float) -> bool:
+    duration = _ms(span.get("duration_ms"))
+    return _attrs(span).get("outcome") == "drafted" and duration is not None and duration <= target
+
+
+def _stored_where(span: dict) -> str | None:
+    value = _attrs(span).get("where")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _model_name(span: dict) -> str:
+    value = _attrs(span).get("model")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return "(unnamed)"
 
 
 def _num(value: object) -> str:
@@ -1214,6 +1310,7 @@ h3 { font-size:22px; margin:28px 0 10px; }
 .stats p { margin:0; color:var(--ink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
 .stats strong { display:block; margin-top:6px; font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; }
 .note, .empty { color:var(--ink-soft); }
+.note.muted { font-size:13px; }
 .ok { color:var(--accent); }
 .alerts { margin:12px 0; padding-left:18px; color:var(--warn); }
 table { width:100%; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums; }
@@ -1256,6 +1353,7 @@ summary em { color:var(--ink-soft); font-style:normal; font-weight:400; margin-l
 .arrow-dashed { fill:var(--bad); }
 .loop-arrow { stroke:var(--warn); stroke-width:1.4; }
 .join-shape { fill:var(--card); stroke:var(--accent); stroke-width:1.4; }
+.diamond-label { fill:var(--ink); font:12px "Inter", system-ui, sans-serif; }
 .travel-dot { fill:var(--accent); }
 .node {
   width:100%; height:100%; box-sizing:border-box; text-align:left; position:relative;

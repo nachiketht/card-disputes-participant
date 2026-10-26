@@ -32,7 +32,7 @@ A case listed in more than one synthetic set is counted once per category. Each 
 | no-commitment language | share of development cases whose narrative is non-empty and is not rejected by the phrase list | a promise phrased outside that list |
 | idempotency and approval gating | synthetic case where a draft changed after approval is not created | a live reviewer session |
 | latency | good-case rate from the traces of this run (`duration_ms` at or under the latency target) | a hosted metrics product; a missing trace fails the row |
-| cost | no model calls, or calls with no price, pass while `maximum_usd` is unset; a priced total fails only when it exceeds a configured cap | a measured token or compute bill; prices in `config/rules/cost.yaml` are empty |
+| cost | no model calls, or calls with no price, pass while `maximum_usd` is unset; a priced total fails only when it exceeds a configured cap | a measured token or compute bill; list prices in `config/rules/cost.yaml` are USD per million tokens |
 
 ## Citation support
 

@@ -14,7 +14,7 @@ from dispute_copilot.fields import CASE_ID, Routing
 from dispute_copilot.llm.base import Completion
 from dispute_copilot.observability.board import bind_page, build_view, load_view, render, write_html
 from dispute_copilot.observability.path import build_paths
-from dispute_copilot.observability.cost import compute_cost, load_cost, price_call
+from dispute_copilot.observability.cost import compute_cost, host_class, load_cost, note_model_span, price_call
 from dispute_copilot.observability.logs import LOGGER, configure
 from dispute_copilot.observability.metrics import percentile
 from dispute_copilot.observability.tracing import case_trace
@@ -57,15 +57,32 @@ def test_step_latency_uses_that_rank():
     assert step["n"] == 4
 
 
-def test_missing_price_is_not_configured_and_not_a_number():
+def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     table = load_cost()
-    assert table["models"] == {}
-    priced = price_call("claude-haiku-4-5", 1000, 500)
-    assert priced == {"status": "not configured", "usd": None}
+    assert set(table["models"]) == {
+        "claude-haiku-4-5",
+        "us.amazon.nova-2-lite-v1:0",
+        "global.amazon.nova-2-lite-v1:0",
+        "amazon.nova-2-lite-v1:0",
+    }
+    assert price_call("claude-haiku-4-5", 1000, 500, table) == {
+        "status": "estimate from list price",
+        "usd": 0.0035,
+    }
+    assert price_call("Claude-Haiku-4-5", 1_000_000, 0, table)["usd"] == 1.0
+    assert price_call("anthropic.claude-haiku-4-5", 1_000_000, 0, table)["usd"] == 1.0
+    assert price_call("claude-haiku-4-5-20261026", 1_000_000, 0, table)["usd"] == 1.0
+    assert price_call("claude-haiku-4-5-2026-10-26", 1_000_000, 0, table)["usd"] == 1.0
+    assert price_call("us.amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.33
+    assert price_call("foo.us.amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.33
+    assert price_call("amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.3
+    assert price_call("global.amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.3
+    missing = price_call("other-model", 1000, 1000, table)
+    assert missing == {"status": "no price configured for other-model", "usd": None}
     assert compute_cost() == {"status": "estimate, unmeasured", "usd": None}
-    known = {"models": {"example-model": {"input_per_1k": 2, "output_per_1k": 8}}, "compute": {"usd": 1.5}}
-    assert price_call("example-model", 1000, 1000, known) == {"status": "estimate", "usd": 10.0}
-    assert price_call("other-model", 1000, 1000, known)["status"] == "not configured"
+    known = {"models": {"example-model": {"input_per_million": 2000, "output_per_million": 8000}}, "compute": {"usd": 1.5}}
+    assert price_call("example-model", 1000, 1000, known) == {"status": "estimate from list price", "usd": 10.0}
+    assert price_call("other-model", 1000, 1000, known)["status"] == "no price configured for other-model"
     assert compute_cost(known) == {"status": "provided", "usd": 1.5}
     records = [
         {
@@ -74,22 +91,23 @@ def test_missing_price_is_not_configured_and_not_a_number():
             CASE_ID: "C",
             "run_id": "r",
             "duration_ms": 3,
-            "attrs": {"model": "claude-haiku-4-5", "tokens_in": 1000, "tokens_out": 500},
+            "attrs": {"model": "claude-haiku-4-5", "tokens_in": 1000, "tokens_out": 500, "where": "azure"},
         }
     ]
     view = build_view(records, [], cost_table=table)
-    assert view["cost"]["calls"][0]["status"] == "not configured"
-    assert view["cost"]["calls"][0]["usd"] is None
-    assert view["cost"]["run"]["status"] == "not configured"
-    assert view["cost"]["run"]["usd"] is None
+    assert view["cost"]["calls"][0]["status"] == "estimate from list price"
+    assert view["cost"]["calls"][0]["usd"] == 0.0035
+    assert view["cost"]["run"]["status"] == "estimate from list price"
+    assert view["cost"]["run"]["usd"] == 0.0035
     assert view["cost"]["compute"]["status"] == "estimate, unmeasured"
     page = render(view)
-    assert "not configured" in page
+    assert "estimate from list price" in page
     assert "estimate, unmeasured" in page
+    assert "Not configured." not in page
 
 
 def test_priced_rollups_sum_only_configured_calls():
-    table = {"models": {"example-model": {"input_per_1k": 1, "output_per_1k": 1}}, "compute": {}}
+    table = {"models": {"example-model": {"input_per_million": 1000, "output_per_million": 1000}}, "compute": {}}
     records = [
         {
             "kind": "span",
@@ -97,11 +115,11 @@ def test_priced_rollups_sum_only_configured_calls():
             CASE_ID: "C",
             "run_id": "r",
             "duration_ms": 1,
-            "attrs": {"model": "example-model", "tokens_in": 1000, "tokens_out": 1000},
+            "attrs": {"model": "example-model", "tokens_in": 1000, "tokens_out": 1000, "where": "local"},
         }
     ]
     view = build_view(records, [], cost_table=table)
-    assert view["cost"]["run"] == {"status": "estimate", "usd": 2.0, "calls": 1}
+    assert view["cost"]["run"] == {"status": "estimate from list price", "usd": 2.0, "calls": 1}
     assert view["cost"]["by_case"][0]["usd"] == 2.0
 
 
@@ -115,7 +133,9 @@ def test_export_from_the_dev_run_lists_the_panels(tmp_path: Path):
     assert loaded["overview"]["counts"]["cases"] == 12
     assert "CARD-D01" in text
     assert "estimate, unmeasured" in text
-    assert any(row["label"] == "aws" and row["status"] == "unmeasured" for row in loaded["deployment"])
+    assert any(row["model"] == "not recorded" and row["cases"] == 12 for row in loaded["deployment"])
+    assert all(row["where"] != "aws" for row in loaded["deployment"])
+    assert "Other environments appear when their runs are loaded." in text
     assert PAN not in text
 
 
@@ -187,16 +207,22 @@ def test_cli_export_and_rejected_host_flag(tmp_path: Path, monkeypatch: pytest.M
 
 def test_run_label_is_stored_on_the_trace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("RUN_LABEL", "azure")
+    monkeypatch.setenv("LLM_PROVIDER", "null")
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
     with case_trace("C", "run-1", tmp_path, "run") as tracer:
         with tracer.span("case", outcome="drafted"):
             pass
     assert tracer.records[0]["label"] == "azure"
-    view = build_view(tracer.records, [], cost_table={"models": {}, "compute": {}})
-    azure = next(row for row in view["deployment"] if row["label"] == "azure")
-    aws = next(row for row in view["deployment"] if row["label"] == "aws")
+    assert tracer.records[0]["attrs"]["where"] == "azure"
+    assert "model" not in tracer.records[0]["attrs"]
+    text = json.dumps(tracer.records)
+    assert "https://" not in text
+    assert "http://" not in text
+    view = build_view(tracer.records, [])
+    azure = next(row for row in view["deployment"] if row["where"] == "azure")
+    assert azure["model"] == "templates only (no model)"
     assert azure["measured"] is True
-    assert aws["status"] == "unmeasured"
-    assert aws["p95"] is None
+    assert all(row["where"] != "aws" for row in view["deployment"])
 
 
 def test_critic_call_records_tokens_without_a_price(tmp_path: Path):
@@ -213,8 +239,12 @@ def test_critic_call_records_tokens_without_a_price(tmp_path: Path):
     assert len(spans) == 1
     assert spans[0]["attrs"]["tokens_in"] == 120
     assert spans[0]["attrs"]["tokens_out"] == 15
-    assert spans[0]["attrs"]["cost_status"] == "not configured"
+    assert spans[0]["attrs"]["cost_status"] == "no price configured for example-model"
     assert "cost_usd" not in spans[0]["attrs"]
+    assert spans[0]["attrs"]["where"]
+    dumped = json.dumps(spans)
+    assert "https://" not in dumped
+    assert "http://" not in dumped
 
 
 def test_stdout_log_option(capsys: pytest.CaptureFixture[str], tmp_path: Path):
@@ -333,7 +363,10 @@ def test_path_escapes_untrusted_text_and_replay_stays_offline(tmp_path: Path):
     assert "websocket" not in page.lower()
     assert "http://" not in page.lower()
     assert "https://" not in page.lower()
+    assert 'data-speed="0.5"' in page and "0.5x" in page
     assert "1x" in page and "2x" in page and "5x" in page
+    assert "diamond-label" in page
+    assert "if (!caption) return;" in page
     assert "Pause" in page and "Restart" in page
     assert 'id="path-scrub-a"' in page and 'id="path-case-b"' in page
     raw = page.split('id="path-data">', 1)[1].split("</script>", 1)[0]
@@ -412,6 +445,14 @@ def test_diagram_places_stages_branches_and_the_routing_fork():
     assert again["chips"][0]["fail"] is True and again["chips"][0]["retry"] is False
     assert again["chips"][1]["retry"] is True and again["chips"][1]["fail"] is False
     assert not any(edge["kind"] == "dashed" and edge["from"] == "transactions" for edge in retried["diagram"]["edges"])
+    for path in paths:
+        diamonds = [node for node in path["diagram"]["nodes"] if node["kind"] in {"fork", "join"}]
+        assert diamonds
+        for node in diamonds:
+            assert node["label"].strip()
+            assert node["tip"].strip()
+    assert _diagram_node(failed, "fork-evidence")["label"] == "Parallel reads"
+    assert _diagram_node(failed, "join-evidence")["label"] == "Join"
 
 
 def test_unknown_step_keeps_a_fallback_column():
@@ -432,6 +473,9 @@ def test_unknown_step_keeps_a_fallback_column():
     assert extra["column"] == "other"
     assert extra["label"] == "Extra step"
     assert any(column["id"] == "other" for column in diagram["columns"])
+    diamonds = [node for node in diagram["nodes"] if node["kind"] in {"fork", "join"}]
+    assert {node["label"] for node in diamonds} == {"Parallel reads", "Join"}
+    assert all(node["label"].strip() and node["tip"].strip() for node in diamonds)
 
 
 def test_default_view_keeps_the_client_page_and_closes_the_rest():
@@ -480,3 +524,164 @@ def test_latency_chart_keeps_short_steps_visible():
     assert widths
     assert min(widths) >= 60
     assert max(widths) > min(widths)
+
+
+def _case_row(case: str, run: str, ms: float, where: str | None, label: str | None = None) -> dict:
+    attrs: dict = {"outcome": "drafted"}
+    if where is not None:
+        attrs["where"] = where
+    row = {"kind": "span", "name": "case", CASE_ID: case, "run_id": run, "duration_ms": ms, "attrs": attrs}
+    if label is not None:
+        row["label"] = label
+    return row
+
+
+def _model_row(case: str, run: str, where: str | None, model: str, tokens_in: int, tokens_out: int) -> dict:
+    attrs: dict = {"model": model, "tokens_in": tokens_in, "tokens_out": tokens_out}
+    if where is not None:
+        attrs["where"] = where
+    return {"kind": "span", "name": "model.call", CASE_ID: case, "run_id": run, "duration_ms": 1, "attrs": attrs}
+
+
+def _where_row(view: dict, where: str, model: str) -> dict:
+    return next(row for row in view["deployment"] if row["where"] == where and row["model"] == model)
+
+
+def test_where_table_prices_an_azure_haiku_run():
+    records = [
+        _case_row("C", "r", 20, "azure", "azure"),
+        _model_row("C", "r", "azure", "claude-haiku-4-5", 1_000_000, 0),
+    ]
+    view = build_view(records, [])
+    row = _where_row(view, "azure", "claude-haiku-4-5")
+    assert row["cases"] == 1
+    assert row["passed"] == 1
+    assert row["p50"] == 20
+    assert row["p95"] == 20
+    assert row["tokens_in"] == 1_000_000
+    assert row["tokens_out"] == 0
+    assert row["cost_usd"] == 1.0
+    assert row["cost_status"] == "estimate from list price"
+    assert all(item["where"] != "aws" for item in view["deployment"])
+    page = render(view)
+    assert "claude-haiku-4-5" in page
+    assert "1.000000 estimate from list price" in page
+    assert "No azure run loaded" not in page
+    assert "<td>aws</td>" not in page
+    card = page.split('id="card-cost"', 1)[1].split("</article>", 1)[0]
+    assert "1.000000 estimate from list price" in card
+    assert "Per case: C 1.000000 estimate from list price" in card
+
+
+def test_where_table_prices_an_aws_nova_run():
+    records = [
+        _case_row("C", "r", 40, "aws", "aws"),
+        _model_row("C", "r", "aws", "us.amazon.nova-2-lite-v1:0", 1_000_000, 1_000_000),
+    ]
+    view = build_view(records, [])
+    row = _where_row(view, "aws", "us.amazon.nova-2-lite-v1:0")
+    assert row["tokens_in"] == 1_000_000
+    assert row["tokens_out"] == 1_000_000
+    assert row["cost_usd"] == 3.08
+    assert row["cost_status"] == "estimate from list price"
+    bare = build_view(
+        [
+            _case_row("C", "r", 11, "aws"),
+            _model_row("C", "r", "aws", "amazon.nova-2-lite-v1:0", 1_000_000, 0),
+        ],
+        [],
+    )
+    assert _where_row(bare, "aws", "amazon.nova-2-lite-v1:0")["cost_usd"] == 0.3
+
+
+def test_where_table_shows_local_templates_without_empty_places():
+    records = [_case_row("C1", "r", 10, "local"), _case_row("C2", "r", 30, "local")]
+    view = build_view(records, [])
+    assert len(view["deployment"]) == 1
+    row = view["deployment"][0]
+    assert row["where"] == "local"
+    assert row["model"] == "templates only (no model)"
+    assert row["cases"] == 2
+    assert row["passed"] == 2
+    assert row["tokens_in"] == 0
+    assert row["tokens_out"] == 0
+    assert row["cost_usd"] is None
+    page = render(view)
+    assert "templates only (no model)" in page
+    assert "Other environments appear when their runs are loaded." in page
+    assert "<td>azure</td>" not in page
+    assert "<td>aws</td>" not in page
+    card = page.split('id="card-cost"', 1)[1].split("</article>", 1)[0]
+    assert "No model call was recorded." in card
+
+
+def test_where_table_lists_each_saved_place_and_names_an_unpriced_model():
+    mixed = [
+        _case_row("A", "r", 20, "azure"),
+        _model_row("A", "r", "azure", "claude-haiku-4-5", 1_000_000, 0),
+        _case_row("B", "r", 15, "local"),
+    ]
+    view = build_view(mixed, [])
+    assert {row["where"] for row in view["deployment"]} == {"azure", "local"}
+    page = render(view)
+    assert "Other environments appear when their runs are loaded." not in page
+    assert "<td>aws</td>" not in page
+    unpriced = [
+        _case_row("C", "r", 12, "local"),
+        _model_row("C", "r", "local", "mystery-model", 100, 50),
+    ]
+    missing = build_view(unpriced, [])
+    row = _where_row(missing, "local", "mystery-model")
+    assert row["cost_usd"] is None
+    assert row["cost_status"] == "no price configured for mystery-model"
+    assert row["tokens_in"] == 100
+    assert row["tokens_out"] == 50
+    text = render(missing)
+    assert "no price configured for mystery-model" in text
+    assert "Not configured." not in text
+    legacy = [_case_row("C", "r", 15, None, "azure")]
+    old = build_view(legacy, [])
+    kept = old["deployment"]
+    assert len(kept) == 1
+    assert kept[0]["where"] == "azure"
+    assert kept[0]["model"] == "not recorded"
+    assert kept[0]["cost_usd"] is None
+
+
+def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    assert host_class("https://unit.services.ai.azure.com/v1") == "azure"
+    assert host_class("https://bedrock-runtime.us-east-1.amazonaws.com/anthropic") == "aws"
+    assert host_class("https://bedrock-runtime.amazonaws.com/anthropic") == "aws"
+    assert host_class("http://127.0.0.1:9/v1") == "local"
+    assert host_class("http://localhost/v1") == "local"
+    assert host_class("http://[::1]/v1") == "local"
+    assert host_class("https://example.invalid/v1") == "other"
+    monkeypatch.setenv("LLM_PROVIDER", "null")
+    monkeypatch.setenv("LLM_API_KEY", "super-secret-token")
+    monkeypatch.setenv("RUN_LABEL", "local")
+    monkeypatch.setenv("LLM_BASE_URL", "https://unit.services.ai.azure.com/openai")
+    with case_trace("C", "run-1", tmp_path) as tracer:
+        with tracer.span("case"):
+            pass
+        with tracer.span("model.call") as span:
+            note_model_span(span, Completion("ok", 10, 2, "claude-haiku-4-5"))
+    text = json.dumps(tracer.records)
+    assert "https://" not in text
+    assert "http://" not in text
+    assert "services.ai.azure.com" not in text
+    assert "super-secret-token" not in text
+    assert "authorization" not in text.lower()
+    case = next(row for row in tracer.records if row["name"] == "case")
+    call = next(row for row in tracer.records if row["name"] == "model.call")
+    assert case["attrs"]["where"] == "local"
+    assert "model" not in case["attrs"]
+    assert call["attrs"]["where"] == "local"
+    assert call["attrs"]["model"] == "claude-haiku-4-5"
+    assert call["attrs"]["cost_status"] == "estimate from list price"
+    monkeypatch.delenv("RUN_LABEL", raising=False)
+    with case_trace("D", "run-2", tmp_path) as tracer:
+        with tracer.span("case"):
+            pass
+    again = next(row for row in tracer.records if row["name"] == "case")
+    assert again["attrs"]["where"] == "azure"
+    assert "services.ai.azure.com" not in json.dumps(tracer.records)

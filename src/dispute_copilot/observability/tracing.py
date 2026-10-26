@@ -78,6 +78,10 @@ class Tracer:
     @contextmanager
     def span(self, name: str, **attrs):
         parent = self._stack[-1].span_id if self._stack else None
+        if name in {"case", "model.call"}:
+            from dispute_copilot.observability.cost import place_attrs
+
+            attrs = {**place_attrs(name), **attrs}
         span = Span(self, name, parent, attrs)
         self._stack.append(span)
         try:

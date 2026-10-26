@@ -127,6 +127,7 @@ def _pane(side: str) -> str:
         '<button type="button" data-act="play">Play</button>'
         '<button type="button" data-act="pause">Pause</button>'
         '<button type="button" data-act="restart">Restart</button>'
+        '<button type="button" data-speed="0.5">0.5x</button>'
         '<button type="button" data-speed="1" aria-pressed="true">1x</button>'
         '<button type="button" data-speed="2">2x</button>'
         '<button type="button" data-speed="5">5x</button>'
@@ -346,10 +347,12 @@ def _failure_edge(built: dict[str, dict], ended: str) -> None:
 
 
 def _visual_order(built: dict[str, dict], extras: list[dict]) -> list[dict]:
-    fork = _blank("fork-evidence", "Split", "evidence", 0, 0, "fork")
+    fork = _blank("fork-evidence", "Parallel reads", "evidence", 0, 0, "fork")
     join = _blank("join-evidence", "Join", "evidence", 0, 2, "join")
     fork["span"] = 2
     join["span"] = 2
+    fork["tip"] = "Transactions and the merchant note are read side by side."
+    join["tip"] = "The two reads meet before the ledger lookup."
     branch_ran = built["transactions"]["ran"] or built["merchant"]["ran"]
     fork["ran"] = branch_ran
     join["ran"] = branch_ran
@@ -413,15 +416,15 @@ def _beats(nodes: list[dict], built: dict[str, dict], extras: list[dict]) -> lis
         source_id = node.get("source")
         if source_id:
             by_source.setdefault(source_id, node)
-    chip_cursor = {"transactions": 0, "merchant": 0}
+    chip_slot = {"transactions": 0, "merchant": 0}
     beats: list[dict] = []
     for node in nodes:
         if not node["ran"]:
             continue
         dependency = node["attrs"].get("dependency")
-        if _is_attempt(node) and dependency in chip_cursor:
-            index = chip_cursor[dependency]
-            chip_cursor[dependency] = index + 1
+        if _is_attempt(node) and dependency in chip_slot:
+            index = chip_slot[dependency]
+            chip_slot[dependency] = index + 1
             chips = built[dependency]["chips"]
             if index < len(chips):
                 chips[index]["beat"] = len(beats)
@@ -508,6 +511,7 @@ def _blank(node_id: str, label: str, column: str, slot: int, stack: int, kind: s
         "badge": "",
         "beat": None,
         "source": "",
+        "tip": "",
     }
 
 
@@ -925,7 +929,7 @@ PAGE_SCRIPT = r"""
     return slots;
   }
   function nodeHeight(node) {
-    if (node.kind === "fork" || node.kind === "join") return 26;
+    if (node.kind === "fork" || node.kind === "join") return 52;
     return 92 + ((node.chips && node.chips.length) || 0) * 18;
   }
   function statusText(node) {
@@ -961,13 +965,13 @@ PAGE_SCRIPT = r"""
   function place(path, columns, slots) {
     var colX = {};
     var colW = {};
-    var cursor = 20;
+    var x_pos = 20;
     columns.forEach(function (column) {
-      if (column.human) cursor += 36;
-      colX[column.id] = cursor;
+      if (column.human) x_pos += 36;
+      colX[column.id] = x_pos;
       var count = slots[column.id] || 1;
       colW[column.id] = count * NODE_W + (count - 1) * SLOT_GAP;
-      cursor += colW[column.id] + COL_GAP;
+      x_pos += colW[column.id] + COL_GAP;
     });
     var rows = {};
     (path.diagram.nodes || []).forEach(function (node) {
@@ -993,13 +997,13 @@ PAGE_SCRIPT = r"""
             width = 22;
             x = colX[column.id] + (colW[column.id] - 22) / 2;
           }
-          pos[node.id] = {x: x, y: y, w: width, h: node.kind === "fork" || node.kind === "join" ? 22 : height, column: column.id, node: node};
+          pos[node.id] = {x: x, y: y, w: width, h: height, column: column.id, node: node};
           bottom = Math.max(bottom, y + height);
         });
         y += height + ROW_GAP;
       });
     });
-    return {pos: pos, width: cursor + 8, height: bottom + 24, colX: colX, colW: colW};
+    return {pos: pos, width: x_pos + 8, height: bottom + 24, colX: colX, colW: colW};
   }
   function curve(a, b) {
     if (!a || !b) return "";
@@ -1105,13 +1109,30 @@ PAGE_SCRIPT = r"""
       var box = laid.pos[node.id];
       if (!box) return;
       if (node.kind === "fork" || node.kind === "join") {
+        var caption = String(node.label || "").trim();
+        if (!caption) return;
+        var group = el("g");
+        group.setAttribute("role", "img");
+        group.setAttribute("aria-label", caption);
         var shape = el("polygon");
         var cx = box.x + box.w / 2;
-        var cy = box.y + box.h / 2;
-        shape.setAttribute("points", cx + "," + box.y + " " + (box.x + box.w) + "," + cy + " " + cx + "," + (box.y + box.h) + " " + box.x + "," + cy);
+        var top = box.y;
+        var size = 22;
+        var cy = top + size / 2;
+        shape.setAttribute("points", cx + "," + top + " " + (box.x + box.w) + "," + cy + " " + cx + "," + (top + size) + " " + box.x + "," + cy);
         shape.setAttribute("class", "join-shape");
-        shape.setAttribute("aria-hidden", "true");
-        svg.appendChild(shape);
+        var tip = el("title");
+        tip.textContent = node.tip || caption;
+        var text = el("text");
+        text.setAttribute("class", "diamond-label");
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("x", String(cx));
+        text.setAttribute("y", String(top + size + 16));
+        text.textContent = caption;
+        group.appendChild(tip);
+        group.appendChild(shape);
+        group.appendChild(text);
+        svg.appendChild(group);
         return;
       }
       if (node.loop) {

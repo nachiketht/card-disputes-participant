@@ -330,12 +330,20 @@ def _cost_category(trace_dir: Path, rules: dict, label: str) -> dict:
     if not calls:
         detail = "no model calls; " + compute_cost()["status"]
         return _row("cost", label, None, None if cap is None else float(cap), detail, passed=True)
-    if any(item["status"] != "estimate" for item in priced) or len(priced) != len(calls):
-        detail = "not configured" if priced else "unmeasured"
+    if any(item["status"] != "estimate from list price" for item in priced) or len(priced) != len(calls):
+        named = [item["status"] for item in priced if item["status"] != "estimate from list price"]
+        detail = named[0] if named else "unmeasured"
         return _row("cost", label, None, None if cap is None else float(cap), detail, passed=cap is None)
     total = round(sum(float(item["usd"] or 0) for item in priced), 6)
     passed = True if cap is None else total <= float(cap)
-    return _row("cost", label, total, None if cap is None else float(cap), f"estimate {total}", passed=passed)
+    return _row(
+        "cost",
+        label,
+        total,
+        None if cap is None else float(cap),
+        f"estimate from list price {total}",
+        passed=passed,
+    )
 
 
 def _set_rows(sets: list[dict], official: dict, found: dict[str, bool]) -> list[dict]:
