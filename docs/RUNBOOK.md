@@ -26,6 +26,8 @@ uv run --locked dispute-copilot dashboard
 
 The first command writes one HTML file. The second serves `http://127.0.0.1:8754`. Neither command approves a case. Tag a run with `--label local` or `--label azure` before comparing rows. A label with no traces stays unmeasured.
 
+The request-path section lists every run id saved under `REPORTS_DIR`. Pick a case and a run, or show a second run beside it. A node label of fail, retry, or injection comes from that saved step. A node marked not run was not in the trace. Replay redraws the saved order only. It does not call the mock, the app, or a model, and it does not write. The theme control is in the header. Leave it unset to follow the system light or dark setting. Open the exported file the same way: the path and the replay are already in that file.
+
 On the Azure app the drafts and traces are on temporary storage and a restart clears them. The app container sets `REPORTS_DIR=/submissions/reports`. Copy the files out with exec. Do not add a public ingress for the page. `az containerapp exec` is interactive in some CLI versions; run the export inside that shell, then copy the HTML back:
 
 ```sh

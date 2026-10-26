@@ -172,11 +172,17 @@ Decision: job `azure` in `.github/workflows/ci.yml` runs on `push` only, after t
 Alternatives: calling the live mock on 8765 for `run-all` (writes the demo ledger); adding ingress or a new endpoint (the app stays private); redeploying on every push (clears the ledger and the drafts); one identity for exec and for image update (the every-push role would be able to change the revision and read secrets).
 Status: the workflow files and `tools/azure_live.py` are in the tree. A local rehearsal kept a seeded pending review and a calls count of 7, and scored 12 of 12. This workspace did not sign in and did not exec into the replica.
 
+# ADR-39. Request path and replay from saved steps
+
+Context: the status page listed spans and logs, but a reader could not see the order one request actually took, including a failed call, a later attempt, the routing branch, or an injection flag. Re-running a case to watch that order would call the mock again.
+Decision: the page adds a request-path section. Nodes come from saved spans in start order. Attributes and log lines for a step are shown when that node is chosen. Two runs can be shown side by side. Steps that were not recorded (`review.submit`, `record.precheck`, `record.create`) are marked not run and have no duration. Replay walks the saved steps at 1x, 2x, or 5x, with pause, restart, and a position control. The script is in the page, including the exported file. It does not contact a service and it does not write. Colours are variables. Light is the default. Dark follows the system setting, and a header control can pin either. No font file is requested. Text from logs is escaped. The latency chart uses a log scale so a short step stays visible, and the blank status headings and the log caption now name what they count.
+Status: implemented. Code: `observability/path.py`, `observability/board.py`.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. The scorecard is ADR-36. Guardrail events are ADR-37. The live exec check and the manual image update are ADR-38. An image build was not run from this workspace. The live container was not contacted from this workspace. AWS ECS is not deployed.
+- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. The scorecard is ADR-36. Guardrail events are ADR-37. The live exec check and the manual image update are ADR-38. The request path and replay are ADR-39. An image build was not run from this workspace. The live container was not contacted from this workspace. AWS ECS is not deployed.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note

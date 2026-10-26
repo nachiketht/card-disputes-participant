@@ -7,6 +7,7 @@ only. It does not approve, reject, reset, or post.
 from __future__ import annotations
 
 import json
+import math
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -15,6 +16,7 @@ from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import CASE_ID
 from dispute_copilot.observability.cost import compute_cost, load_cost, price_call
 from dispute_copilot.observability.metrics import compute, evaluate_alerts, load_slo, percentile, read_traces
+from dispute_copilot.observability.path import PAGE_SCRIPT, build_paths, path_markup
 
 CORE_SPANS = (
     "case",
@@ -70,6 +72,7 @@ def build_view(
         "security": _security(events, log_rows),
         "approval": _approval(records, audit),
         "deployment": _deployment(spans, table),
+        "paths": build_paths(records, log_rows),
     }
     return Redactor().scrub(view)
 
@@ -365,12 +368,16 @@ def _page(view: dict) -> str:
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
         "<title>Run status</title>",
         f"<style>{_CSS}</style></head><body>",
-        "<header><p class=\"mark\">Read-only</p><h1>Run status</h1>",
+        "<header><div class=\"top\"><p class=\"mark\">Read-only</p>"
+        "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
+        "<h1>Run status</h1>",
         "<p class=\"lede\">Traces, logs, latency, and cost from the files already written. "
+        "The request path and replay use those same files. "
         "This page does not approve, reject, reset, or post. "
         "A served copy listens on 127.0.0.1 only.</p>",
         "<nav>",
         "<a href=\"#overview\">Overview</a>",
+        "<a href=\"#path\">Request path</a>",
         "<a href=\"#timeline\">Timeline</a>",
         "<a href=\"#latency\">Latency</a>",
         "<a href=\"#cost\">Cost</a>",
@@ -385,18 +392,19 @@ def _page(view: dict) -> str:
             "overview",
             _stat_row(counts, slo) + _alert_list(overview["alerts"]) + _overview_table(overview["rows"]),
         ),
-        _section("2", "Timeline", "timeline", _timeline(view["waterfall"])),
-        _section("3", "Latency", "latency", _latency_block(view["latency"])),
-        _section("4", "Cost", "cost", _cost_block(view["cost"])),
-        _section("5", "Logs", "logs", _log_block(view["logs"])),
-        _section("6", "Security", "security", _security_block(view["security"])),
-        _section("7", "Approval", "approval", _approval_block(view["approval"])),
-        _section("8", "Deployment", "deployment", _deployment_block(view["deployment"], view["cost"]["compute"])),
+        _section("2", "Request path", "path", path_markup(view["paths"])),
+        _section("3", "Timeline", "timeline", _timeline(view["waterfall"])),
+        _section("4", "Latency", "latency", _latency_block(view["latency"])),
+        _section("5", "Cost", "cost", _cost_block(view["cost"])),
+        _section("6", "Logs", "logs", _log_block(view["logs"])),
+        _section("7", "Security", "security", _security_block(view["security"])),
+        _section("8", "Approval", "approval", _approval_block(view["approval"])),
+        _section("9", "Deployment", "deployment", _deployment_block(view["deployment"], view["cost"]["compute"])),
         "</main><footer><p>Token prices are estimates from the cost file. "
         "A model with no price is not configured. "
         "Container time is estimate, unmeasured unless a measured usd figure is in that file. "
         "Values pass through the same redaction as the logs.</p></footer>",
-        _FILTER_SCRIPT,
+        PAGE_SCRIPT,
         "</body></html>",
     ]
     return "".join(parts)
@@ -495,12 +503,13 @@ def _latency_block(latency: dict) -> str:
         [(item["name"], item["p95"]) for item in steps if item["core"] or item["status"] == "measured"],
         target=None,
         unit="ms",
+        scale="log",
     )
     head = (
         f"<p class=\"note\">p50, p95, and max use the nearest rank above the fraction "
         f"(the same rank as the metrics report). SLO target {_num(latency['target_ms'])} ms. "
-        "A step with no samples is unmeasured. The chart scale follows the measured p95 values, "
-        "so a 2000 ms target is named here rather than drawn over short steps.</p>"
+        "A step with no samples is unmeasured. The chart uses a log scale so a short step "
+        "stays visible beside a long one. The target is named here rather than drawn across those steps.</p>"
     )
     body = []
     for item in steps:
@@ -517,7 +526,7 @@ def _latency_block(latency: dict) -> str:
         )
     table = (
         "<table><thead><tr><th>Step</th><th>Kind</th><th>n</th><th>p50</th><th>p95</th>"
-        f"<th>max</th><th></th></tr></thead><tbody>{''.join(body)}</tbody></table>"
+        f"<th>max</th><th>Status</th></tr></thead><tbody>{''.join(body)}</tbody></table>"
     )
     case_rows = []
     for item in latency["by_case"]:
@@ -530,7 +539,7 @@ def _latency_block(latency: dict) -> str:
             f"<td>{flag}</td></tr>"
         )
     cases = (
-        "<h3>Per case</h3><table><thead><tr><th>Case</th><th>ms</th><th>Target</th><th></th></tr></thead>"
+        "<h3>Per case</h3><table><thead><tr><th>Case</th><th>ms</th><th>Target</th><th>Status</th></tr></thead>"
         f"<tbody>{''.join(case_rows) or '<tr><td colspan=\"4\">unmeasured</td></tr>'}</tbody></table>"
     )
     return head + chart + table + cases
@@ -579,7 +588,11 @@ def _cost_block(cost: dict) -> str:
 
 
 def _log_block(logs: dict) -> str:
-    note = f"<p class=\"note\">{logs['total']} lines"
+    note = (
+        f"<p class=\"note\" id=\"log-count\" data-total=\"{logs['total']}\" "
+        f"data-hidden=\"{logs['hidden']}\" data-limit=\"{_LOG_LIMIT}\">"
+        f"{logs['total']} lines"
+    )
     if logs["hidden"]:
         note += f", showing {_LOG_LIMIT}, {logs['hidden']} older lines left out"
     note += ".</p>"
@@ -675,7 +688,7 @@ def _deployment_block(rows: list[dict], compute: dict) -> str:
         )
     table = (
         "<table><thead><tr><th>Label</th><th>Cases</th><th>p50</th><th>p95</th><th>max</th>"
-        f"<th>Model cost</th><th></th></tr></thead><tbody>{''.join(body)}</tbody></table>"
+        f"<th>Model cost</th><th>Status</th></tr></thead><tbody>{''.join(body)}</tbody></table>"
     )
     return note + (chart or "<p class=\"empty\">No labeled runs to chart.</p>") + table
 
@@ -699,12 +712,20 @@ def _named_table(title: str, rows: list[dict], *, with_detail: bool) -> str:
     )
 
 
-def _svg_bars(items: list[tuple[str, float | None]], *, target: float | None, unit: str) -> str:
+def _svg_bars(
+    items: list[tuple[str, float | None]],
+    *,
+    target: float | None,
+    unit: str,
+    scale: str = "linear",
+) -> str:
     measured = [(name, value) for name, value in items if isinstance(value, (int, float)) and not isinstance(value, bool)]
     if not measured:
         return ""
     peak = max(value for _, value in measured) or 1
-    if target and target <= peak * 3:
+    positive = [value for _, value in measured if value > 0]
+    floor = min(positive) if positive else peak
+    if scale != "log" and target and target <= peak * 3:
         peak = max(peak, target)
     row_h = 22
     label_w = 168
@@ -717,23 +738,37 @@ def _svg_bars(items: list[tuple[str, float | None]], *, target: float | None, un
     for index, (name, value) in enumerate(items):
         y = 6 + index * row_h
         parts.append(
-            f'<text x="0" y="{y + 12}" fill="#3f3a33" font-size="11">{escape(name)}</text>'
+            f'<text x="0" y="{y + 12}" fill="currentColor" font-size="11">{escape(name)}</text>'
         )
         if not isinstance(value, (int, float)) or isinstance(value, bool):
-            parts.append(f'<text x="{label_w}" y="{y + 12}" fill="#7a7368" font-size="11">unmeasured</text>')
+            parts.append(f'<text x="{label_w}" y="{y + 12}" fill="currentColor" font-size="11">unmeasured</text>')
             continue
-        bar = chart_w * (float(value) / peak)
+        bar = _bar_length(float(value), peak, chart_w, scale, floor)
         parts.append(
-            f'<rect x="{label_w}" y="{y}" width="{bar:.2f}" height="14" rx="2" fill="#0f6e56"></rect>'
+            f'<rect x="{label_w}" y="{y}" width="{bar:.2f}" height="14" rx="2" fill="currentColor"></rect>'
         )
         parts.append(
-            f'<text x="{label_w + bar + 6:.1f}" y="{y + 12}" fill="#3f3a33" font-size="11">{value:.3f}</text>'
+            f'<text x="{label_w + bar + 6:.1f}" y="{y + 12}" fill="currentColor" font-size="11">{value:.3f}</text>'
         )
-    if target and target <= peak * 3:
+    if scale != "log" and target and target <= peak * 3:
         x = label_w + chart_w * (target / peak)
-        parts.append(f'<line x1="{x:.2f}" y1="0" x2="{x:.2f}" y2="{height}" stroke="#8a4b08" stroke-dasharray="3 3"></line>')
+        parts.append(f'<line x1="{x:.2f}" y1="0" x2="{x:.2f}" y2="{height}" stroke="currentColor" stroke-dasharray="3 3"></line>')
     parts.append("</svg>")
     return "".join(parts)
+
+
+def _bar_length(value: float, peak: float, chart_w: float, scale: str, floor: float) -> float:
+    if scale != "log":
+        return chart_w * (value / peak) if peak else 0
+    if value <= 0 or floor <= 0 or peak <= 0:
+        return chart_w * 0.18
+    lo = math.log10(floor)
+    hi = math.log10(peak)
+    span = hi - lo
+    if span <= 0:
+        return chart_w
+    position = (math.log10(value) - lo) / span
+    return chart_w * (0.18 + 0.82 * position)
 
 
 def _log_row(item: dict) -> dict:
@@ -950,83 +985,164 @@ def _num(value: object) -> str:
 
 
 _CSS = """
-:root { color-scheme: light; --ink:#1c1915; --muted:#5e584e; --line:#e4dccb; --paper:#f6f1e7; --card:#fffdf8; --good:#0f6e56; --bad:#8d1d1d; --warn:#8a4b08; }
+:root {
+  color-scheme: light;
+  --bg: #f4f6f7;
+  --bg-soft: #e8eef0;
+  --ink: #1a1f22;
+  --ink-soft: #5a656c;
+  --ink-faint: #8a969d;
+  --line: rgba(26,31,34,0.12);
+  --accent: #2f5f63;
+  --accent-soft: #c5d5d7;
+  --card: #fbfcfc;
+  --shadow: 0 30px 60px rgba(26,31,34,0.12);
+  --focus: rgba(47,95,99,0.45);
+  --warn: #7a4e24;
+  --warn-bg: #f4ecdf;
+  --bad: #7a332e;
+  --bad-bg: #f6e7e4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121618;
+    --bg-soft: #1a2022;
+    --ink: #e8ecee;
+    --ink-soft: #a3adb3;
+    --ink-faint: #7a858c;
+    --line: rgba(232,236,238,0.12);
+    --accent: #7eb0b4;
+    --accent-soft: #2a4548;
+    --card: #1a1f22;
+    --shadow: 0 30px 60px rgba(0,0,0,0.45);
+    --focus: rgba(126,176,180,0.5);
+    --warn: #e0c09a;
+    --warn-bg: #2a241c;
+    --bad: #e7b1a8;
+    --bad-bg: #2c211f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121618;
+  --bg-soft: #1a2022;
+  --ink: #e8ecee;
+  --ink-soft: #a3adb3;
+  --ink-faint: #7a858c;
+  --line: rgba(232,236,238,0.12);
+  --accent: #7eb0b4;
+  --accent-soft: #2a4548;
+  --card: #1a1f22;
+  --shadow: 0 30px 60px rgba(0,0,0,0.45);
+  --focus: rgba(126,176,180,0.5);
+  --warn: #e0c09a;
+  --warn-bg: #2a241c;
+  --bad: #e7b1a8;
+  --bad-bg: #2c211f;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6f7;
+  --bg-soft: #e8eef0;
+  --ink: #1a1f22;
+  --ink-soft: #5a656c;
+  --ink-faint: #8a969d;
+  --line: rgba(26,31,34,0.12);
+  --accent: #2f5f63;
+  --accent-soft: #c5d5d7;
+  --card: #fbfcfc;
+  --shadow: 0 30px 60px rgba(26,31,34,0.12);
+  --focus: rgba(47,95,99,0.45);
+  --warn: #7a4e24;
+  --warn-bg: #f4ecdf;
+  --bad: #7a332e;
+  --bad-bg: #f6e7e4;
+}
 * { box-sizing: border-box; }
-body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.45 "Segoe UI", "Helvetica Neue", sans-serif; }
-header, main, footer { width:min(1120px, calc(100% - 32px)); margin:0 auto; }
-header { padding:28px 0 8px; }
-.mark { letter-spacing:.14em; text-transform:uppercase; font-size:12px; color:var(--good); margin:0 0 6px; }
-h1 { font: 600 40px/1.1 Georgia, "Iowan Old Style", serif; margin:0; }
-.lede { max-width:62ch; color:var(--muted); }
-nav { display:flex; flex-wrap:wrap; gap:8px 14px; padding:8px 0 18px; }
-nav a { color:var(--ink); text-decoration:none; border-bottom:1px solid var(--line); }
-main { display:grid; gap:18px; padding-bottom:28px; }
-section { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px 18px; }
-h2 { font: 600 22px/1.2 Georgia, serif; margin:0 0 12px; }
-h3 { font-size:15px; margin:16px 0 8px; }
-.num { color:var(--good); margin-right:8px; }
-.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:10px; }
-.stats div { border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
-.stats p { margin:0; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-.stats strong { font-size:22px; font-variant-numeric:tabular-nums; }
-.note, .empty { color:var(--muted); }
-.ok { color:var(--good); }
-.alerts { margin:8px 0; padding-left:18px; color:var(--warn); }
+body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.6 "Inter", system-ui, sans-serif; }
+header, main, footer { width:min(1120px, calc(100% - 48px)); margin:0 auto; }
+header { padding:48px 0 12px; }
+.top { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.mark { letter-spacing:.16em; text-transform:uppercase; font-size:12px; color:var(--accent); margin:0; }
+#theme-toggle, .replay button, .path-picks select, .filters input, .filters select {
+  font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:999px;
+}
+#theme-toggle { padding:6px 14px; }
+h1, h2, h3 { font-family:"Instrument Serif", Georgia, serif; font-weight:400; }
+h1 { font-size:56px; line-height:1.05; margin:18px 0 12px; }
+.lede { max-width:62ch; color:var(--ink-soft); margin:0 0 8px; }
+nav { display:flex; flex-wrap:wrap; gap:12px 18px; padding:18px 0 28px; }
+nav a { color:var(--ink-soft); text-decoration:none; border-bottom:1px solid var(--line); }
+main { display:grid; gap:28px; padding-bottom:48px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px 32px 32px; box-shadow:var(--shadow); }
+h2 { font-size:32px; line-height:1.15; margin:0 0 18px; }
+h3 { font-size:22px; margin:28px 0 10px; }
+.num { color:var(--accent); margin-right:10px; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:14px; }
+.stats div { background:var(--bg-soft); border-radius:16px; padding:14px 16px; }
+.stats p { margin:0; color:var(--ink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+.stats strong { display:block; margin-top:6px; font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; }
+.note, .empty { color:var(--ink-soft); }
+.ok { color:var(--accent); }
+.alerts { margin:12px 0; padding-left:18px; color:var(--warn); }
 table { width:100%; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums; }
-th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
-th { color:var(--muted); font-weight:600; font-size:12px; letter-spacing:.03em; text-transform:uppercase; }
-td.pass { color:var(--good); font-weight:600; }
+th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--ink-soft); font-weight:600; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+td.pass { color:var(--accent); font-weight:600; }
 td.fail { color:var(--bad); font-weight:600; }
 td.num { text-align:right; }
-details { border-top:1px solid var(--line); padding:8px 0; }
+details { border-top:1px solid var(--line); padding:12px 0; }
 summary { font-weight:600; }
-summary em { color:var(--muted); font-style:normal; font-weight:400; margin-left:8px; }
-.step { display:grid; grid-template-columns:minmax(140px, 220px) minmax(80px, 1fr) 72px minmax(80px, 220px); gap:8px; align-items:center; margin:4px 0; font-size:13px; }
-.step.sub .step-name { color:var(--muted); }
-.track { height:10px; background:#efe8da; border-radius:99px; overflow:hidden; }
-.fill { display:block; height:100%; background:var(--good); border-radius:99px; }
-.step.sub .fill { background:#8aa89a; }
+summary em { color:var(--ink-soft); font-style:normal; font-weight:400; margin-left:8px; }
+.step { display:grid; grid-template-columns:minmax(140px, 220px) minmax(80px, 1fr) 72px minmax(80px, 220px); gap:8px; align-items:center; margin:6px 0; font-size:13px; }
+.step.sub .step-name { color:var(--ink-soft); }
+.track { height:8px; background:var(--bg-soft); border-radius:99px; overflow:hidden; }
+.fill { display:block; height:100%; background:var(--accent); border-radius:99px; }
+.step.sub .fill { background:var(--accent-soft); }
 .ms { text-align:right; font-variant-numeric:tabular-nums; }
-.detail { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.chart { width:100%; height:auto; margin:8px 0 12px; }
-.filters { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
-.filters input, .filters select { border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 8px; font:inherit; }
-.log-scroll { max-height:420px; overflow:auto; }
-footer { color:var(--muted); font-size:13px; padding-bottom:32px; }
-code { font-size:.92em; }
-@media (max-width: 720px) {
-  h1 { font-size: 32px; }
-  .step { grid-template-columns: minmax(0, 1fr) 64px; }
-  .detail { display: none; }
-  section { padding: 12px; }
+.detail { color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chart { width:100%; height:auto; margin:12px 0 16px; color:var(--ink); }
+.chart rect { fill:var(--accent); }
+.filters, .path-picks, .replay { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 0 16px; }
+.filters input, .filters select, .path-picks select { border-radius:12px; padding:8px 10px; }
+.path-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+.path-pane { background:var(--bg); border-radius:16px; padding:16px; }
+.path-summary { min-height:1.6em; color:var(--ink-soft); }
+.path-graph { display:flex; flex-direction:column; align-items:stretch; gap:0; }
+.path-arrow { width:1px; height:18px; margin:0 auto; background:var(--line); }
+.path-node {
+  display:grid; gap:2px; text-align:left; width:100%;
+  background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:12px 14px;
 }
-"""
-
-_FILTER_SCRIPT = """
-<script>
-(function () {
-  var ids = ["f-run", "f-case", "f-span", "f-event", "f-level"];
-  function apply() {
-    var run = document.getElementById("f-run").value.trim().toLowerCase();
-    var caseId = document.getElementById("f-case").value.trim().toLowerCase();
-    var span = document.getElementById("f-span").value.trim().toLowerCase();
-    var eventName = document.getElementById("f-event").value.trim().toLowerCase();
-    var level = document.getElementById("f-level").value.trim().toLowerCase();
-    var rows = document.querySelectorAll("#log-table tbody tr");
-    for (var i = 0; i < rows.length; i++) {
-      var row = rows[i];
-      var show = (!run || (row.dataset.run || "").toLowerCase().indexOf(run) !== -1)
-        && (!caseId || (row.dataset.case || "").toLowerCase().indexOf(caseId) !== -1)
-        && (!span || (row.dataset.span || "").toLowerCase().indexOf(span) !== -1)
-        && (!eventName || (row.dataset.event || "").toLowerCase().indexOf(eventName) !== -1)
-        && (!level || (row.dataset.level || "").toLowerCase() === level);
-      row.hidden = !show;
-    }
-  }
-  for (var j = 0; j < ids.length; j++) {
-    document.getElementById(ids[j]).addEventListener("input", apply);
-    document.getElementById(ids[j]).addEventListener("change", apply);
-  }
-})();
-</script>
+.path-name { font-weight:600; }
+.path-meta, .path-ms { color:var(--ink-soft); font-size:13px; }
+.path-marks { color:var(--accent); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+.path-node.is-fail { background:var(--bad-bg); }
+.path-node.is-fail .path-marks { color:var(--bad); }
+.path-node.is-retry .path-marks { color:var(--warn); }
+.path-node.is-injection { box-shadow:inset 0 0 0 1px var(--warn); }
+.path-node.is-branch { box-shadow:inset 3px 0 0 var(--accent); }
+.path-node.is-skipped { border-style:dashed; color:var(--ink-soft); }
+.path-node.is-future { opacity:.35; }
+.path-node.is-current { outline:2px solid var(--accent); outline-offset:2px; }
+.replay button { padding:6px 12px; }
+.replay button[aria-pressed="true"] { background:var(--accent-soft); color:var(--ink); }
+.scrub { display:flex; align-items:center; gap:8px; color:var(--ink-soft); flex:1; min-width:160px; }
+.scrub input { flex:1; accent-color:var(--accent); }
+.path-detail {
+  margin:8px 0 0; white-space:pre-wrap; font:13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  background:var(--bg-soft); border-radius:12px; padding:12px; min-height:3em; color:var(--ink);
+}
+.log-scroll { max-height:420px; overflow:auto; }
+footer { color:var(--ink-soft); font-size:13px; padding-bottom:48px; }
+code { font-size:.92em; }
+:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+@media (max-width: 800px) {
+  h1 { font-size:40px; }
+  section { padding:20px; border-radius:16px; }
+  .path-grid { grid-template-columns:1fr; }
+  .step { grid-template-columns:minmax(0, 1fr) 64px; }
+  .detail { display:none; }
+}
 """

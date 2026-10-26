@@ -1,6 +1,7 @@
 """Status page: export, loopback, redaction, unconfigured cost, and percentile rank."""
 
 import json
+import re
 import threading
 import urllib.error
 import urllib.request
@@ -9,9 +10,10 @@ from pathlib import Path
 import pytest
 
 from dispute_copilot.cli import main
-from dispute_copilot.fields import CASE_ID
+from dispute_copilot.fields import CASE_ID, Routing
 from dispute_copilot.llm.base import Completion
 from dispute_copilot.observability.board import bind_page, build_view, load_view, render, write_html
+from dispute_copilot.observability.path import build_paths
 from dispute_copilot.observability.cost import compute_cost, load_cost, price_call
 from dispute_copilot.observability.logs import LOGGER, configure
 from dispute_copilot.observability.metrics import percentile
@@ -21,7 +23,17 @@ from dispute_copilot.review_flow.agent_review import _ask_critic
 ROOT = Path(__file__).resolve().parents[2]
 DEV_REPORTS = ROOT / "evidence" / "week10" / "reports"
 PAN = "4111111111111111"
-TITLES = ("Run overview", "Timeline", "Latency", "Cost", "Logs", "Security", "Approval", "Deployment")
+TITLES = (
+    "Run overview",
+    "Request path",
+    "Timeline",
+    "Latency",
+    "Cost",
+    "Logs",
+    "Security",
+    "Approval",
+    "Deployment",
+)
 
 
 def test_percentile_rank_matches_the_metrics_report():
@@ -93,7 +105,7 @@ def test_priced_rollups_sum_only_configured_calls():
     assert view["cost"]["by_case"][0]["usd"] == 2.0
 
 
-def test_export_from_the_dev_run_has_eight_panels(tmp_path: Path):
+def test_export_from_the_dev_run_lists_the_panels(tmp_path: Path):
     dest = tmp_path / "out.html"
     write_html(DEV_REPORTS, dest)
     text = dest.read_text(encoding="utf-8")
@@ -242,3 +254,136 @@ def test_audit_file_fills_human_review_state(tmp_path: Path):
     assert row["checklist"] == "passed"
     assert row["human"] == "approved"
     assert row["record"] == "not created"
+
+
+def _trace(name: str) -> list[dict]:
+    path = DEV_REPORTS / "traces" / name
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _attempts(path: dict, dependency: str) -> list[dict]:
+    return [
+        node
+        for node in path["nodes"]
+        if node["name"].endswith(".attempt") and node["attrs"].get("dependency") == dependency
+    ]
+
+
+def test_path_marks_retries_failures_injection_and_skipped_steps():
+    records = _trace("CARD-D07.jsonl") + _trace("CARD-D08.jsonl") + _trace("CARD-D10.jsonl")
+    paths = build_paths(records, records)
+    failed = next(item for item in paths if item["case"] == "CARD-D07")
+    attempts = _attempts(failed, "transactions")
+    assert [node["attrs"]["attempt"] for node in attempts] == [1, 2, 3]
+    assert all(node["attrs"]["http_status"] == 503 for node in attempts)
+    assert all("fail" in node["marks"] for node in attempts)
+    assert "retry" not in attempts[0]["marks"]
+    assert "retry" in attempts[1]["marks"] and "retry" in attempts[2]["marks"]
+    assert failed["ended"] == Routing.MANUAL_REVIEW.value.replace("_", " ")
+    skipped = next(node for node in failed["nodes"] if node["name"] == "review.submit")
+    assert skipped["ran"] is False
+    assert skipped["duration_ms"] is None
+    assert skipped["marks"] == ["not run"]
+    for name in ("record.precheck", "record.create"):
+        node = next(item for item in failed["nodes"] if item["name"] == name)
+        assert node["duration_ms"] is None
+        assert "not run" in node["marks"]
+    flagged = next(item for item in paths if item["case"] == "CARD-D08")
+    assert flagged["injection"] is True
+    assert any("injection" in node["marks"] for node in flagged["nodes"])
+    assert flagged["ended"] == Routing.READY_FOR_REVIEW.value.replace("_", " ")
+    retried = next(item for item in paths if item["case"] == "CARD-D10")
+    again = _attempts(retried, "transactions")
+    assert "fail" in again[0]["marks"] and "retry" not in again[0]["marks"]
+    assert "retry" in again[1]["marks"] and "fail" not in again[1]["marks"]
+    assert again[1]["attrs"]["http_status"] == 200
+
+
+def test_path_escapes_untrusted_text_and_replay_stays_offline(tmp_path: Path):
+    hostile = "<script>alert(1)</script>"
+    records = [
+        {
+            "kind": "span",
+            "name": "intake.parse",
+            CASE_ID: "C",
+            "run_id": "r",
+            "span_id": "s1",
+            "duration_ms": 1.5,
+            "status": "ok",
+            "attrs": {"source": hostile},
+        }
+    ]
+    logs = [
+        {
+            "kind": "event",
+            "name": "note",
+            CASE_ID: "C",
+            "run_id": "r",
+            "parent_id": "s1",
+            "level": "warning",
+            "message": hostile,
+        }
+    ]
+    view = build_view(records, logs, cost_table={"models": {}, "compute": {}})
+    page = render(view)
+    assert hostile not in page
+    assert "\\u003cscript\\u003e" in page
+    assert "fetch(" not in page.lower()
+    assert "xmlhttprequest" not in page.lower()
+    assert "websocket" not in page.lower()
+    assert "http://" not in page.lower()
+    assert "https://" not in page.lower()
+    assert "1x" in page and "2x" in page and "5x" in page
+    assert "Pause" in page and "Restart" in page
+    assert 'id="path-scrub-a"' in page and 'id="path-case-b"' in page
+    raw = page.split('id="path-data">', 1)[1].split("</script>", 1)[0]
+    loaded = json.loads(raw)
+    node = loaded[0]["nodes"][0]
+    assert node["attrs"]["source"] == hostile
+    assert node["logs"][0]["text"] == hostile
+    skipped = next(item for item in loaded[0]["nodes"] if item["name"] == "review.submit")
+    assert skipped["duration_ms"] is None
+    dest = tmp_path / "out.html"
+    write_html(DEV_REPORTS, dest)
+    exported = dest.read_text(encoding="utf-8")
+    lowered = exported.lower()
+    assert "http://" not in lowered
+    assert "https://" not in lowered
+    assert "ws://" not in lowered
+    assert "fetch(" not in lowered
+    assert "@import" not in lowered
+    assert "fonts.googleapis" not in lowered
+    assert "Instrument Serif" in exported
+    assert "prefers-color-scheme: dark" in exported
+    assert "#2f5f63" in exported and "#7eb0b4" in exported
+    assert 'id="theme-toggle"' in exported
+    assert "<th></th>" not in exported
+    assert exported.count("<th>Status</th>") >= 3
+    assert 'id="log-count"' in exported
+
+
+def test_latency_chart_keeps_short_steps_visible():
+    records = [
+        {
+            "kind": "span",
+            "name": "case",
+            CASE_ID: "C",
+            "run_id": "r",
+            "duration_ms": 151.371,
+            "attrs": {"outcome": "drafted"},
+        },
+        {
+            "kind": "span",
+            "name": "intake.parse",
+            CASE_ID: "C",
+            "run_id": "r",
+            "duration_ms": 0.046,
+            "attrs": {},
+        },
+    ]
+    page = render(build_view(records, [], cost_table={"models": {}, "compute": {}}))
+    svg = page.split('<svg class="chart"', 1)[1].split("</svg>", 1)[0]
+    widths = [float(item) for item in re.findall(r'width="([0-9.]+)"', svg)]
+    assert widths
+    assert min(widths) >= 60
+    assert max(widths) > min(widths)

@@ -469,7 +469,7 @@ LOG_STDOUT=1 uv run --locked dispute-copilot run-all --label azure
 
 ### Status page
 
-`dispute-copilot dashboard` reads traces, `logs/run.jsonl`, `logs/mcp.jsonl`, and `audit.json` when that file is present. It does not contact the mock. With `--export out.html` it writes one HTML file and exits. Without `--export` it serves that page on `127.0.0.1` only. The default port is `8754`. There is no host flag. GET `/` and GET `/health` are the only successful routes. POST, PUT, PATCH, and DELETE return 405. The page does not approve, reject, reset, or post.
+`dispute-copilot dashboard` reads traces, `logs/run.jsonl`, `logs/mcp.jsonl`, and `audit.json` when that file is present. It does not contact the mock. With `--export out.html` it writes one HTML file and exits. Without `--export` it serves that page on `127.0.0.1` only. The default port is `8754`. There is no host flag. GET `/` and GET `/health` are the only successful routes. POST, PUT, PATCH, and DELETE return 405. The page does not approve, reject, reset, or post. The file uses no remote font and no remote script. A theme control switches light and dark; with no choice stored, the page follows the system setting.
 
 ```sh
 uv run --locked dispute-copilot dashboard --export reports/status.html
@@ -490,7 +490,9 @@ make evals
 
 `make evals` starts the mock on `127.0.0.1` with a temporary state file, drafts every development case, then runs the scorecard. A public mock URL is refused before the health check. The refusal is a `guardrail.boundary` event. See `docs/GUARDRAILS.md`.
 
-The page has eight sections: run overview (pass or fail per case against the latency target, counts, SLO, alerts), a per-case span timeline, latency (p50, p95, max per step and per case), cost (per model call, per case, per run), a log table with filters, security (injections, masked values, gate refusals, guardrail events), approval state, and a deployment comparison. A pass on the overview means the case was written inside the latency target. It is not a gold score and it is not an approval.
+The page has nine sections: run overview (pass or fail per case against the latency target, counts, SLO, alerts), a request path, a per-case span timeline, latency (p50, p95, max per step and per case), cost (per model call, per case, per run), a log table with filters, security (injections, masked values, gate refusals, guardrail events), approval state, and a deployment comparison. A pass on the overview means the case was written inside the latency target. It is not a gold score and it is not an approval.
+
+The request path draws one saved run as a flow. Each node is a step in the order it started, with its duration and a text label: ok, fail, retry, injection, the routing branch, or not run. `review.submit`, `record.precheck`, and `record.create` stay not run, with no duration, until a trace contains them. A status code of 500 or higher, an error status, or an exhausted outcome is fail. A later attempt on the same dependency is retry. The routing step shows the branch it ended on. A step that recorded an injection carries that label. Choosing a node shows that step's attributes and the log lines saved for it. Two runs can sit side by side. Replay walks the saved steps of the run selected in that pane, at 1x, 2x, or 5x, with pause, restart, and a position control. It does not contact a service and it does not write. The same control is in the exported file. The log caption counts the rows still visible after a filter. The latency chart uses a log scale so a short step stays visible.
 
 Token prices live in `config/rules/cost.yaml` as per-1,000-token estimates. The shipped file has no model prices. A call whose model is missing from that file is shown as `not configured`, not as a number. Compute cost is `estimate, unmeasured` unless `compute.usd` is filled with a measured figure. The page runs the same redactor as the logs before it is written.
 
