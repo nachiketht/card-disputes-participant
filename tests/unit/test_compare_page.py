@@ -48,18 +48,24 @@ def test_comparison_rates_matrix_and_the_small_sample_note():
     assert second["cases"] == 2
     assert second["called_model"] == 2
     assert second["manual_count"] == 0
-    assert second["p50"] == 10
     assert second["p95"] == 40
-    assert second["haiku_per_case"] == 0.003
+    assert second["cost_per_case"] == 0.003
     assert second["wrong"] == 1
     assert second["sample"] == 2
+    assert second["auto_wrong"] == 1
+    assert second["auto_sample"] == 2
     assert second["too_small"] is True
+    assert second["auto_too_small"] is True
     first = view["matrix"][0][1]
     assert first == {"agree": 1, "shared": 2}
     pair = next(item for item in view["disagreements"] if item["left"] == "1" and item["right"] == "2")
     assert pair["ids"] == ["CARD-B"]
     page = render_comparison(view)
-    assert "p50" in page and "p95" in page
+    assert "Wrong-label rate" in page
+    assert "Auto-routed but wrong" in page
+    assert "Cost per case" in page
+    assert "Latency p95" in page
+    assert "p50" not in page
     assert "unpriced" in page
     assert "Too small to conclude." in page
     assert "CARD-B" in page
@@ -67,7 +73,7 @@ def test_comparison_rates_matrix_and_the_small_sample_note():
     assert '<details id="technical" open' not in page
     assert 'id="technical"' in page
     large = build_comparison(runs, feedback, min_sample=1)
-    assert all(item["too_small"] is False for item in large["approaches"])
+    assert all(item["too_small"] is False and item["auto_too_small"] is False for item in large["approaches"])
     assert "Too small to conclude." not in render_comparison(large)
 
 
@@ -111,7 +117,39 @@ def test_saved_records_drop_complaint_text_and_keep_jev_unpriced(tmp_path: Path)
     assert row["cases"] == 1
     assert row["wrong"] == 1
     assert row["sample"] == 1
+    assert row["auto_wrong"] == 1
+    assert row["auto_sample"] == 1
+    assert row["cost_per_case"] == 0.001
     assert row["too_small"] is True
+
+
+def test_auto_routed_wrong_ignores_a_held_case_and_spreads_cost_over_every_case():
+    ready = Routing.READY_FOR_REVIEW.value
+    ask = Routing.REQUEST_INFORMATION.value
+    manual = Routing.MANUAL_REVIEW.value
+    runs = {
+        "1": {
+            "CARD-A": _row("CARD-A", Classification.UNAUTHORIZED, ready, True, 10, 0.006),
+            "CARD-B": _row("CARD-B", Classification.SERVICE_NOT_RECEIVED, ask, False, 20, None),
+            "CARD-C": _row("CARD-C", Classification.DUPLICATE_CHARGE, manual, False, 30, None),
+            "CARD-D": _row("CARD-D", Classification.UNAUTHORIZED, ready, False, 40, None),
+        },
+        "2": {},
+        "3": {},
+    }
+    feedback = {
+        "CARD-A": Classification.SERVICE_NOT_RECEIVED.value,
+        "CARD-B": Classification.DUPLICATE_CHARGE.value,
+        "CARD-C": Classification.UNAUTHORIZED.value,
+        "CARD-D": Classification.UNAUTHORIZED.value,
+    }
+    row = next(item for item in build_comparison(runs, feedback, min_sample=30)["approaches"] if item["name"] == "1")
+    assert row["wrong"] == 3
+    assert row["sample"] == 4
+    assert row["auto_wrong"] == 1
+    assert row["auto_sample"] == 2
+    assert row["manual_count"] == 1
+    assert row["cost_per_case"] == 0.0015
 
 
 def test_export_writes_a_sibling_comparison_page(tmp_path: Path):
@@ -119,7 +157,9 @@ def test_export_writes_a_sibling_comparison_page(tmp_path: Path):
     write_html(tmp_path, dest)
     sibling = dest.with_name("compare.html")
     text = sibling.read_text(encoding="utf-8")
-    assert "p50" in text and "p95" in text
+    assert "Latency p95" in text
+    assert "Cost per case" in text
+    assert "p50" not in text
     assert "unpriced" in text
     assert 'href="out.html"' in text
     assert '<details id="technical" open' not in text

@@ -59,21 +59,32 @@ def _approach(name: str, rows: dict[str, dict], feedback: dict[str, str], min_sa
     latencies = [float(row["latency_ms"]) for row in ordered if isinstance(row.get("latency_ms"), (int, float))]
     priced = [float(row["haiku_usd"]) for row in ordered if isinstance(row.get("haiku_usd"), (int, float))]
     paired = [row for row in ordered if row.get(CASE_ID) in feedback]
-    wrong = sum(1 for row in paired if row.get("final_class") != feedback.get(str(row.get(CASE_ID))))
+    wrong = sum(1 for row in paired if _label_wrong(row, feedback))
+    ready = Routing.READY_FOR_REVIEW.value
+    auto = [row for row in paired if row.get("route") == ready]
+    auto_wrong = sum(1 for row in auto if _label_wrong(row, feedback))
     sample = len(paired)
+    auto_sample = len(auto)
+    cases = len(ordered)
     return {
         "name": name,
-        "cases": len(ordered),
+        "cases": cases,
         "called_model": called,
         "manual_count": manual,
-        "p50": None if not latencies else round(percentile(latencies, 0.50) or 0, 3),
         "p95": None if not latencies else round(percentile(latencies, 0.95) or 0, 3),
         "priced_calls": len(priced),
-        "haiku_per_case": None if not priced else round(sum(priced) / len(priced), 6),
+        "cost_per_case": None if cases == 0 else round(sum(priced) / cases, 6),
         "wrong": wrong,
         "sample": sample,
+        "auto_wrong": auto_wrong,
+        "auto_sample": auto_sample,
         "too_small": sample < min_sample,
+        "auto_too_small": auto_sample < min_sample,
     }
+
+
+def _label_wrong(row: dict, feedback: dict[str, str]) -> bool:
+    return row.get("final_class") != feedback.get(str(row.get(CASE_ID)))
 
 
 def _matrix(runs: dict[str, dict[str, dict]]) -> list[list[dict]]:
@@ -210,7 +221,7 @@ def _markup(view: dict, back_href: str) -> str:
         "<p class=\"mark\">Read-only</p>",
         "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
         "<h1>Comparison</h1>",
-        "<p class=\"lede\">Saved classification runs. This page has case ids and counts. It does not include complaint text.</p>",
+        "<p class=\"lede\">Saved classification runs. The five rates are wrong-label, auto-routed but wrong, manual review, Haiku cost per case, and latency p95. This page has case ids and counts. It does not include complaint text.</p>",
         "</header><main>",
         _approach_table(view),
         _matrix_section(view),
@@ -229,9 +240,9 @@ def _approach_table(view: dict) -> str:
     from html import escape
 
     head = (
-        "<tr><th>Approach</th><th>Cases run</th><th>Called a model</th><th>Manual review</th>"
-        "<th>p50</th><th>p95</th><th>Haiku per case</th><th>Jev</th>"
-        "<th>Wrong-label rate</th><th>Sample size</th></tr>"
+        "<tr><th>Approach</th><th>Cases run</th><th>Wrong-label rate</th>"
+        "<th>Auto-routed but wrong</th><th>Manual review</th>"
+        "<th>Cost per case</th><th>Latency p95</th></tr>"
     )
     body = []
     notes = []
@@ -242,23 +253,32 @@ def _approach_table(view: dict) -> str:
             "<tr>"
             f"<td>{escape(row['name'])}</td>"
             f"<td>{total}</td>"
-            f"<td>{escape(_share(row['called_model'], total))}</td>"
-            f"<td>{escape(_share(row['manual_count'], total))}</td>"
-            f"<td>{escape(_ms(row['p50']))}</td>"
-            f"<td>{escape(_ms(row['p95']))}</td>"
-            f"<td>{escape(_haiku(row))}</td>"
-            "<td>unpriced</td>"
             f"<td>{escape(_share(row['wrong'], row['sample']))}</td>"
-            f"<td>{row['sample']}</td>"
+            f"<td>{escape(_share(row['auto_wrong'], row['auto_sample']))}</td>"
+            f"<td>{escape(_share(row['manual_count'], total))}</td>"
+            f"<td>{escape(_cost(row))}</td>"
+            f"<td>{escape(_ms(row['p95']))}</td>"
             "</tr>"
         )
         if row["too_small"]:
             notes.append(
-                f"Approach {row['name']} sample size {row['sample']} is below {floor}. Too small to conclude."
+                f"Approach {row['name']} wrong-label sample size {row['sample']} is below {floor}. Too small to conclude."
             )
+        if row["auto_too_small"]:
+            notes.append(
+                f"Approach {row['name']} auto-routed sample size {row['auto_sample']} is below {floor}. Too small to conclude."
+            )
+    defined = (
+        "<p class=\"note\">Wrong-label rate uses every case with a reviewer category. "
+        "Auto-routed but wrong uses only those cases whose route is ready_for_review. "
+        "Manual review is that route over cases run. "
+        "Cost per case is Haiku list-price USD over cases run. Jev is unpriced. "
+        "Latency p95 is the classification audit.</p>"
+    )
     note = "".join(f"<p class=\"note\">{escape(line)}</p>" for line in notes)
     return (
         "<section id=\"approaches\"><h2>Approaches</h2>"
+        f"{defined}"
         f"<table><thead>{head}</thead><tbody>{''.join(body)}</tbody></table>"
         f"{note}</section>"
     )
@@ -340,10 +360,13 @@ def _ms(value: float | None) -> str:
     return f"{value:.3f}".rstrip("0").rstrip(".")
 
 
-def _haiku(row: dict) -> str:
-    if row["priced_calls"] <= 0 or row["haiku_per_case"] is None:
-        return "no priced call"
-    return f"{row['haiku_per_case']:.6f} USD over {row['priced_calls']} priced calls"
+def _cost(row: dict) -> str:
+    if row["cases"] <= 0 or row["cost_per_case"] is None:
+        return "—"
+    amount = f"{row['cost_per_case']:.6f} USD"
+    if row["priced_calls"] <= 0:
+        return f"{amount}. No Haiku call. Jev unpriced"
+    return f"{amount}. Jev unpriced"
 
 
 def _usd_text(value: float | None) -> str:

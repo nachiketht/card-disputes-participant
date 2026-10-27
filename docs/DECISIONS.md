@@ -186,11 +186,17 @@ Unauthorized from a model is kept only when the label is not supplied or denied.
 Missing fields for the final class always come from `missing_for`. That covers the rules, a class kept after the ranker agrees, and a class a model assigns. Unauthorized with authorization not supplied lists authorization confirmation. A labeled denial does not add that field. A service class with authorization not supplied lists authorization confirmation first, then the service fields.
 Status: implemented. Code: `classifiers/eligibility.py`, `classifiers/engine.py`, `rules/classify.py`.
 
+# ADR-41. Five comparison metrics
+
+Context: the comparison page listed model share, latency p50, Haiku cost averaged over priced calls, and a wrong-label rate. Those are not the rates used to choose an approach. A priced-call average hides cases that never called Haiku. A wrong class that was sent on as ready for review is a different failure from a class held for manual review.
+Decision: each approach is judged on five figures. Wrong-label rate is saved classes that differ from the reviewer category, over cases that have a category. Auto-routed-but-wrong rate uses only the subset whose route is `ready_for_review`. A request for information and a manual review are not auto-routed. Manual-review rate is that route over cases run. Cost per case is the sum of Haiku list-price USD divided by cases run. A case with no priced Haiku call adds zero dollars and still counts. Jev stays unpriced and is not added. Latency is the p95 of classification audit `latency_ms`. A feedback sample under `comparison.min_sample` (30) is too small to conclude, for the wrong-label rate and again for the auto-routed sample. Agreement and disagreeing case ids stay on the page. They are not a sixth rate. p50 and the share that called a model are not headline figures. These rates do not approve a case.
+Status: implemented. Code: `observability/compare_page.py`.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. The scorecard is ADR-36. Guardrail events are ADR-37. The live exec check and the manual image update are ADR-38. The request path and replay are ADR-39. A model class is checked against the labeled authorization in ADR-40. An image build was not run from this workspace. The live container was not contacted from this workspace.
+- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. The scorecard is ADR-36. Guardrail events are ADR-37. The live exec check and the manual image update are ADR-38. The request path and replay are ADR-39. A model class is checked against the labeled authorization in ADR-40. The five comparison metrics are ADR-41. An image build was not run from this workspace. The live container was not contacted from this workspace.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note
