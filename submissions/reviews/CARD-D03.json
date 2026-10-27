@@ -1,0 +1,24 @@
+{
+  "agent_approval": {
+    "case_id": "CARD-D03",
+    "draft_version": 1,
+    "draft_hash": "2a4f02e5ee0b8b1544f9f3c1a82e703a3541e67d20c0498ed5a7ee77d5c8cc82",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true,
+      "llm_critic": true
+    },
+    "run_id": "2e3926f8ea7b4c759d90e8135bda63a2",
+    "llm_review": {
+      "mode": "block",
+      "verdict": "pass",
+      "reason": "This service_not_received complaint for TX-D03 ($151 XCR, reported 2026-10-03) is routed ready_for_review with deadline 2026-12-02, and no required fields are missing. The customer message appropriately avoids making promises about the outcome, only stating that the complaint has been prepared for review and that human approval remains required. The reviewer still has to read the full draft and make the determination."
+    },
+    "contract_version": "1.0",
+    "injection_note": null
+  }
+}

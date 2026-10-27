@@ -1,0 +1,27 @@
+{
+  "agent_approval": {
+    "case_id": "CARD-D04",
+    "draft_version": 1,
+    "draft_hash": "771031459a15a7cb84ad8598a852e4329dddbefcc022f67404fc5e432579e79d",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true,
+      "llm_critic": true
+    },
+    "run_id": "99dc8e0c41bd44b7a13546513c9ced75",
+    "llm_review": {
+      "mode": "block",
+      "verdict": "pass",
+      "reason": "The unauthorized complaint for transaction TX-D04 (168 XCR, Morrow Supplies, reported 2026-10-01) is routed to request_information with deadline 2026-10-31, and correctly identifies the missing authorization_confirmation field. The customer message appropriately avoids making promises by stating no outcome can be confirmed and that human approval remains required. The reviewer still has to read the draft."
+    },
+    "contract_version": "1.0",
+    "injection_note": null
+  },
+  "review_id": "rev_0ad205a442f1",
+  "draft_hash": "771031459a15a7cb84ad8598a852e4329dddbefcc022f67404fc5e432579e79d",
+  "draft_version": 1
+}

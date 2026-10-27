@@ -1,0 +1,27 @@
+{
+  "agent_approval": {
+    "case_id": "CARD-D06",
+    "draft_version": 1,
+    "draft_hash": "b3d44c5b69bf469b6eb0583c6c8580c995113be48e61e96a9e42ee6bb68c2582",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true,
+      "llm_critic": true
+    },
+    "run_id": "a5bd55e81bf547c98714a05c162c85f4",
+    "llm_review": {
+      "mode": "block",
+      "verdict": "pass",
+      "reason": "This unsupported complaint for transaction TX-D06 (Morrow Supplies, 202 XCR, reported 2026-10-03) is routed to manual_review with no missing required fields and no policy deadline applicable. The customer message does not make a promise of resolution, only stating that human approval remains required and no case has been created yet. The reviewer must still read and evaluate the full draft."
+    },
+    "contract_version": "1.0",
+    "injection_note": null
+  },
+  "review_id": "rev_0eb332ff7264",
+  "draft_hash": "b3d44c5b69bf469b6eb0583c6c8580c995113be48e61e96a9e42ee6bb68c2582",
+  "draft_version": 1
+}

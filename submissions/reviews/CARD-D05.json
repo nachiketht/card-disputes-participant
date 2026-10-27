@@ -1,0 +1,24 @@
+{
+  "agent_approval": {
+    "case_id": "CARD-D05",
+    "draft_version": 1,
+    "draft_hash": "6740b79c5539ed94c42bb1f49bbad5115d2dbcf98861d53e5031b955595901d8",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true,
+      "llm_critic": true
+    },
+    "run_id": "083fae12bcb24458b62c9f9bc0a8aa40",
+    "llm_review": {
+      "mode": "block",
+      "verdict": "pass",
+      "reason": "The ambiguous complaint for TX-D05 involves a returned purchase of 185 XCR reported on 2026-10-02, routed to manual_review with no applicable deadline and no missing required fields. The customer message appropriately avoids making promises by stating the complaint is prepared for review but no outcome can be confirmed and human approval remains required. The reviewer still has to read the draft."
+    },
+    "contract_version": "1.0",
+    "injection_note": null
+  }
+}
