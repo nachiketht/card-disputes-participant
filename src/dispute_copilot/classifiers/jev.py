@@ -31,13 +31,12 @@ class JevClient:
         payload = {
             "model": self.model,
             "state": state,
-            "questions": [
-                {
-                    "id": _QUESTION,
+            "questions": {
+                _QUESTION: {
                     "type": "choice",
                     "criteria": _criteria(),
                 }
-            ],
+            },
         }
         try:
             with httpx.Client(timeout=self.timeout_s, transport=self._transport) as client:
@@ -139,9 +138,9 @@ def _option(name: str) -> Classification | None:
     return known_class(name)
 
 
-def _criteria() -> list[dict[str, str]]:
-    rows = [{"id": item.value, "text": line} for line, item in _pairs()]
-    rows.append({"id": AMBIGUOUS_OPTION, "text": "ambiguous or unclear"})
+def _criteria() -> dict[str, str]:
+    rows = {item.value: line for line, item in _pairs()}
+    rows[AMBIGUOUS_OPTION] = "ambiguous or unclear"
     return rows
 
 

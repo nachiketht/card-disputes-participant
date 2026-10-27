@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-D04",
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": null,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000607
+    },
+    "evidence": "",
+    "evidence_ok": false,
+    "latency_ms": 1606.207,
+    "model": "claude-haiku-4-5",
+    "reason": "",
+    "tokens_in": 247,
+    "tokens_out": 72,
+    "unusable": true
+  },
+  "jev": null,
+  "latency_ms": 1607.549,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_rejected",
+  "route": "request_information",
+  "rules": {
+    "class": "unauthorized",
+    "conflict": false,
+    "missing": [
+      "authorization_confirmation"
+    ]
+  }
+}

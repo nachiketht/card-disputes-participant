@@ -1,0 +1,17 @@
+{
+  "approach": "2",
+  "called_model": false,
+  "case_id": "CARD-D07",
+  "final_class": "unauthorized",
+  "haiku": null,
+  "jev": null,
+  "latency_ms": 0.007,
+  "missing": [],
+  "path": "rules_only",
+  "route": "manual_review",
+  "rules": {
+    "class": "unauthorized",
+    "conflict": false,
+    "missing": []
+  }
+}

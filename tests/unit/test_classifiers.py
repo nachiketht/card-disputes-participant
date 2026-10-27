@@ -3,11 +3,13 @@
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 from dispute_copilot.classifiers.eligibility import accept_proposed_class
 from dispute_copilot.classifiers.haiku import quote_found
 from dispute_copilot.classifiers.engine import run_approach
+from dispute_copilot.classifiers.jev import JevClient
 from dispute_copilot.fields import (
     AUTH_CONFIRMED,
     AUTH_DENIED,
@@ -302,3 +304,39 @@ def test_a_denied_label_never_reaches_a_model(approach: str, label: Classificati
     assert outcome.path == "rules_only"
     assert outcome.decision.classification == Classification.UNAUTHORIZED
     assert outcome.decision.missing == ()
+
+
+def test_the_ranker_sends_questions_as_a_choice_map():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(
+            200,
+            json={
+                "answers": {
+                    "class": {
+                        "type": "choice",
+                        "choice": "unauthorized",
+                        "probabilities": {"unauthorized": 0.91, "ambiguous_or_unclear": 0.09},
+                        "confidence": 0.91,
+                    }
+                }
+            },
+        )
+
+    client = JevClient(
+        base_url="https://ranker.example/v1/systemone",
+        api_key="k",
+        model="jev-latest",
+        timeout_s=5,
+        transport=httpx.MockTransport(handler),
+    )
+    client.ask("I do not recognize this purchase.")
+    questions = captured["body"]["questions"]
+    assert isinstance(questions, dict)
+    question = questions["class"]
+    assert question["type"] == "choice"
+    assert isinstance(question["criteria"], dict)
+    assert "unauthorized" in question["criteria"]
+    assert "ambiguous_or_unclear" in question["criteria"]

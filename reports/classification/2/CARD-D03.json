@@ -1,0 +1,17 @@
+{
+  "approach": "2",
+  "called_model": false,
+  "case_id": "CARD-D03",
+  "final_class": "service_not_received",
+  "haiku": null,
+  "jev": null,
+  "latency_ms": 0.008,
+  "missing": [],
+  "path": "rules_only",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "service_not_received",
+    "conflict": false,
+    "missing": []
+  }
+}
