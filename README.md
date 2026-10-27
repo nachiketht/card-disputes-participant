@@ -49,7 +49,7 @@ In another terminal, retrieve `GET /health` and `GET /v1/cases`. Read `data/dev/
 
 ## Classification
 
-Approach 1 is the rules and is the default. `--approach 2` asks the configured model after the rules, on the cases the rules leave open. `--approach 3` asks the ranker first and the configured model only when the two answers differ. `--approach ab` assigns a case from a seeded hash. `dispute-copilot compare` and `make compare` run the three approaches on one fetched transaction list.
+Approach 1 is the rules and is the default. `--approach 2` asks the configured model after the rules, on the cases the rules leave open. `--approach 3` asks the ranker first. A matching ranker class is kept. When the ranker is not configured, or its call fails, the rules class stays and Haiku 4.5 may still be asked. Manual review remains when the ranker says ambiguous, or when Haiku's class is rejected. `--approach ab` assigns a case from a seeded hash. `dispute-copilot compare` and `make compare` run the three approaches on one fetched transaction list.
 
 A duplicate stands only when those transactions contain two charges with the same merchant id, amount, and currency. Otherwise the class does not stand and the case goes to manual review. If the transaction read is unavailable, the class stays and the existing unavailable route applies.
 

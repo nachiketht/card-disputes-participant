@@ -12,7 +12,7 @@ A passing checklist does not approve a case. The reviewer note says so.
 
 ## Run everything
 
-Copy these from the repository root, in this order. Python is 3.12. A variable already set in the process wins over `.env`. Use placeholders. Do not paste a real endpoint or a key into a file you commit.
+Copy these from the repository root, in this order. Python is 3.12. A non-empty value already set in the process wins over `.env`. An empty process value is filled from the file. Use placeholders. Do not paste a real endpoint or a key into a file you commit.
 
 ### 1. Setup
 
@@ -346,9 +346,9 @@ A second optional extra, `mcp`, installs the Model Context Protocol library used
 
 ### Environment
 
-The process reads `.env` from the working directory and from the repository root. A variable already set in the process wins. Blank lines and `#` comments are skipped.
+The process reads `.env` from the working directory and from the repository root. A non-empty value already set in the process wins. An empty process value is filled from the file. A line may start with `export`. A later line in the file replaces an earlier one for the same name. Matching quotes are removed. An unquoted ` #` comment is not part of the value. `$NAME` and `${NAME}` expand from names already read in the file, then from the process. A single-quoted value is left as written. Blank lines and `#` comments are skipped.
 
-For this walkthrough, do not copy `.env.example` as-is. That example sets `FEATURE_LLM_REVIEW=block`. With no key, the checklist then blocks and `submit-review` refuses the case. Use:
+Copy `.env.example` to `.env` for a local run. That example sets `FEATURE_LLM_REVIEW=block` and leaves `LLM_API_KEY` empty. Check draft still saves the checklist. When the judge cannot run, the page shows a notice that names the missing setting (`LLM_API_KEY` when the key is empty). Submit stays allowed. The notice does not approve. To skip the judge entirely, use:
 
 ```sh
 export LLM_PROVIDER=null
@@ -367,11 +367,14 @@ export FEATURE_LLM_REVIEW=off
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `LLM_API_KEY` | model client | Haiku 4.5 key. Empty means no Haiku call. |
 | `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. The model id is `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. |
+| `JEV_BASE_URL` | ranker | Ranker host. Empty means the ranker is not built. Leave it empty in git. |
+| `JEV_API_KEY` | ranker | Ranker key. Empty means the ranker is not built. |
+| `JEV_MODEL` | ranker | Optional. Empty uses `jev-latest`. |
 | `HTTP_TIMEOUT_S`, `RETRY_BASE_DELAY_S`, `RETRY_MAX_DELAY_S` | read tools | Override `config/rules/retry.yaml`. |
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |
 
-This checkout already tracks files under `submissions/` and some files under `reports/`. Point `SUBMISSIONS_DIR`, `REPORTS_DIR`, and `--report` at a directory you do not commit if the tree should stay clean. `.state/` is ignored.
+This checkout tracks drafts, reviews, `submissions/results.json`, `reports/dev.json`, and `reports/audit.json`. Classification run output (`reports/classification/`, `submissions/classification/`) and `reports/metrics.json` are generated and ignored. Point `SUBMISSIONS_DIR`, `REPORTS_DIR`, and `--report` at a directory you do not commit if the tree should stay clean. `.state/` is ignored.
 
 ## Container files
 
@@ -747,11 +750,11 @@ uv run --locked dispute-copilot run-all --approach 2
 uv run --locked dispute-copilot run-all --approach ab --shadow
 ```
 
-`--approach 2` asks the configured model after the rules, only on a case the rules leave open. `--approach 3` asks the ranker first and the configured model only when those two answers differ. `--approach ab` assigns the case from a seeded hash (`config/rules/classifier.yaml`, `ab.seed` and `ab.weights`). The draft uses the assigned approach.
+`--approach 2` asks the configured model after the rules, only on a case the rules leave open. With no model client, approach 2 keeps the rules class and records path `rules_only`. `--approach 3` asks the ranker first. A matching ranker class is kept. When the ranker is not configured, or its call fails, the rules class stays and Haiku 4.5 may still be asked. Manual review remains when the ranker says ambiguous, or when Haiku's class is rejected. `--approach ab` assigns the case from a seeded hash (`config/rules/classifier.yaml`, `ab.seed` and `ab.weights`). The draft uses the assigned approach.
 
-`--shadow` also runs the approaches that were not selected. Each one is written under `submissions/classification/<approach>/CASE.json` and, when reports are configured, `reports/classification/<approach>/CASE.json`. The draft stays on the selected approach. The saved record does not include the complaint.
+`--shadow` also runs the approaches that were not selected. Each one is written under `submissions/classification/<approach>/CASE.json` and, when reports are configured, `reports/classification/<approach>/CASE.json`. Those directories are generated and ignored. The draft stays on the selected approach. The saved record does not include the complaint.
 
-The model step returns one JSON object with `class`, `reason`, and `evidence`. `evidence` must be exact text copied from the complaint. Whitespace may be collapsed. A paraphrase is rejected and the rules result is kept.
+The model step returns one JSON object with `class`, `reason`, and `evidence`. `evidence` must be exact text copied from the complaint. Whitespace may be collapsed. A paraphrase is rejected and the rules result is kept. The saved record stores the quote check (`evidence_ok`, `evidence_sha256`, `evidence_start`, `evidence_end`) and does not store the quote text. A complaint sentence is removed from the saved reason.
 
 `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list and writes the same records. It does not write a draft. `--case CASE` limits the run to one case. `--approaches 1,2` limits the set. `make compare` is the same command.
 
@@ -760,7 +763,7 @@ uv run --locked dispute-copilot compare --case CARD-D01
 make compare
 ```
 
-On the review page, the complaint is first, then the narrative. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review.
+On the review page, the narrative is first, then the original complaint. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review.
 
 The comparison page is served at `/compare` and written as `compare.html` beside a dashboard export. For each approach the five figures are the wrong-label rate, the auto-routed-but-wrong rate, the manual-review rate, Haiku cost per case, and latency p95. Wrong-label rate compares each saved approach, including a shadow run, with the reviewer category. Auto-routed but wrong counts only cases whose route is `ready_for_review`. Cost per case divides Haiku list-price USD by cases run. A case with no priced call adds zero. Jev is unpriced. A wrong-label sample or an auto-routed sample under `comparison.min_sample` (default 30) is marked too small to conclude. The agreement matrix counts shared cases. Disagreeing rows list case ids only. Technical details stay closed. The page does not include complaint text.
 
