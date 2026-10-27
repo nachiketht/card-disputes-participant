@@ -34,7 +34,7 @@ def test_a_followup_disagreement_beats_an_unrecognized_purchase():
     assert decision.missing == ()
 
 
-def test_a_denied_purchase_beats_a_service_sentence_and_ignores_blank_service_fields():
+def test_a_denied_purchase_and_a_service_sentence_are_ambiguous():
     decision = classify(
         "I paid for a service. It has not been delivered.",
         AUTH_DENIED,
@@ -43,7 +43,8 @@ def test_a_denied_purchase_beats_a_service_sentence_and_ignores_blank_service_fi
         AUTH_NOT_SUPPLIED,
         "missing",
     )
-    assert decision.classification == Classification.UNAUTHORIZED
+    assert decision.classification == Classification.AMBIGUOUS
+    assert decision.conflict is False
     assert decision.missing == ()
 
 
@@ -215,15 +216,77 @@ def test_nearby_wording_stays_unclassified_or_on_the_earlier_row():
     assert owned.classification == Classification.AMBIGUOUS
     again = classify("Please look at this purchase again.", AUTH_CONFIRMED, [], None, None, None)
     assert again.classification == Classification.AMBIGUOUS
-    earlier = classify(
-        "I was charged twice for a service that was not delivered.",
+    one_class = classify(
+        "I was charged twice for a service.",
         AUTH_CONFIRMED,
         [],
         None,
         None,
         None,
     )
-    assert earlier.classification == Classification.DUPLICATE_CHARGE
+    assert one_class.classification == Classification.DUPLICATE_CHARGE
+
+
+def test_two_claim_types_in_one_complaint_are_ambiguous_without_a_conflict():
+    duplicate_and_service = classify(
+        "I was charged twice and the goods were never delivered.",
+        AUTH_CONFIRMED,
+        [],
+        AUTH_NOT_SUPPLIED,
+        AUTH_NOT_SUPPLIED,
+        "missing",
+    )
+    assert duplicate_and_service.classification == Classification.AMBIGUOUS
+    assert duplicate_and_service.conflict is False
+    assert duplicate_and_service.missing == ()
+    denied_and_duplicate = classify(
+        "I was charged twice.",
+        AUTH_DENIED,
+        [],
+        None,
+        None,
+        None,
+    )
+    assert denied_and_duplicate.classification == Classification.AMBIGUOUS
+    assert denied_and_duplicate.conflict is False
+    ids_and_service = classify(
+        "Compare TX-1 and TX-1-B. The service was never delivered.",
+        AUTH_CONFIRMED,
+        [],
+        "2026-08-20",
+        "attached",
+        None,
+    )
+    assert ids_and_service.classification == Classification.AMBIGUOUS
+    assert ids_and_service.missing == ()
+    unconfirmed = classify(
+        "I do not recognize this purchase and I was charged twice.",
+        AUTH_NOT_SUPPLIED,
+        [],
+        None,
+        None,
+        None,
+    )
+    assert unconfirmed.classification == Classification.AMBIGUOUS
+    assert unconfirmed.missing == ()
+    cash = classify(
+        "The ATM did not dispense cash and I was charged twice.",
+        AUTH_CONFIRMED,
+        [],
+        None,
+        None,
+        None,
+    )
+    assert cash.classification == Classification.UNSUPPORTED
+    owned_and_duplicate = classify(
+        "This is not my purchase and I was charged twice.",
+        AUTH_CONFIRMED,
+        [],
+        None,
+        None,
+        None,
+    )
+    assert owned_and_duplicate.classification == Classification.DUPLICATE_CHARGE
 
 
 def test_manual_review_beats_a_request_but_the_missing_fields_remain():

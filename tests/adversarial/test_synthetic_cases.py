@@ -377,7 +377,7 @@ def test_a_date_outside_every_policy_writes_nothing_and_an_older_period_still_ap
     assert historical["facts"]["amount"] == 10
 
 
-def test_a_duplicate_combined_with_another_issue_stays_a_duplicate():
+def test_a_duplicate_combined_with_another_issue_is_ambiguous():
     case_id = "ADV-DUP"
     complaint = (
         "I was charged twice for one purchase. The service was not delivered either. "
@@ -397,15 +397,15 @@ def test_a_duplicate_combined_with_another_issue_stays_a_duplicate():
         },
         _tx(case_id, "TX-ONE", 134, "XCR", other="TX-TWO"),
     )
-    assert draft["classification"] == "duplicate_charge"
-    assert draft["routing"] == "ready_for_review"
+    assert draft["classification"] == "ambiguous"
+    assert draft["routing"] == "manual_review"
     assert draft["facts"]["amount"] == 134
     assert draft["facts"]["currency"] == "XCR"
-    assert draft["deadline"] == "2026-11-16"
+    assert draft["deadline"] is None
+    assert draft["missing_information"] == []
     quotes = [item["quote"] for item in draft["citations"]]
-    assert any("TX-TWO" in quote for quote in quotes)
+    assert all(item["claim"] != "duplicate_transaction" for item in draft["citations"])
     assert any(quote.startswith("Delivery note:") for quote in quotes)
-    assert "not delivered" not in draft["classification"]
 
 
 def test_odd_amounts_and_currencies_come_from_the_named_transaction():

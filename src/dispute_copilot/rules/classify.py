@@ -1,9 +1,11 @@
-"""First matching row wins: unsupported, conflict, unauthorized, duplicate, service, ambiguous.
+"""Authorization disagreement, then cash, then one claim type.
 
-Free text is used only for those signals. Labeled authorization comes from the
-intake and follow-ups. An attachment cannot enter the conflict row. Promised
-date and receipt lines are read only after the service row matches, so the
-boilerplate on every intake cannot change another type.
+Two of unauthorized, duplicate, and service in the same complaint is ambiguous.
+A cash or ATM complaint stays unsupported. Free text is used only for those
+signals. Labeled authorization comes from the intake and follow-ups. An
+attachment cannot enter the conflict row. Promised date and receipt lines are
+read only after the service row matches alone, so the boilerplate on every
+intake cannot change another type.
 """
 
 import re
@@ -109,18 +111,26 @@ def classify(
     attachment_status: str | None,
 ) -> Decision:
     text = complaint.casefold()
-    if _unsupported(text):
-        return Decision(Classification.UNSUPPORTED, (), False)
     statements = [authorization, *other_authorizations]
     if len(statements) > 1 and len(set(statements)) > 1:
         return Decision(Classification.AMBIGUOUS, (), True)
-    if authorization == AUTH_DENIED:
+    if _unsupported(text):
+        return Decision(Classification.UNSUPPORTED, (), False)
+    heard = authorization in _CUSTOMER_AUTH or authorization == AUTH_DENIED
+    unauthorized = authorization == AUTH_DENIED or (
+        authorization == AUTH_NOT_SUPPLIED and _denies_recognition(text)
+    )
+    duplicate = heard and _duplicate(text, complaint)
+    service = heard and _service(text)
+    if sum((unauthorized, duplicate, service)) > 1:
+        return Decision(Classification.AMBIGUOUS, (), False)
+    if unauthorized and authorization == AUTH_DENIED:
         return Decision(Classification.UNAUTHORIZED, (), False)
-    if authorization == AUTH_NOT_SUPPLIED and _denies_recognition(text):
+    if unauthorized:
         return Decision(Classification.UNAUTHORIZED, (MissingId.AUTHORIZATION_CONFIRMATION,), False)
-    if _duplicate(text, complaint) and authorization in _CUSTOMER_AUTH:
+    if duplicate:
         return Decision(Classification.DUPLICATE_CHARGE, (), False)
-    if _service(text) and authorization in _CUSTOMER_AUTH:
+    if service:
         missing = _service_fields(promised_service_date, purchase_receipt, attachment_status)
         if authorization == AUTH_NOT_SUPPLIED:
             missing = (MissingId.AUTHORIZATION_CONFIRMATION, *missing)
