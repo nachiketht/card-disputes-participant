@@ -1,15 +1,14 @@
 """Rules, then the configured model. The reply is strict JSON."""
 
-import json
 import time
 
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import Classification
-from dispute_copilot.llm.base import Completion, LLMError
+from dispute_copilot.llm.base import LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
-from dispute_copilot.observability.cost import note_model_span, price_call
-from dispute_copilot.observability.tracing import current
+from dispute_copilot.llm.schema import ClassifierReply, complete_json, parse_model
+from dispute_copilot.observability.cost import price_call
 
 UNCLEAR = "multiple_or_unclear"
 
@@ -38,18 +37,10 @@ def quote_found(quote: str, complaint: str) -> bool:
 
 
 def parse_reply(text: str) -> dict | None:
-    try:
-        body = json.loads(text)
-    except json.JSONDecodeError:
+    parsed = parse_model(ClassifierReply, text)
+    if parsed is None:
         return None
-    if not isinstance(body, dict):
-        return None
-    chosen = body.get("class")
-    reason = body.get("reason")
-    evidence = body.get("evidence")
-    if not isinstance(chosen, str) or not isinstance(reason, str) or not isinstance(evidence, str):
-        return None
-    return {"class": chosen.strip(), "reason": reason.strip(), "evidence": evidence.strip()}
+    return {"class": parsed.label, "reason": parsed.reason, "evidence": parsed.evidence}
 
 
 def known_class(name: str) -> Classification | None:
@@ -65,22 +56,25 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
     prompts = registry or PromptRegistry()
     try:
         rendered = prompts.render("classifier", {"complaint": complaint, "categories": category_text()})
-        with current().span("model.call") as span:
-            completion = model.complete(system=rendered.system, user="Return the JSON object now.")
-            note_model_span(span, completion)
+        result = complete_json(
+            model,
+            ClassifierReply,
+            system=rendered.system,
+            user="Return the JSON object now.",
+        )
     except (LLMError, ValueError, TypeError):
         return _failed(started, "")
-    if not isinstance(completion, Completion):
-        return _failed(started, "")
     latency = round((time.perf_counter() - started) * 1000, 3)
-    priced = price_call(completion.model, completion.tokens_in, completion.tokens_out)
-    parsed = parse_reply(completion.text)
+    priced = price_call(result.last.model, result.tokens_in, result.tokens_out)
+    parsed = None
+    if isinstance(result.value, ClassifierReply):
+        parsed = {"class": result.value.label, "reason": result.value.reason, "evidence": result.value.evidence}
     base = {
         "latency_ms": latency,
-        "tokens_in": completion.tokens_in,
-        "tokens_out": completion.tokens_out,
+        "tokens_in": result.tokens_in,
+        "tokens_out": result.tokens_out,
         "cost": priced,
-        "model": completion.model,
+        "model": result.last.model,
         "accepted": False,
         "unusable": False,
         "evidence_ok": False,

@@ -5,7 +5,7 @@
   "final_class": "unauthorized",
   "haiku": null,
   "jev": null,
-  "latency_ms": 0.005,
+  "latency_ms": 0.008,
   "missing": [],
   "path": "rules_only",
   "route": "ready_for_review",

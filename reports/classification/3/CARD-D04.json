@@ -11,7 +11,7 @@
       "status": "unpriced",
       "usd": null
     },
-    "latency_ms": 131.158,
+    "latency_ms": 145.364,
     "probabilities": {
       "ambiguous": 0.0,
       "ambiguous_or_unclear": 0.01,
@@ -23,7 +23,7 @@
     "tokens_in": null,
     "tokens_out": null
   },
-  "latency_ms": 131.228,
+  "latency_ms": 145.437,
   "missing": [
     "authorization_confirmation"
   ],

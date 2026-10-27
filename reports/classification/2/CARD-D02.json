@@ -5,7 +5,7 @@
   "final_class": "duplicate_charge",
   "haiku": null,
   "jev": null,
-  "latency_ms": 0.02,
+  "latency_ms": 0.034,
   "missing": [],
   "path": "rules_only",
   "route": "ready_for_review",

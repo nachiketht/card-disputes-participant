@@ -5,7 +5,7 @@
   "final_class": "service_not_received",
   "haiku": null,
   "jev": null,
-  "latency_ms": 0.008,
+  "latency_ms": 0.011,
   "missing": [],
   "path": "rules_only",
   "route": "ready_for_review",

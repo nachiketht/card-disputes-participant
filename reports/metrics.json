@@ -46,10 +46,10 @@
     "breaker_opens": 0,
     "breaker_skips": 0,
     "case_latency_ms": {
-      "max": 121.937,
-      "median": 14.067,
+      "max": 160.726,
+      "median": 14.774,
       "n": 12,
-      "p95": 121.937
+      "p95": 160.726
     },
     "cases_drafted": 12,
     "cases_total": 12,
@@ -68,11 +68,11 @@
       "output": 0
     },
     "injection_detected": 1,
-    "manual_review_rate": 0.3333,
+    "manual_review_rate": 0.25,
     "routes": {
-      "manual_review": 4,
+      "manual_review": 3,
       "ready_for_review": 7,
-      "request_information": 1
+      "request_information": 2
     },
     "tool_by_dependency": {
       "merchant": {
@@ -93,7 +93,7 @@
     "untrusted_instruction_cases": 1,
     "valid_contract_rate": 1.0
   },
-  "run_id": "run-2ff6ff05cb",
+  "run_id": "run-905eca9829",
   "slo": {
     "description": "A case is good when its case span has outcome drafted and duration_ms at or under latency_target_ms. The rate divides that count by every case span. The route is not read.",
     "latency_target_ms": 2000,

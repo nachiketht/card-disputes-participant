@@ -48,6 +48,18 @@ class _Scripted:
         return Completion(self.text, 0, 0, "fake")
 
 
+class _Turns:
+    def __init__(self, *texts: str) -> None:
+        self.texts = list(texts)
+        self.calls = 0
+
+    def complete(self, *, system: str, user: str) -> Completion:
+        del system, user
+        index = min(self.calls, len(self.texts) - 1)
+        self.calls += 1
+        return Completion(self.texts[index], 0, 0, "fake")
+
+
 class _Raising:
     def complete(self, *, system: str, user: str) -> Completion:
         del system, user
@@ -101,6 +113,17 @@ def test_a_three_line_reason_is_kept(tmp_path: Path, monkeypatch):
     judge = _Scripted(json.dumps({"verdict": "pass", "reason": reason}))
     approval = record_agent_review(tmp_path, "CARD-D01", _draft(), 1, critic=judge)
     assert approval["passed"] is True
+    assert approval["llm_review"]["reason"] == reason
+
+
+def test_a_schema_miss_retries_once_then_stores_the_second_reply(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "block")
+    reason = "Citations are present. No outcome is promised."
+    judge = _Turns("not json", json.dumps({"verdict": "pass", "reason": reason}))
+    approval = record_agent_review(tmp_path, "CARD-D01", _draft(), 1, critic=judge)
+    assert judge.calls == 2
+    assert approval["passed"] is True
+    assert approval["llm_review"]["verdict"] == "pass"
     assert approval["llm_review"]["reason"] == reason
 
 

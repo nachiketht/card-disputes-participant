@@ -5,7 +5,7 @@
   "final_class": "service_not_received",
   "haiku": null,
   "jev": null,
-  "latency_ms": 0.008,
+  "latency_ms": 0.006,
   "missing": [
     "promised_service_date",
     "purchase_receipt"

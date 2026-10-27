@@ -6,7 +6,6 @@ read the tool APIs again, so a check does not add mock attempts.
 
 import json
 import os
-import re
 import uuid
 from pathlib import Path
 
@@ -34,8 +33,8 @@ from dispute_copilot.fields import (
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
+from dispute_copilot.llm.schema import CriticReply, complete_json, parse_model
 from dispute_copilot.guardrails import record
-from dispute_copilot.observability.cost import note_model_span
 from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import digest
 
@@ -79,20 +78,10 @@ def apply_critic(checks: dict[str, bool], *, verdict: str | None, errored: bool)
 
 def interpret_critic_text(text: str) -> tuple[str, str]:
     """A usable reply is pass or block plus two to four sentences. Anything else blocks."""
-    payload = _json_object(text)
-    if payload is None:
+    parsed = parse_model(CriticReply, text)
+    if parsed is None:
         return "block", UNUSABLE_REASON
-    verdict = payload.get("verdict")
-    reason = payload.get("reason")
-    if verdict not in {"pass", "block"} or not isinstance(reason, str):
-        return "block", UNUSABLE_REASON
-    lines = reason.strip().splitlines()
-    sentences = _sentence_count(reason)
-    if not lines or len(lines) > 4 or any(not line.strip() for line in lines):
-        return "block", UNUSABLE_REASON
-    if sentences < 2 or sentences > 4:
-        return "block", UNUSABLE_REASON
-    return verdict, reason.strip()
+    return parsed.verdict, parsed.reason
 
 
 def format_reviewer_note(draft: dict, approval: dict) -> str:
@@ -217,15 +206,14 @@ def _ask_critic(draft: dict, critic) -> tuple[str, str]:
         return "block", UNUSABLE_REASON
     try:
         system, user = _critic_messages(draft)
-        with current().span("model.call") as span:
-            completion = critic.complete(system=system, user=user)
-            note_model_span(span, completion)
+        result = complete_json(critic, CriticReply, system=system, user=user)
     except (LLMError, OSError):
         return "skipped", "The judge step was skipped because the model call failed."
     except (ValueError, TypeError):
         return "block", UNUSABLE_REASON
-    text = completion.text if isinstance(getattr(completion, "text", None), str) else ""
-    return interpret_critic_text(text)
+    if not isinstance(result.value, CriticReply):
+        return "block", UNUSABLE_REASON
+    return result.value.verdict, result.value.reason
 
 
 def _critic_messages(draft: dict) -> tuple[str, str]:
@@ -256,30 +244,3 @@ def _critic_messages(draft: dict) -> tuple[str, str]:
         },
     )
     return rendered.system, "Return one JSON object only."
-
-
-def _sentence_count(reason: str) -> int:
-    parts = re.split(r"[.!?]+", reason.strip())
-    return len([part for part in parts if part.strip()])
-
-
-def _json_object(text: str) -> dict | None:
-    raw = text.strip()
-    if raw.startswith("```"):
-        raw = raw.strip("`").strip()
-        if raw[:4].casefold() == "json":
-            raw = raw[4:].strip()
-    try:
-        value = json.loads(raw)
-    except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}")
-        if start < 0 or end <= start:
-            return None
-        try:
-            value = json.loads(raw[start : end + 1])
-        except json.JSONDecodeError:
-            return None
-    if not isinstance(value, dict):
-        return None
-    return value

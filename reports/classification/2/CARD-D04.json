@@ -4,26 +4,26 @@
   "case_id": "CARD-D04",
   "final_class": "unauthorized",
   "haiku": {
-    "class": null,
+    "class": "unauthorized",
     "cost": {
       "status": "estimate from list price",
-      "usd": 0.000607
+      "usd": 0.000582
     },
-    "evidence": "",
-    "evidence_ok": false,
-    "latency_ms": 1606.207,
+    "evidence": "I do not recognize it and need help checking it.",
+    "evidence_ok": true,
+    "latency_ms": 1406.933,
     "model": "claude-haiku-4-5",
-    "reason": "",
+    "reason": "The customer does not recognize the card purchase and is requesting help to verify it, indicating they may not have authorized this transaction.",
     "tokens_in": 247,
-    "tokens_out": 72,
-    "unusable": true
+    "tokens_out": 67,
+    "unusable": false
   },
   "jev": null,
-  "latency_ms": 1607.549,
+  "latency_ms": 1407.798,
   "missing": [
     "authorization_confirmation"
   ],
-  "path": "haiku_rejected",
+  "path": "haiku_assigned",
   "route": "request_information",
   "rules": {
     "class": "unauthorized",
