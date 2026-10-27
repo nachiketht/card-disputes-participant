@@ -14,7 +14,7 @@ This session could not sign in to `<subscription>`, so it did not query these re
 | Shares | `mock-data` (only `dataset.json`) and `app-data` (`documents/` and `policies/`) |
 | Environment | `card-disputes-env` |
 | App | `card-disputes`, one replica, no public ingress |
-| Model | Azure-hosted Claude Haiku 4.5 (`claude-haiku-4-5`), secret `llm-api-key` (not in git). The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. The host is not written in this file. |
+| Model | Azure-hosted Claude Haiku 4.5 (`claude-haiku-4-5`), secret `llm-api-key` (not in git). The host is Container App secret `azure-base-url`, read as `AZURE_BASE_URL` from `.env`. The template does not store the value. The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. |
 | Ranker | Optional. `JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL`. An empty url or key skips it. The container template does not set these. Cost is unpriced. The threshold placeholder `0.70` is in `config/rules/classifier.yaml`, not a secret. |
 
 ## What was checked from this workspace
@@ -220,7 +220,7 @@ Edit [deploy/azure/containerapp.yaml](../deploy/azure/containerapp.yaml):
 
 - Replace `CHANGE_ME_ENVIRONMENT_ID` with the value of `$ENV_ID`.
 - Replace every `CHANGE_ME_REGISTRY` with `pod3disputes`.
-- Leave the secret value as the placeholder. Step 8 sets the real key with a command so it is not stored in git. The secret name in use is `llm-api-key`.
+- Leave the secret values as the placeholder. Step 8 sets the key and the host from `.env` so neither is stored in git. The secret names are `llm-api-key` and `azure-base-url`. The app reads the host as `AZURE_BASE_URL`.
 
 The template uses a system identity for the registry. If the create command rejects that, switch the registry block to the pull identity from this step and ask before changing the YAML.
 
@@ -233,7 +233,7 @@ az containerapp create \
   --yaml deploy/azure/containerapp.yaml
 ```
 
-Then set the key from your local `.env` without printing it:
+Then set the key and the host from your local `.env` without printing either value:
 
 ```sh
 set -a
@@ -242,12 +242,12 @@ set +a
 az containerapp secret set \
   --name card-disputes \
   --resource-group card-disputes-rg \
-  --secrets "llm-api-key=$LLM_API_KEY"
+  --secrets "llm-api-key=$LLM_API_KEY" "azure-base-url=$AZURE_BASE_URL"
 ```
 
-If the YAML create fails because the placeholder secret is invalid, delete the `secrets:` block from the YAML, create the app, then run `az containerapp secret set` and add the `LLM_API_KEY` secret ref in a second update. Do not paste the key into the YAML.
+If the YAML create fails because a placeholder secret is invalid, delete the `secrets:` block from the YAML, create the app, then run `az containerapp secret set` and add the `LLM_API_KEY` and `AZURE_BASE_URL` secret refs in a second update. Do not paste the key or the host into the YAML. The image does not contain the host. Compose reads it from `.env` via `env_file`.
 
-The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The checklist judge is Azure-hosted Claude Haiku 4.5. Its key is the Container App secret `llm-api-key`. That call checks a finished draft. It does not approve. The same model id is what approaches 2 and 3 call on an eligible case. The replica template does not set the ranker variables.
+The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The checklist judge is Azure-hosted Claude Haiku 4.5. Its key is the Container App secret `llm-api-key`. The host is the Container App secret `azure-base-url`, exposed as `AZURE_BASE_URL`. That call checks a finished draft. It does not approve. The same model id is what approaches 2 and 3 call on an eligible case. The replica template does not set the ranker variables. A run with no model call does not need `AZURE_BASE_URL`.
 
 ## Step 9. Check the cloud pair
 
@@ -337,7 +337,7 @@ That export also writes `/submissions/reports/compare.html` beside the status fi
 
 ## Classification settings the app reads
 
-Approach 1 is the default and does not call a model. `CLASSIFIER_APPROACH` may be `1`, `2`, `3`, or `ab`. `--shadow` on `run` and `run-all` writes an audit for every approach and leaves the draft on the selected approach. `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list.
+Approach 1 is the default and does not call a model. It does not read `AZURE_BASE_URL`. `CLASSIFIER_APPROACH` may be `1`, `2`, `3`, or `ab`. `--shadow` on `run` and `run-all` writes an audit for every approach and leaves the draft on the selected approach. `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list. A model call with an empty `AZURE_BASE_URL` fails with `AZURE_BASE_URL is empty`.
 
 `JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL` are optional. Leave the url and the key empty to skip the ranker. Approach 3 with no ranker does not call Haiku 4.5 for that case; the class is ambiguous and the route is `manual_review`. The ranker threshold is the placeholder `0.70` in `config/rules/classifier.yaml`. Jev cost is unpriced. `deploy/azure/containerapp.yaml` does not set `JEV_*`, and this workspace did not add those secrets on the replica.
 
@@ -348,7 +348,7 @@ Haiku 4.5 list price is 1.00 USD per million input tokens and 5.00 USD per milli
 ## What was left out on purpose
 
 - No public ingress and no load balancer. The mock stays on loopback inside the replica.
-- Haiku 4.5 checks a finished draft when the checklist judge is on, and approaches 2 and 3 may call the same model on an eligible case. It does not approve. The app never approves. The key is `LLM_API_KEY`. The ranker stays off until `JEV_BASE_URL` and `JEV_API_KEY` are set. Its cost is unpriced. The model host is not written in this file.
+- Haiku 4.5 checks a finished draft when the checklist judge is on, and approaches 2 and 3 may call the same model on an eligible case. It does not approve. The app never approves. The key is `LLM_API_KEY` in `.env`. The host is `AZURE_BASE_URL` in `.env`, stored on the app as secret `azure-base-url`. The ranker stays off until `JEV_BASE_URL` and `JEV_API_KEY` are set. Its cost is unpriced. The value of the host is not written in this file.
 - Restarting the replica clears the ledger at `/state` and the drafts at `/submissions`. Files on `mock-data` and `app-data` stay. Run `reset` only when you mean to:
 
 ```sh

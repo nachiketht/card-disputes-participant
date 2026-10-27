@@ -17,6 +17,8 @@ uv run --locked dispute-copilot metrics     # recompute metrics and alerts from 
 
 `submit-review` before a passing `agent-review` for that draft exits 2 and does not post. Approval is the human command at the bottom of this page. The app never approves. Command order and exits are in `docs/COMMANDS.md`.
 
+The model host is `AZURE_BASE_URL` in `.env`. Leave it empty for approach 1, tests, and evals. A model call fails with `AZURE_BASE_URL is empty` when the variable is empty. Do not write the value in a committed file.
+
 Default classification is approach 1 (rules only). Pass `--approach 2`, `--approach 3`, or `--approach ab` on `run` and `run-all` to select another approach. `--shadow` writes an audit for every approach and leaves the draft on the selected approach. `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list.
 
 Leave `JEV_BASE_URL` and `JEV_API_KEY` empty to skip the ranker. `JEV_MODEL` is optional and defaults to `jev-latest`. Approach 3 with no ranker does not call Haiku 4.5 for that case; the class is ambiguous and the route is `manual_review`. The threshold placeholder is `0.70` in `config/rules/classifier.yaml`. Jev cost is unpriced. Haiku 4.5 list price is 1.00 USD per million input tokens and 5.00 USD per million output tokens.

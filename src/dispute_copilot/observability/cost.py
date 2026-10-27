@@ -90,11 +90,9 @@ def run_where() -> str:
     label = os.environ.get("RUN_LABEL", "").strip()
     if label:
         return label[:64]
-    base = os.environ.get("LLM_BASE_URL", "").strip()
+    base = os.environ.get("AZURE_BASE_URL", "").strip()
     if not base:
-        from dispute_copilot.llm.openai_compat import default_base_url
-
-        base = default_base_url()
+        return "other"
     return host_class(base)
 
 

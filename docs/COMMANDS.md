@@ -60,7 +60,7 @@ export LLM_API_KEY=<key>
 unset LLM_PROVIDER
 ```
 
-`LLM_BASE_URL` belongs in `.env` with the key. It is not listed here.
+`AZURE_BASE_URL` belongs in `.env` with the key. It is not listed here. A model call fails when it is empty. Approach 1 does not need it.
 
 Do not commit `LLM_API_KEY`.
 
@@ -366,7 +366,7 @@ export FEATURE_LLM_REVIEW=off
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `LLM_API_KEY` | model client | Haiku 4.5 key. Empty means no Haiku call. |
-| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. The model id is `claude-haiku-4-5`. The host is not written in this file. |
+| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. The model id is `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. |
 | `HTTP_TIMEOUT_S`, `RETRY_BASE_DELAY_S`, `RETRY_MAX_DELAY_S` | read tools | Override `config/rules/retry.yaml`. |
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |

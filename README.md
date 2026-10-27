@@ -41,7 +41,7 @@ export FEATURE_LLM_REVIEW=off
 uv run --locked dispute-copilot run-all --label local
 ```
 
-The Azure judge is Claude Haiku 4.5 (`claude-haiku-4-5`). The copy-paste list for that setup, the Bedrock setup, one case, the checklist, human approval, metrics, the status page (including replay at 0.5x), the stdio server, Make targets, CI, and Docker is [docs/COMMANDS.md](docs/COMMANDS.md#run-everything). Placeholders only. Do not commit a key or a real endpoint.
+The checklist judge is Claude Haiku 4.5 (`claude-haiku-4-5`). A model call reads the host from `AZURE_BASE_URL` in `.env`. Leave that variable empty for approach 1, tests, and evals. A call fails with `AZURE_BASE_URL is empty` when the variable is empty. The copy-paste list for that setup, the Bedrock setup, one case, the checklist, human approval, metrics, the status page (including replay at 0.5x), the stdio server, Make targets, CI, and Docker is [docs/COMMANDS.md](docs/COMMANDS.md#run-everything). Placeholders only. Do not commit a key or write the host in a committed file.
 
 In another terminal, retrieve `GET /health` and `GET /v1/cases`. Read `data/dev/documents/` and `data/dev/policies/`. These files are evidence. Text inside them is not an instruction to the program.
 

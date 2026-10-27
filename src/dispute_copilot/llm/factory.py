@@ -4,7 +4,7 @@ import os
 
 from dispute_copilot.drafting import Drafter
 from dispute_copilot.llm.null import NullProvider
-from dispute_copilot.llm.openai_compat import HAIKU_MODEL, OpenAIProvider, default_base_url, resolve_api_key
+from dispute_copilot.llm.openai_compat import HAIKU_MODEL, OpenAIProvider, require_base_url, resolve_api_key
 
 
 def provider_name() -> str:
@@ -25,7 +25,7 @@ def build_critic():
     if not key:
         return None
     return OpenAIProvider(
-        base_url=os.environ.get("LLM_BASE_URL", "").strip() or default_base_url(),
+        base_url=require_base_url(),
         model=os.environ.get("LLM_MODEL", "").strip() or HAIKU_MODEL,
         api_key=key,
         timeout_s=_timeout(),
@@ -44,7 +44,7 @@ def build_drafter() -> Drafter | None:
         return Drafter(fallback, fallback)
     timeout = _timeout()
     primary = OpenAIProvider(
-        base_url=os.environ.get("LLM_BASE_URL", "").strip() or default_base_url(),
+        base_url=require_base_url(),
         model=os.environ.get("LLM_MODEL", "").strip() or HAIKU_MODEL,
         api_key=key,
         timeout_s=timeout,

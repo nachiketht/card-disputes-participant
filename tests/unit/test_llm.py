@@ -13,6 +13,7 @@ from dispute_copilot.fields import CLASSIFICATION
 from dispute_copilot.llm.base import Completion, LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.null import NullProvider
+from dispute_copilot.llm.factory import build_critic, build_drafter
 from dispute_copilot.llm.openai_compat import HAIKU_MODEL, OpenAIProvider, default_base_url, resolve_api_key
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.workflow import prepare
@@ -91,9 +92,39 @@ def test_api_key_is_only_the_azure_env_value(monkeypatch):
     monkeypatch.setenv("AWS_API_KEY", "aws-key")
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "aws-bearer")
     assert resolve_api_key() == "azure-key"
-    assert default_base_url() == "https://pod3-resource.services.ai.azure.com/anthropic"
+    monkeypatch.delenv("AZURE_BASE_URL", raising=False)
+    assert default_base_url() == ""
+    monkeypatch.setenv("AZURE_BASE_URL", "https://unit.example/anthropic")
+    assert default_base_url() == "https://unit.example/anthropic"
     monkeypatch.delenv("LLM_API_KEY")
     assert resolve_api_key() == ""
+
+
+def test_a_model_call_names_azure_base_url_when_it_is_empty(monkeypatch):
+    monkeypatch.delenv("AZURE_BASE_URL", raising=False)
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    try:
+        OpenAIProvider(base_url="  ", model=HAIKU_MODEL, api_key="test-key")
+    except LLMError as exc:
+        assert str(exc) == "AZURE_BASE_URL is empty"
+    else:
+        raise AssertionError("an empty host was accepted")
+    try:
+        build_critic()
+    except LLMError as exc:
+        assert str(exc) == "AZURE_BASE_URL is empty"
+    else:
+        raise AssertionError("a model client was built without a host")
+    try:
+        build_drafter()
+    except LLMError as exc:
+        assert str(exc) == "AZURE_BASE_URL is empty"
+    else:
+        raise AssertionError("a drafter was built without a host")
+    monkeypatch.setenv("LLM_PROVIDER", "null")
+    assert build_critic() is None
+    assert build_drafter() is None
 
 
 def test_haiku_request_uses_the_azure_messages_api():
@@ -113,7 +144,7 @@ def test_haiku_request_uses_the_azure_messages_api():
         )
 
     provider = OpenAIProvider(
-        base_url="https://pod3-resource.services.ai.azure.com/anthropic",
+        base_url="https://unit.example/anthropic",
         model=HAIKU_MODEL,
         api_key="test-key",
         style="anthropic",
@@ -135,7 +166,7 @@ def test_provider_http_error_is_an_llm_error():
         return httpx.Response(401, json={"error": {"type": "authentication_error"}})
 
     provider = OpenAIProvider(
-        base_url="https://pod3-resource.services.ai.azure.com/anthropic",
+        base_url="https://unit.example/anthropic",
         model=HAIKU_MODEL,
         api_key="test-key",
         transport=httpx.MockTransport(handler),

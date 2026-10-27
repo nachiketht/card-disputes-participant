@@ -15,6 +15,8 @@ properties:
     secrets:
       - name: llm-api-key
         value: CHANGE_ME_SET_WITH_AZ_NOT_IN_GIT
+      - name: azure-base-url
+        value: CHANGE_ME_SET_WITH_AZ_NOT_IN_GIT
   template:
     containers:
       - name: mock
@@ -58,8 +60,8 @@ properties:
             value: anthropic
           - name: LLM_MODEL
             value: claude-haiku-4-5
-          - name: LLM_BASE_URL
-            value: https://pod3-resource.services.ai.azure.com/anthropic
+          - name: AZURE_BASE_URL
+            secretRef: azure-base-url
           - name: LLM_API_KEY
             secretRef: llm-api-key
         volumeMounts:

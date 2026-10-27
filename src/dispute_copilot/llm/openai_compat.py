@@ -1,7 +1,8 @@
-"""One provider client for Azure AI.
+"""One provider client.
 
 The default wire format is the Anthropic Messages API (`POST {base}/v1/messages`).
-The key is `LLM_API_KEY`. `style="openai"` speaks chat completions.
+The key is `LLM_API_KEY`. The host is `AZURE_BASE_URL` in the environment.
+`style="openai"` speaks chat completions.
 """
 
 import os
@@ -11,13 +12,20 @@ import httpx
 from dispute_copilot.llm.base import Completion, LLMError
 
 HAIKU_MODEL = "claude-haiku-4-5"
-AZURE_BASE_URL = "https://pod3-resource.services.ai.azure.com/anthropic"
 ANTHROPIC_VERSION = "2023-06-01"
 
 
 def default_base_url() -> str:
-    """Anthropic Messages route on the Azure AI resource."""
-    return AZURE_BASE_URL
+    """Host from `AZURE_BASE_URL`. Empty when that variable is unset."""
+    return os.environ.get("AZURE_BASE_URL", "").strip()
+
+
+def require_base_url() -> str:
+    """Host for a model call. Empty is an error that names `AZURE_BASE_URL`."""
+    url = default_base_url()
+    if not url:
+        raise LLMError("AZURE_BASE_URL is empty")
+    return url
 
 
 def resolve_api_key() -> str:
@@ -39,7 +47,10 @@ class OpenAIProvider:
             raise LLMError("no model key is configured")
         if not model:
             raise LLMError("no model id is configured")
-        self.base_url = base_url.rstrip("/")
+        cleaned = base_url.strip()
+        if not cleaned:
+            raise LLMError("AZURE_BASE_URL is empty")
+        self.base_url = cleaned.rstrip("/")
         self.model = model
         self.api_key = api_key
         self.timeout_s = timeout_s

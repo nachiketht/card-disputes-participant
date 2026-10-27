@@ -620,7 +620,6 @@ def test_where_table_lists_each_saved_place_and_names_an_unpriced_model():
 
 def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert host_class("https://unit.services.ai.azure.com/v1") == "azure"
-    assert host_class("https://pod3-resource.services.ai.azure.com/anthropic") == "azure"
     assert host_class("http://127.0.0.1:9/v1") == "local"
     assert host_class("http://localhost/v1") == "local"
     assert host_class("http://[::1]/v1") == "local"
@@ -628,7 +627,8 @@ def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monke
     monkeypatch.setenv("LLM_PROVIDER", "null")
     monkeypatch.setenv("LLM_API_KEY", "super-secret-token")
     monkeypatch.setenv("RUN_LABEL", "local")
-    monkeypatch.setenv("LLM_BASE_URL", "https://unit.services.ai.azure.com/openai")
+    monkeypatch.delenv("AZURE_BASE_URL", raising=False)
+    monkeypatch.setenv("AZURE_BASE_URL", "https://unit.services.ai.azure.com/openai")
     with case_trace("C", "run-1", tmp_path) as tracer:
         with tracer.span("case"):
             pass

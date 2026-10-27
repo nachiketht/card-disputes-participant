@@ -41,6 +41,8 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID || vars.AZURE_SUBSCRIPTION_ID }}
       - name: unverified image update
         run: |
+          # The model host is Container App secret azure-base-url (env AZURE_BASE_URL).
+          # This job updates the image only. It does not pass that value.
           set -eu
           image="pod3disputes.azurecr.io/card-disputes:${GITHUB_SHA}"
           az acr login --name pod3disputes

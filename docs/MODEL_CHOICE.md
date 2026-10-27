@@ -11,7 +11,7 @@ Approach 3 asks the ranker first. The ranker is not Haiku 4.5. Its model name de
 | Item | Value |
 |---|---|
 | Model id | `claude-haiku-4-5` |
-| API style | Anthropic Messages. `LLM_API_STYLE=anthropic`. The host is the configured base in the environment. It is not written in this file. |
+| API style | Anthropic Messages. `LLM_API_STYLE=anthropic`. The host is `AZURE_BASE_URL` in `.env`. It is not written in this file. A model call fails when that variable is empty. |
 | Credential | `LLM_API_KEY` in `.env`, sent as `x-api-key`. Empty means no Haiku call. |
 | Ranker | `JEV_BASE_URL`, `JEV_API_KEY`, `JEV_MODEL`. Leave the url and the key empty until a host is chosen. |
 | Checklist judge | `dispute-copilot agent-review`, after the checklist passes, when `FEATURE_LLM_REVIEW=block` |
