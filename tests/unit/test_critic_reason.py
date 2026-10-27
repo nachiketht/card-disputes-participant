@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from dispute_copilot.llm.base import Completion, LLMError
-from dispute_copilot.review_flow.agent_review import format_reviewer_note, record_agent_review
+from dispute_copilot.review_flow.agent_review import format_reviewer_note, interpret_critic_text, record_agent_review
 from dispute_copilot.review_flow.handles import handle_path
 
 
@@ -184,6 +184,25 @@ def test_reviewer_note_without_a_judge_says_the_checklist_stands():
     note = format_reviewer_note(_draft(), {"llm_review": None})
     assert "No model reason. The checklist result still stands." in note
     assert "Verdict:" not in note
+
+
+def test_an_unusable_critic_reply_blocks():
+    verdict, reason = interpret_critic_text("not json")
+    assert verdict == "block"
+    assert reason == "The model reply was not usable."
+    ok = interpret_critic_text('{"verdict": "pass", "reason": "Citations are present. No outcome is promised."}')
+    assert ok == ("pass", "Citations are present. No outcome is promised.")
+
+
+def test_reviewer_note_with_empty_facts_prints_empty_amount():
+    draft = _draft()
+    draft["facts"] = "not a map"
+    note = format_reviewer_note(draft, {})
+    assert "Amount: empty" in note
+    draft = _draft()
+    draft["facts"]["amount"] = 12
+    draft["facts"]["currency"] = None
+    assert "Amount: 12" in format_reviewer_note(draft, {"llm_review": {}})
 
 
 def test_a_failed_checklist_is_not_passed_by_the_judge(tmp_path: Path, monkeypatch):

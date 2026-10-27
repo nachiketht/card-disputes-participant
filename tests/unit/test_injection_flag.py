@@ -151,7 +151,8 @@ def test_metrics_count_flagged_cases_without_reading_the_text():
     assert metrics["untrusted_instruction_cases"] == 1
 
 
-def test_the_review_note_names_the_pattern_and_the_checklist_still_passes(tmp_path):
+def test_the_review_note_names_the_pattern_and_the_checklist_still_passes(tmp_path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
     case_id = "ADV-NOTE"
     draft = _draft_case(case_id, "I do not recognize this purchase.", PHRASE, tmp_path)
     note = injection_note(case_id, draft, tmp_path)

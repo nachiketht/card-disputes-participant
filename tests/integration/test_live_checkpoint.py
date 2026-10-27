@@ -170,6 +170,7 @@ def test_a_down_mock_writes_no_file(tmp_path: Path):
 def _copilot(port: int, submissions: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["LLM_PROVIDER"] = "null"
+    env["FEATURE_LLM_REVIEW"] = "off"
     env["REPORTS_DIR"] = str(submissions.parent / "reports")
     return subprocess.run(
         [

@@ -1,7 +1,9 @@
 import json
+import logging
 
+from dispute_copilot.observability.logs import JsonFormatter, configure
 from dispute_copilot.observability.metrics import compute, evaluate_alerts, load_slo, percentile
-from dispute_copilot.observability.tracing import case_trace, current
+from dispute_copilot.observability.tracing import LOGGER, case_trace, current
 
 SECRET = "SYNTHETIC-" + "PRIVATE-X"
 
@@ -80,3 +82,17 @@ def test_percentile_nearest_rank():
     assert percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 0.95) == 10
     assert percentile([5], 0.95) == 5
     assert percentile([], 0.95) is None
+
+
+def test_json_logs_mask_restricted_text_and_can_write_stderr(capsys, tmp_path):
+    formatter = JsonFormatter()
+    record = logging.LogRecord("dispute_copilot", logging.INFO, __file__, 1, "card %s", ("4111111111111111",), None)
+    rendered = formatter.format(record)
+    assert "4111111111111111" not in rendered
+    try:
+        configure(None, to_stderr=True)
+        LOGGER.info("stderr-ping")
+        captured = capsys.readouterr()
+        assert "stderr-ping" in captured.err
+    finally:
+        configure(None)

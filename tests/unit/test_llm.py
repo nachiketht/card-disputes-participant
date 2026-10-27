@@ -15,6 +15,7 @@ from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.null import NullProvider
 from dispute_copilot.llm.factory import build_critic, build_drafter
 from dispute_copilot.llm.openai_compat import HAIKU_MODEL, OpenAIProvider, default_base_url, resolve_api_key
+from dispute_copilot.llm.prompts import PromptRegistry, allowed_variable_names
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.workflow import prepare
 
@@ -218,3 +219,214 @@ def test_model_prose_does_not_change_scored_fields():
         "We cannot confirm an outcome. No case has been created yet; human approval remains required."
     ) in draft["narrative"]
     assert scripted.calls == 0
+
+
+def test_template_provider_returns_the_fixed_customer_message():
+    provider = NullProvider()
+    assert provider.customer_message() == provider.complete(system="s", user="u").text
+    assert "cannot confirm an outcome" in provider.customer_message()
+
+
+def test_factory_uses_templates_when_the_key_is_missing(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "azure")
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("AZURE_BASE_URL", raising=False)
+    assert build_critic() is None
+    drafter = build_drafter()
+    assert drafter is not None
+    assert isinstance(drafter.primary, NullProvider)
+
+
+def test_timeout_env_falls_back_when_it_is_not_a_positive_number(monkeypatch):
+    from dispute_copilot.llm.factory import _timeout
+
+    monkeypatch.setenv("LLM_TIMEOUT_S", "not-a-number")
+    assert _timeout() == 30.0
+    monkeypatch.setenv("LLM_TIMEOUT_S", "-2")
+    assert _timeout() == 0.001
+
+
+def test_openai_style_reads_chat_completions():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url).endswith("/v1/chat/completions")
+        assert request.headers.get("authorization") == "Bearer test-key"
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": "Draft for human review: a person still has to review this."}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 4},
+            },
+        )
+
+    provider = OpenAIProvider(
+        base_url="https://unit.example",
+        model="gpt-test",
+        api_key="test-key",
+        style="openai",
+        transport=httpx.MockTransport(handler),
+    )
+    completion = provider.complete(system="system", user="user")
+    assert completion.tokens_in == 3
+    assert completion.tokens_out == 4
+    assert completion.text.startswith("Draft for human review:")
+
+
+def test_openai_provider_rejects_a_missing_key_or_model():
+    try:
+        OpenAIProvider(base_url="https://unit.example", model=HAIKU_MODEL, api_key="")
+    except LLMError:
+        pass
+    else:
+        raise AssertionError("an empty key was accepted")
+    try:
+        OpenAIProvider(base_url="https://unit.example", model="", api_key="k")
+    except LLMError:
+        pass
+    else:
+        raise AssertionError("an empty model id was accepted")
+
+
+def test_provider_timeout_and_bad_bodies_are_llm_errors():
+    def timeout(request: httpx.Request) -> httpx.Response:
+        del request
+        raise httpx.TimeoutException("slow")
+
+    def connect(request: httpx.Request) -> httpx.Response:
+        del request
+        raise httpx.ConnectError("down")
+
+    def not_json(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, text="not json")
+
+    def not_object(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, json=["x"])
+
+    def no_text(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, json={"content": []})
+
+    def string_content(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, json={"content": "plain reply"})
+
+    for handler in (timeout, connect, not_json, not_object, no_text):
+        provider = OpenAIProvider(
+            base_url="https://unit.example/anthropic",
+            model=HAIKU_MODEL,
+            api_key="test-key",
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            provider.complete(system="s", user="u")
+        except LLMError:
+            continue
+        raise AssertionError("a bad provider reply was accepted")
+
+    ok = OpenAIProvider(
+        base_url="https://unit.example/anthropic",
+        model=HAIKU_MODEL,
+        api_key="test-key",
+        transport=httpx.MockTransport(string_content),
+    )
+    assert ok.complete(system="s", user="u").text == "plain reply"
+
+
+def test_http_error_detail_uses_message_or_text():
+    def with_message(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(400, json={"message": "nope"})
+
+    def with_list(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(400, json=["x"])
+
+    def with_text(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(400, text="raw fail")
+
+    for handler, needle in ((with_message, "nope"), (with_list, "raw"), (with_text, "raw fail")):
+        provider = OpenAIProvider(
+            base_url="https://unit.example/anthropic",
+            model=HAIKU_MODEL,
+            api_key="test-key",
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            provider.complete(system="s", user="u")
+        except LLMError as exc:
+            assert needle in str(exc) or "400" in str(exc)
+            continue
+        raise AssertionError("an http error was treated as prose")
+
+
+def test_openai_style_rejects_empty_choices():
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, json={"choices": []})
+
+    provider = OpenAIProvider(
+        base_url="https://unit.example/v1",
+        model="gpt-test",
+        api_key="test-key",
+        style="openai",
+        transport=httpx.MockTransport(handler),
+    )
+    try:
+        provider.complete(system="s", user="u")
+    except LLMError:
+        return
+    raise AssertionError("empty choices were accepted")
+
+
+def test_drafter_retries_an_empty_completion_then_uses_templates():
+    class EmptyThenText:
+        calls = 0
+
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system, user
+            self.calls += 1
+            if self.calls == 1:
+                return Completion("  ", 1, 1, "fake")
+            return Completion("Draft for human review: please read this.", 1, 1, "fake")
+
+    first = Drafter(EmptyThenText(), NullProvider())
+    message = first.customer_message(_variables())
+    assert message.downgraded is False
+    assert message.text.startswith("Draft for human review:")
+
+    class AlwaysEmpty:
+        model = "fake"
+
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system, user
+            return Completion("", 1, 1, self.model)
+
+    second = Drafter(AlwaysEmpty(), NullProvider())
+    fallback = second.customer_message(_variables())
+    assert fallback.downgraded is True
+
+
+def test_prompt_registry_rejects_broken_pins_and_files(tmp_path: Path):
+    registry = PromptRegistry(root=tmp_path / "prompts", rules_path=tmp_path / "missing.yaml")
+    try:
+        registry.render("drafter", {"classification": "unauthorized"})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a missing pin file was accepted")
+    (tmp_path / "pins.yaml").write_text("drafter: true\n", encoding="utf-8")
+    registry = PromptRegistry(root=tmp_path / "prompts", rules_path=tmp_path / "pins.yaml")
+    try:
+        registry.render("drafter", {"classification": "unauthorized"})
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("a non-integer pin was accepted")
+    assert "classification" in allowed_variable_names()
+    try:
+        PromptRegistry()._reject_raw({"policy_id": 1})
+    except ValueError:
+        return
+    raise AssertionError("a non-string variable was accepted")

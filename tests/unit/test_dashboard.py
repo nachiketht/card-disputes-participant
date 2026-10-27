@@ -2,6 +2,8 @@
 
 import json
 import re
+import runpy
+import sys
 import threading
 import urllib.error
 import urllib.request
@@ -184,6 +186,20 @@ def test_server_binds_loopback_and_refuses_writes():
         server.server_close()
 
 
+def test_cli_help_and_module_entrypoint(monkeypatch: pytest.MonkeyPatch):
+    with pytest.raises(SystemExit) as caught:
+        main(["--help"])
+    assert caught.value.code == 0
+    monkeypatch.setattr(sys, "argv", ["dispute_copilot", "--help"])
+    with pytest.raises(SystemExit) as again:
+        runpy.run_module("dispute_copilot", run_name="__main__")
+    assert again.value.code == 0
+
+
+def test_cli_help_rejects_a_bad_case_id():
+    assert main(["run", "../CARD-D01"]) == 1
+
+
 def test_cli_export_and_rejected_host_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("REPORTS_DIR", str(tmp_path))
     dest = tmp_path / "nested" / "out.html"
@@ -222,7 +238,13 @@ def test_critic_call_records_tokens_without_a_price(tmp_path: Path):
 
         def complete(self, *, system: str, user: str) -> Completion:
             del system, user
-            return Completion("block", 120, 15, self.model)
+            body = json.dumps(
+                {
+                    "verdict": "block",
+                    "reason": "Citations are present. No outcome is promised.",
+                }
+            )
+            return Completion(body, 120, 15, self.model)
 
     with case_trace("C", "run-1", tmp_path, "agent-review") as tracer:
         _ask_critic({}, Critic())
