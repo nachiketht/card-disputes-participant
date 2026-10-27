@@ -19,11 +19,76 @@ from dispute_copilot.fields import (
 
 _ATM = re.compile(r"\batm\b")
 _TX_ID = re.compile(r"\bTX-[A-Za-z0-9-]+\b")
-_SERVICE_WORD = re.compile(r"\bservice\b")
-_UNSUPPORTED = ("cash withdrawal", "did not dispense", "didn't dispense")
-_RECOGNITION = ("do not recognize", "don't recognize", "did not authorize", "didn't authorize")
-_DUPLICATE = ("twice", "two charges", "extra charge")
-_SERVICE_GAP = ("not been delivered", "not delivered", "was not supplied")
+_SERVICE_WORD = re.compile(r"\b(?:service|delivery|order|goods|merchandise|item|shipment)\b")
+_UNSUPPORTED = (
+    "cash withdrawal",
+    "did not dispense",
+    "didn't dispense",
+    "cash not dispensed",
+    "did not dispense cash",
+    "didn't dispense cash",
+    "no cash came out",
+    "cash did not come out",
+    "cash didn't come out",
+    "cash was not released",
+    "no money was dispensed",
+    "withdrawal was not paid",
+    "failed to dispense cash",
+    "cash machine did not dispense",
+    "cashpoint did not dispense",
+)
+_RECOGNITION = (
+    "do not recognize",
+    "don't recognize",
+    "did not authorize",
+    "didn't authorize",
+    "do not recognise",
+    "don't recognise",
+    "not my purchase",
+    "not my transaction",
+    "did not make this purchase",
+    "didn't make this purchase",
+    "never authorized",
+    "never authorised",
+    "unauthorized charge",
+    "unauthorised charge",
+    "do not recall this charge",
+    "don't recall this charge",
+)
+_DUPLICATE = (
+    "twice",
+    "two charges",
+    "extra charge",
+    "charged twice",
+    "billed twice",
+    "posted twice",
+    "double charge",
+    "double charged",
+    "duplicate charge",
+    "second charge",
+    "charged me twice",
+    "same purchase twice",
+    "two times",
+    "duplicate transaction",
+    "billed me twice",
+)
+_SERVICE_GAP = (
+    "not been delivered",
+    "not delivered",
+    "was not supplied",
+    "not been supplied",
+    "was not delivered",
+    "wasn't delivered",
+    "never delivered",
+    "never supplied",
+    "wasn't supplied",
+    "have not received",
+    "haven't received",
+    "did not receive",
+    "didn't receive",
+    "never received",
+    "did not arrive",
+)
 ATTACHMENT_MISSING = "missing"
 _CUSTOMER_AUTH = frozenset({AUTH_CONFIRMED, AUTH_NOT_SUPPLIED})
 
