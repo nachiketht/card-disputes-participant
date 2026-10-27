@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decisions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/review.css">
+</head>
+<body>
+  <div class="app">
+    {% set section = "decisions" %}
+    {% include "sidebar.html" %}
+    <main>
+      {% if notice_text %}
+      <p class="banner{% if notice_warn %} warn{% endif %}" role="status">{{ notice_text }}</p>
+      {% endif %}
+      {% if not state_ready %}
+      <section class="empty">
+        <h2>No mock state</h2>
+        <p>Start the mock with <code>make mock</code>. This page uses the same state file.</p>
+      </section>
+      {% elif not reviews %}
+      <section class="empty">
+        <h2>Nothing pending</h2>
+        <p>Submit a draft for review from the case page. It will show up here.</p>
+      </section>
+      {% else %}
+      <section class="decision-list">
+        {% for item in reviews %}
+        <article class="decision-card {{ item.tone }}">
+          <header>
+            <p class="eyebrow {{ item.tone }}">{{ item.status_label }}</p>
+            <h2><a href="/cases/{{ item.case_id }}">{{ item.case_id }}</a></h2>
+            {% if item.reviewer %}
+            <p class="status"><span class="chip">{{ item.reviewer }}</span></p>
+            {% endif %}
+            <p class="ids-line"><span>Review</span> <code>{{ item.id }}</code></p>
+            <p class="ids-line hash-line"><span>Hash</span> <code>{{ item.hash_short }}</code></p>
+          </header>
+          {% if item.withheld %}
+          <p class="muted">This draft cannot be shown.</p>
+          {% elif item.message %}
+          <p class="message">{{ item.message }}</p>
+          {% endif %}
+          {% if item.pending %}
+          <form class="decision-form" method="post" action="/decisions/{{ item.id }}/accept">
+            <label>Your name <input name="reviewer" autocomplete="name" required></label>
+            <button class="primary" type="submit">Accept</button>
+            <button class="danger" type="submit" formaction="/decisions/{{ item.id }}/decline">Decline</button>
+          </form>
+          {% elif item.status == "approved" %}
+          <form class="decision-form" method="post" action="/decisions/{{ item.case_id }}/record">
+            <button class="primary" type="submit">Create record</button>
+          </form>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </section>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

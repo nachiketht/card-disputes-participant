@@ -6,6 +6,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
+COPY UI ./UI
 COPY tools ./tools
 COPY config ./config
 COPY prompts ./prompts

@@ -1,4 +1,27 @@
 {
-  "review_id": "rev_5abb52eb8ee2",
-  "draft_hash": "9582b5f2cf8535b1f7f0b62b4aa43c083c9d5d879eb7163a1c6c4f0b46228269"
+  "review_id": "rev_c7115f2a488b",
+  "draft_hash": "dad22cad793c922ccdb34e43743c52b24be34723fae2ce1fafcdd5700b914f0b",
+  "agent_approval": {
+    "case_id": "CARD-D01",
+    "draft_version": 4,
+    "draft_hash": "dad22cad793c922ccdb34e43743c52b24be34723fae2ce1fafcdd5700b914f0b",
+    "passed": true,
+    "checks": {
+      "contract_valid": true,
+      "redaction_clean": true,
+      "commitment_guard": true,
+      "citations_present": true,
+      "narrative_marked_draft": true,
+      "llm_critic": true
+    },
+    "run_id": "97d056ed10a54b81915fdfbdc3f43ece",
+    "llm_review": {
+      "mode": "block",
+      "verdict": "pass",
+      "reason": "The unauthorized complaint for transaction TX-D01 (117 XCR, reported 2026-10-01, Morrow Supplies) is routed ready_for_review with deadline 2026-10-31 and no missing required fields. The customer message appropriately avoids promising an outcome and correctly states that human approval remains required. The reviewer still has to read the draft and make the final determination."
+    },
+    "contract_version": "1.0",
+    "injection_note": null
+  },
+  "draft_version": 4
 }

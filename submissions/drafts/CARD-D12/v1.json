@@ -1,0 +1,93 @@
+{
+  "case_id": "CARD-D12",
+  "classification": "service_not_received",
+  "routing": "request_information",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-D12",
+    "amount": 304,
+    "currency": "XCR",
+    "reported_date": "2026-10-04"
+  },
+  "missing_information": [
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "deadline": "2026-12-03",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Service deadline days: 60"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D12-INTAKE",
+      "quote": "I paid Morrow Supplies 304 crowns for a service. It has not been delivered. I want to understand what information you need."
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D12-INTAKE",
+      "quote": "Reported date: 2026-10-04"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D12-INTAKE",
+      "quote": "Transaction ID: TX-D12"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "If no promised date is supplied, request promised_service_date. If no purchase receipt is supplied,"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-D12-INTAKE",
+      "quote": "Promised service date: not supplied"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "request purchase_receipt. Required fields absent for the chosen type must all be requested."
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-D12-INTAKE",
+      "quote": "Purchase receipt: not supplied"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-D12-TRANSACTIONS",
+      "quote": "\"amount\": 304"
+    }
+  ],
+  "follow_up_questions": [
+    {
+      "field": "promised_service_date",
+      "question": "What date was this service promised to you?"
+    },
+    {
+      "field": "purchase_receipt",
+      "question": "Please provide the purchase receipt for this service."
+    }
+  ],
+  "narrative": "Case summary: service_not_received complaint for TX-D12, reported 2026-10-04. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: promised_service_date, purchase_receipt. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-12-03. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

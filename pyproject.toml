@@ -29,8 +29,8 @@ build-backend = "hatchling.build"
 package = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/dispute_copilot"]
+packages = ["src/dispute_copilot", "UI"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]

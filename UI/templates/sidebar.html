@@ -1,0 +1,23 @@
+<aside>
+  <div class="rail-brand">
+    <p class="brand">Lumen Bank</p>
+    <h1>Review</h1>
+  </div>
+  <nav class="rail-links" aria-label="Sections">
+    <a class="{% if section == 'drafts' %}current{% endif %}" href="/"><span>Drafts</span></a>
+    <a class="{% if section == 'decisions' %}current{% endif %}" href="/decisions"><span>Decisions</span></a>
+  </nav>
+  <div class="rail-cases">
+    <p class="rail-label">Cases <span>{{ cases | length }}</span></p>
+    <nav aria-label="Cases">
+      {% for item in cases %}
+      <a class="{% if item.id == selected %}current{% endif %}" href="/cases/{{ item.id }}">
+        <span>{{ item.id }}</span>
+        {% if item.type_value %}<small>{{ item.type_value }}</small>{% endif %}
+      </a>
+      {% else %}
+      <p class="aside-empty">No drafts yet.</p>
+      {% endfor %}
+    </nav>
+  </div>
+</aside>

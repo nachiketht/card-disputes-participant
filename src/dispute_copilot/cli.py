@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     label = getattr(args, "label", None)
     if isinstance(label, str) and label.strip():
         os.environ["RUN_LABEL"] = label.strip()[:64]
-    if args.command not in {"run-all", "metrics", "dashboard", "evals"} and not isinstance(case_id, str):
+    if args.command not in {"run-all", "metrics", "dashboard", "evals", "review-page"} and not isinstance(case_id, str):
         print("case id is required", file=sys.stderr)
         return 1
     if not _safe_case(case_id if isinstance(case_id, str) else None):
@@ -81,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
             print(str(exc), file=sys.stderr)
             return 1
         try:
+            if args.command == "review-page":
+                return _serve_review_page(settings, ledger, corpus, tools, getattr(args, "state", None))
             drafter = build_drafter()
             if args.command == "run":
                 return _run_one(case_id, settings, corpus, tools, ledger, drafter, run_id)
@@ -97,6 +99,30 @@ def main(argv: list[str] | None = None) -> int:
         except (OutsideCheckpoint, ToolFailed, CopilotError, CreateRejected) as exc:
             print(str(exc), file=sys.stderr)
             return 2
+
+
+def _serve_review_page(
+    settings: Settings,
+    ledger: HttpCaseSystem,
+    corpus: FileCorpus,
+    tools: HttpToolClient,
+    state: Path | None,
+) -> int:
+    import uvicorn
+
+    root = Path(__file__).resolve().parents[2]
+    if (root / "UI" / "review_page.py").is_file() and str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from UI.review_page import create_app
+
+    if state is None:
+        state = Path(".state") / "run.sqlite"
+    uvicorn.run(
+        create_app(settings.submissions_dir, ledger, corpus, tools, state_path=state),
+        host="127.0.0.1",
+        port=8080,
+    )
+    return 0
 
 
 def _review_command(command: str, case_id: str, settings: Settings, ledger: HttpCaseSystem) -> int:
@@ -297,6 +323,8 @@ def _parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run", parents=[common])
     run.add_argument("case", metavar="CASE")
     commands.add_parser("run-all", parents=[common])
+    page = commands.add_parser("review-page", parents=[common])
+    page.add_argument("--state", type=Path, default=None, help="mock state file; default .state/run.sqlite")
     review = commands.add_parser("agent-review", parents=[common])
     review.add_argument("case", metavar="CASE")
     submit = commands.add_parser("submit-review", parents=[common])
