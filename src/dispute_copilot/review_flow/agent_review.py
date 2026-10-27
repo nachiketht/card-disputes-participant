@@ -165,6 +165,7 @@ def record_agent_review(
     *,
     critic=None,
     trace_dir: Path | None = None,
+    judge_skip: str | None = None,
 ) -> dict:
     checks = checklist(draft)
     if checks.get("commitment_guard") is False:
@@ -176,10 +177,15 @@ def record_agent_review(
     noted = injection_note(case_id, draft, trace_dir)
     mode = os.environ.get("FEATURE_LLM_REVIEW", "off").strip().lower()
     llm_review = None
-    if mode == "block" and all(checks.values()):
+    if judge_skip:
+        llm_review = {"mode": "skipped", "verdict": "skipped", "reason": judge_skip}
+    elif mode == "block" and all(checks.values()):
         verdict, reason = _ask_critic(draft, critic)
-        checks = apply_critic(checks, verdict=verdict, errored=False)
-        llm_review = {"mode": mode, "verdict": verdict, "reason": reason}
+        if verdict == "skipped":
+            llm_review = {"mode": "skipped", "verdict": "skipped", "reason": reason}
+        else:
+            checks = apply_critic(checks, verdict=verdict, errored=False)
+            llm_review = {"mode": mode, "verdict": verdict, "reason": reason}
     approval = {
         CASE_ID: case_id,
         "draft_version": version,
@@ -214,7 +220,9 @@ def _ask_critic(draft: dict, critic) -> tuple[str, str]:
         with current().span("model.call") as span:
             completion = critic.complete(system=system, user=user)
             note_model_span(span, completion)
-    except (LLMError, OSError, ValueError, TypeError):
+    except (LLMError, OSError):
+        return "skipped", "The judge step was skipped because the model call failed."
+    except (ValueError, TypeError):
         return "block", UNUSABLE_REASON
     text = completion.text if isinstance(getattr(completion, "text", None), str) else ""
     return interpret_critic_text(text)

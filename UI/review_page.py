@@ -48,6 +48,7 @@ from dispute_copilot.fields import (
 )
 from dispute_copilot.rules.documents import complaint_text
 from dispute_copilot.review_flow import create_record, submit_review
+from dispute_copilot.llm.base import LLMError
 from dispute_copilot.review_flow.agent_review import record_agent_review
 from dispute_copilot.review_flow.handles import handle_path, read_handle
 from dispute_copilot.storage import latest_draft, write_draft
@@ -82,6 +83,22 @@ _NOTICES = {
     "feedback": "Feedback was saved. It does not accept or decline the review.",
     "feedback_name": "A reviewer name is required.",
     "feedback_category": "Choose the correct category.",
+    "judge_url": (
+        "The judge step was skipped because AZURE_BASE_URL is empty. "
+        "The checklist was saved. This note does not accept the case."
+    ),
+    "judge_key": (
+        "The judge step was skipped because LLM_API_KEY is empty. "
+        "The checklist was saved. This note does not accept the case."
+    ),
+    "judge_model": (
+        "The judge step was skipped because the model call failed. "
+        "The checklist was saved. This note does not accept the case."
+    ),
+    "judge_client": (
+        "The judge step was skipped because no model client is configured. "
+        "The checklist was saved. This note does not accept the case."
+    ),
 }
 _WARNINGS = {"agent_approval_required", "approval_gate", "refused", "feedback_name", "feedback_category"}
 _DECISION_NOTICES = {
@@ -164,12 +181,18 @@ def create_app(
         except FileNotFoundError:
             return HTMLResponse("No draft has been written for this case.", status_code=404)
         critic = None
+        judge_skip = None
         if os.environ.get("FEATURE_LLM_REVIEW", "off").strip().lower() == "block":
-            from dispute_copilot.llm.factory import build_critic
-
-            critic = build_critic()
-        record_agent_review(submissions, case_id, draft, version, critic=critic)
-        return _redirect(case_id, "checked")
+            critic, judge_skip = _judge_for_check()
+        approval = record_agent_review(
+            submissions,
+            case_id,
+            draft,
+            version,
+            critic=critic,
+            judge_skip=judge_skip,
+        )
+        return _redirect(case_id, _check_notice(approval, judge_skip))
 
     @app.post("/cases/{case_id}/submit", response_model=None)
     def submit_case(case_id: str) -> HTMLResponse | RedirectResponse:
@@ -593,6 +616,40 @@ def _refuse_case(case_id: str) -> HTMLResponse | None:
     if _safe_case(case_id):
         return None
     return HTMLResponse("This case cannot be opened.", status_code=404)
+
+
+def _judge_for_check() -> tuple[object | None, str | None]:
+    """A critic when the judge can run. Otherwise a skip sentence and no client."""
+    from dispute_copilot.llm.factory import build_critic
+    from dispute_copilot.llm.openai_compat import resolve_api_key
+
+    if not resolve_api_key():
+        return None, _NOTICES["judge_key"]
+    if not os.environ.get("AZURE_BASE_URL", "").strip():
+        return None, _NOTICES["judge_url"]
+    try:
+        critic = build_critic()
+    except LLMError:
+        return None, _NOTICES["judge_model"]
+    if critic is None:
+        return None, _NOTICES["judge_client"]
+    return critic, None
+
+
+def _check_notice(approval: dict, judge_skip: str | None) -> str:
+    review = approval.get("llm_review")
+    reason = judge_skip or ""
+    if isinstance(review, dict) and review.get("mode") == "skipped":
+        reason = str(review.get("reason") or reason)
+    if not reason:
+        return "checked"
+    if "AZURE_BASE_URL" in reason:
+        return "judge_url"
+    if "LLM_API_KEY" in reason:
+        return "judge_key"
+    if "model call failed" in reason:
+        return "judge_model"
+    return "judge_client"
 
 
 def _notice_code(exc: CreateRejected) -> str:

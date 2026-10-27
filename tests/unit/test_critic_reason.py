@@ -120,15 +120,14 @@ def test_a_missing_or_long_or_bad_reply_blocks_with_the_unusable_note(tmp_path: 
         assert approval["llm_review"]["reason"] == "The model reply was not usable."
 
 
-def test_a_provider_error_blocks_with_the_unusable_note(tmp_path: Path, monkeypatch):
+def test_a_provider_error_skips_the_judge_and_keeps_the_checklist(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("FEATURE_LLM_REVIEW", "block")
     approval = record_agent_review(tmp_path, "CARD-D01", _draft(), 1, critic=_Raising())
-    assert approval["passed"] is False
-    assert approval["llm_review"] == {
-        "mode": "block",
-        "verdict": "block",
-        "reason": "The model reply was not usable.",
-    }
+    assert approval["passed"] is True
+    assert approval["checks"]["contract_valid"] is True
+    assert "llm_critic" not in approval["checks"]
+    assert approval["llm_review"]["mode"] == "skipped"
+    assert approval["llm_review"]["reason"] == "The judge step was skipped because the model call failed."
 
 
 def test_the_judge_is_not_called_when_the_feature_is_off(tmp_path: Path, monkeypatch):
