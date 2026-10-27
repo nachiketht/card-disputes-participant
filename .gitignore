@@ -8,10 +8,14 @@
 # Submission write lock
 submissions/.write.lock
 
-# Generated evaluation and runtime artifacts. Summary reports stay committable.
+# Generated evaluation and runtime artifacts.
+# Drafts, reviews, submissions/results.json, reports/dev.json, and reports/audit.json stay tracked.
 reports/traces/
 reports/logs/
 reports/evals.json
+reports/classification/
+reports/metrics.json
+submissions/classification/
 
 # Secrets and local environment
 .env
