@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from dispute_copilot.classifiers.haiku import call_model
 from dispute_copilot.llm.base import Completion, LLMError
 from dispute_copilot.llm.schema import ClassifierReply, CriticReply, complete_json
+from dispute_copilot.observability.tracing import case_trace
 
 
 class Box(BaseModel):
@@ -115,3 +116,54 @@ def test_call_model_retries_once_on_invalid_json():
     assert reply["class"] == "unauthorized"
     assert reply["tokens_in"] == 4
     assert reply["tokens_out"] == 6
+
+
+def _evidence_events(tracer) -> list[dict]:
+    return [row for row in tracer.records if row["name"] == "model.evidence_check"]
+
+
+def test_a_matching_quote_is_recorded_on_the_trace():
+    complaint = "I do not recognize this purchase."
+    quote = "I do not recognize this purchase."
+    valid = json.dumps(
+        {
+            "class": "unauthorized",
+            "reason": "The customer does not recognize the purchase.",
+            "evidence": quote,
+        }
+    )
+    with case_trace("CARD-D04", "run-1", None) as tracer:
+        reply = call_model(_Turns(valid), complaint)
+    events = _evidence_events(tracer)
+    assert reply["accepted"] is True
+    assert len(events) == 1
+    assert events[0]["attrs"] == {
+        "accepted": True,
+        "chosen": "unauthorized",
+        "evidence_ok": True,
+        "unclear": False,
+        "unusable": False,
+    }
+    dumped = json.dumps(tracer.records)
+    assert quote not in dumped
+    assert "does not recognize the purchase" not in dumped
+
+
+def test_a_missing_quote_is_recorded_as_not_ok():
+    complaint = "I do not recognize this purchase."
+    valid = json.dumps(
+        {
+            "class": "unauthorized",
+            "reason": "The customer does not recognize the purchase.",
+            "evidence": "this quote is not in the complaint",
+        }
+    )
+    with case_trace("CARD-D04", "run-1", None) as tracer:
+        reply = call_model(_Turns(valid), complaint)
+    events = _evidence_events(tracer)
+    assert reply["accepted"] is False
+    assert events[0]["attrs"]["evidence_ok"] is False
+    assert events[0]["attrs"]["accepted"] is False
+    assert events[0]["attrs"]["unusable"] is False
+    assert events[0]["attrs"]["chosen"] == "unauthorized"
+    assert "this quote is not in the complaint" not in json.dumps(tracer.records)

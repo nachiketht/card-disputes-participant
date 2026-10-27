@@ -9,6 +9,7 @@ from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.llm.schema import ClassifierReply, complete_json, parse_model
 from dispute_copilot.observability.cost import price_call
+from dispute_copilot.observability.tracing import current
 
 UNCLEAR = "multiple_or_unclear"
 
@@ -85,6 +86,7 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
     }
     if parsed is None or rejects(parsed["reason"]):
         base["unusable"] = True
+        _trace_evidence(base)
         return base
     found = quote_found(parsed["evidence"], complaint)
     chosen = known_class(parsed["class"])
@@ -94,13 +96,28 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
     if parsed["class"] == UNCLEAR:
         base["unclear"] = True
         base["class"] = UNCLEAR
+        _trace_evidence(base)
         return base
     if chosen is None or not found:
         base["class"] = chosen.value if chosen is not None else None
+        _trace_evidence(base)
         return base
     base["class"] = chosen.value
     base["accepted"] = True
+    _trace_evidence(base)
     return base
+
+
+def _trace_evidence(base: dict) -> None:
+    """Record the quote check. The quote itself is not written."""
+    current().event(
+        "model.evidence_check",
+        evidence_ok=base["evidence_ok"],
+        accepted=base["accepted"],
+        unusable=base["unusable"],
+        unclear=base["unclear"],
+        chosen=base["class"],
+    )
 
 
 def _failed(started: float, _detail: str) -> dict:
