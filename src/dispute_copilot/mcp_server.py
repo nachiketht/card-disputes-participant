@@ -195,21 +195,55 @@ def _clients():
         yield settings, corpus, remote, ledger, drafter
 
 
-def run_case(case_id: object) -> dict:
+def run_case(case_id: object, approach: str | None = None, shadow: bool = False) -> dict:
+    chosen = _approach_arg(approach)
+
     def work(safe_id: str) -> dict:
         with _clients() as (settings, corpus, remote, ledger, drafter):
-            draft, path = _traced_case(safe_id, settings, corpus, remote, ledger, drafter, new_run_id())
+            draft, path = _traced_case(
+                safe_id,
+                settings,
+                corpus,
+                remote,
+                ledger,
+                drafter,
+                new_run_id(),
+                approach=chosen,
+                shadow=bool(shadow),
+            )
         return _summary(draft, path)
 
     return _tool_call("run_case", case_id, work)
 
 
-def run_all() -> dict:
+def run_all(approach: str | None = None, shadow: bool = False) -> dict:
+    chosen = _approach_arg(approach)
+
     def work(_name: str) -> dict:
         with _clients() as (settings, corpus, remote, ledger, drafter):
-            return run_all_report(settings, corpus, remote, ledger, drafter, new_run_id())
+            return run_all_report(
+                settings,
+                corpus,
+                remote,
+                ledger,
+                drafter,
+                new_run_id(),
+                approach=chosen,
+                shadow=bool(shadow),
+            )
 
     return _tool_call("run_all", None, work)
+
+
+def _approach_arg(approach: str | None) -> str | None:
+    if approach is None or str(approach).strip() == "":
+        return None
+    from dispute_copilot.classifiers.config import selected_approach
+
+    try:
+        return selected_approach(str(approach))
+    except ValueError as exc:
+        raise CallFailed("rejected", "approach must be 1, 2, 3, or ab") from exc
 
 
 def get_draft(case_id: object) -> dict:

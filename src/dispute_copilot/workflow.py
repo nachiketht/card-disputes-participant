@@ -8,6 +8,7 @@ every loaded policy still stops the case.
 
 import json
 from datetime import date
+from pathlib import Path
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
@@ -40,6 +41,12 @@ from dispute_copilot.fields import (
     Routing,
 )
 from dispute_copilot.retrieval.policy import PolicyResolver, PolicySelection, deadline_line
+from dispute_copilot.classifiers.audit import write_applied, write_assignment, write_audit
+from dispute_copilot.classifiers.assign import assign_approach
+from dispute_copilot.classifiers.config import load_settings, selected_approach
+from dispute_copilot.classifiers.engine import run_approach
+from dispute_copilot.classifiers.guard import apply_duplicate_guard
+from dispute_copilot.classifiers.jev import build_jev
 from dispute_copilot.rules.classify import ATTACHMENT_MISSING, Decision, classify
 from dispute_copilot.rules.deadline import add_calendar_days
 from dispute_copilot.rules.documents import line_starting, parse_attachment, parse_followup, parse_intake
@@ -81,6 +88,12 @@ def prepare(
     case_system: Ledger,
     case: dict | None = None,
     drafter: Drafter | None = None,
+    approach: str | None = None,
+    shadow: bool = False,
+    submissions_dir: Path | None = None,
+    reports_dir: Path | None = None,
+    model_client=None,
+    jev_client=None,
 ) -> dict:
     tracer = current()
     if case is None:
@@ -130,6 +143,24 @@ def prepare(
             f"{case_id} reported date {reported.isoformat()} is outside every loaded policy. Nothing was written."
         )
     named, amount, currency, transactions_unavailable = _named_facts(transactions, transaction_id, transactions_down)
+    decision = _apply_approaches(
+        case_id,
+        decision,
+        complaint=intake["complaint"],
+        authorization=intake["authorization"],
+        promised=intake.get(MissingId.PROMISED_SERVICE_DATE.value),
+        receipt=intake.get(MissingId.PURCHASE_RECEIPT.value),
+        attachment_status=attachment_status,
+        transactions=transactions,
+        transactions_unavailable=transactions_unavailable,
+        approach=approach,
+        shadow=shadow,
+        submissions_dir=submissions_dir,
+        reports_dir=reports_dir,
+        model_client=model_client,
+        jev_client=jev_client,
+    )
+    decision, _withdrawn = apply_duplicate_guard(decision, transactions, transactions_unavailable)
     with tracer.span("rules.routing") as span:
         routing = choose_routing(decision.classification, decision.missing, transactions_unavailable)
         deadline = _deadline(case_id, decision, selection, reported)
@@ -212,6 +243,144 @@ def prepare(
             record("output", reason="redaction")
             raise
     return draft
+
+
+def _apply_approaches(
+    case_id: str,
+    rules: Decision,
+    *,
+    complaint: str,
+    authorization: str,
+    promised: str | None,
+    receipt: str | None,
+    attachment_status: str | None,
+    transactions: dict | None,
+    transactions_unavailable: bool,
+    approach: str | None,
+    shadow: bool,
+    submissions_dir: Path | None,
+    reports_dir: Path | None,
+    model_client,
+    jev_client,
+) -> Decision:
+    """Pick an approach. Shadow runs write records and do not change the draft."""
+    settings = load_settings()
+    requested = selected_approach(approach)
+    chosen = assign_approach(case_id, settings) if requested == "ab" else requested
+    if requested == "ab" and submissions_dir is not None:
+        write_assignment(submissions_dir, case_id, chosen)
+    names = [chosen]
+    if shadow:
+        names.extend(name for name in ("1", "2", "3") if name != chosen)
+    primary = None
+    for name in names:
+        model, jev = _callers(name, model_client, jev_client, settings)
+        outcome = run_approach(
+            approach=name,
+            rules=rules,
+            complaint=complaint,
+            authorization=authorization,
+            promised_service_date=promised,
+            purchase_receipt=receipt,
+            attachment_status=attachment_status,
+            transactions=transactions,
+            transactions_unavailable=transactions_unavailable,
+            model=model,
+            jev=jev,
+            jev_threshold=settings.jev_threshold,
+        )
+        if submissions_dir is not None or reports_dir is not None:
+            write_audit(
+                case_id=case_id,
+                approach=name,
+                outcome=outcome,
+                submissions_dir=submissions_dir,
+                reports_dir=reports_dir,
+                complaint=complaint,
+            )
+        if name == chosen:
+            primary = outcome
+            if submissions_dir is not None:
+                write_applied(submissions_dir, case_id, outcome)
+    if primary is None:
+        return rules
+    return primary.decision
+
+
+def compare_approaches(
+    case_id: str,
+    *,
+    corpus: Corpus,
+    tools: Tools,
+    case: dict | None = None,
+    approaches: tuple[str, ...] = ("1", "2", "3"),
+    submissions_dir: Path | None = None,
+    reports_dir: Path | None = None,
+) -> list[dict]:
+    """Run each approach on one fetched payload. No draft is written."""
+    if case is None:
+        case = _find_case(tools.list_cases(), case_id)
+    _require_case_shape(case_id, case)
+    intake_id = str(case["intake_source"])
+    intake = parse_intake(_document(corpus, case_id, intake_id))
+    followups = _followups(corpus, case_id, case, intake_id)
+    attachment_status = _attachment_status(corpus, case_id, case)
+    rules = classify(
+        intake["complaint"],
+        intake["authorization"],
+        [item[1] for item in followups],
+        intake.get(MissingId.PROMISED_SERVICE_DATE.value),
+        intake.get(MissingId.PURCHASE_RECEIPT.value),
+        attachment_status,
+    )
+    transaction_id = intake.get(FACT_TRANSACTION_ID)
+    if not isinstance(transaction_id, str) or not transaction_id:
+        raise OutsideCheckpoint(f"{case_id} intake has no transaction id")
+    transactions, _attempts, transactions_down, _skipped = _transactions(tools, case_id)
+    _named, _amount, _currency, transactions_unavailable = _named_facts(transactions, transaction_id, transactions_down)
+    settings = load_settings()
+    rows = []
+    for name in approaches:
+        if name not in {"1", "2", "3"}:
+            raise ValueError("approach must be 1, 2, or 3")
+        model, jev = _callers(name, None, None, settings)
+        outcome = run_approach(
+            approach=name,
+            rules=rules,
+            complaint=intake["complaint"],
+            authorization=intake["authorization"],
+            promised_service_date=intake.get(MissingId.PROMISED_SERVICE_DATE.value),
+            purchase_receipt=intake.get(MissingId.PURCHASE_RECEIPT.value),
+            attachment_status=attachment_status,
+            transactions=transactions,
+            transactions_unavailable=transactions_unavailable,
+            model=model,
+            jev=jev,
+            jev_threshold=settings.jev_threshold,
+        )
+        rows.append(
+            write_audit(
+                case_id=case_id,
+                approach=name,
+                outcome=outcome,
+                submissions_dir=submissions_dir,
+                reports_dir=reports_dir,
+                complaint=intake["complaint"],
+            )
+        )
+    return rows
+
+
+def _callers(name: str, model_client, jev_client, settings):
+    model = model_client
+    jev = jev_client if name == "3" else None
+    if name in {"2", "3"} and model is None:
+        from dispute_copilot.llm.factory import build_critic
+
+        model = build_critic()
+    if name == "3" and jev is None:
+        jev = build_jev(settings)
+    return model, jev
 
 
 def _flag_untrusted(source_id: str, text: object, flags: list[str] | None = None) -> None:

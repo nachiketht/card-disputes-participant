@@ -47,6 +47,16 @@ In another terminal, retrieve `GET /health` and `GET /v1/cases`. Read `data/dev/
 
 `data/dev/dataset.json` is the mock's backing fixture, not a substitute for calling tools. Directly reading it from the copilot bypasses the integration exercise. The assessor will use new fixtures and observe requests. Fault controls must not be read by the solution.
 
+## Classification
+
+Approach 1 is the rules and is the default. `--approach 2` asks the configured model after the rules, on the cases the rules leave open. `--approach 3` asks the ranker first and the configured model only when the two answers differ. `--approach ab` assigns a case from a seeded hash. `dispute-copilot compare` and `make compare` run the three approaches on one fetched transaction list.
+
+A duplicate stands only when those transactions contain two charges with the same merchant id, amount, and currency. Otherwise the class does not stand and the case goes to manual review. If the transaction read is unavailable, the class stays and the existing unavailable route applies.
+
+When the final class is unauthorized and the labeled authorization was not supplied, the missing fields include authorization confirmation, whether the rules chose it, a ranker agreed, or a model assigned it. A labeled denial does not add that field. A service class with authorization not supplied still lists authorization confirmation first.
+
+On approach 2 and approach 3, a model class is checked against the labeled authorization before it is kept. Unauthorized is kept only when that label is not supplied or denied. A confirmed label contradicts an unauthorized proposal, so the class does not stand and the case goes to manual review. Duplicate and service are kept only when the label is confirmed or not supplied. A denied label is not eligible for a model, and a proposal other than unauthorized with that label is a hard failure.
+
 ## Evaluate development outputs
 
 Emit a JSON array following `docs/OUTPUT_CONTRACT.md`, then run:

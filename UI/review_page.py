@@ -6,8 +6,10 @@ A person accepts or declines a pending review on the decisions page. That
 page writes the mock state file and leaves the stored draft hash unchanged.
 """
 
+import json
 import os
 import sqlite3
+from html import escape
 from pathlib import Path
 from urllib.parse import parse_qs, quote
 
@@ -41,8 +43,10 @@ from dispute_copilot.fields import (
     QUESTION_FIELD,
     QUESTION_TEXT,
     ROUTING,
+    Classification,
     Routing,
 )
+from dispute_copilot.rules.documents import complaint_text
 from dispute_copilot.review_flow import create_record, submit_review
 from dispute_copilot.review_flow.agent_review import record_agent_review
 from dispute_copilot.review_flow.handles import handle_path, read_handle
@@ -75,8 +79,11 @@ _NOTICES = {
     "agent_approval_required": "Submit for review was refused: agent_approval_required.",
     "approval_gate": "Create record was refused: approval_gate.",
     "refused": "The action was refused.",
+    "feedback": "Feedback was saved. It does not accept or decline the review.",
+    "feedback_name": "A reviewer name is required.",
+    "feedback_category": "Choose the correct category.",
 }
-_WARNINGS = {"agent_approval_required", "approval_gate", "refused"}
+_WARNINGS = {"agent_approval_required", "approval_gate", "refused", "feedback_name", "feedback_category"}
 _DECISION_NOTICES = {
     "accepted": "Accepted. Create the record on this page when you are ready.",
     "declined": "Declined. A record will not be created from this review.",
@@ -97,6 +104,7 @@ def create_app(
     corpus: FileCorpus | None = None,
     tools: HttpToolClient | FakeToolClient | None = None,
     state_path: Path | None = None,
+    reports_dir: Path | None = None,
 ) -> FastAPI:
     """Serve the review screen for one submissions folder and one ledger client.
 
@@ -115,7 +123,7 @@ def create_app(
         _sync()
         cases = list_cases(submissions)
         if not cases:
-            return _render(submissions, case_system, None, None)
+            return _render(submissions, case_system, None, None, corpus, tools)
         return RedirectResponse(f"/cases/{quote(str(cases[0]['id']))}", status_code=303)
 
     @app.get("/draft-ids", response_model=None)
@@ -128,7 +136,23 @@ def create_app(
         if not _safe_case(case_id):
             return HTMLResponse("This case cannot be opened.", status_code=404)
         _sync()
-        return _render(submissions, case_system, case_id, notice)
+        return _render(submissions, case_system, case_id, notice, corpus, tools)
+
+    @app.get("/cases/{case_id}/model-note", response_model=None)
+    def model_note(case_id: str) -> JSONResponse:
+        if not _safe_case(case_id):
+            return JSONResponse({"error": "not_found"}, status_code=404)
+        return JSONResponse(_model_note(submissions, case_id))
+
+    @app.post("/cases/{case_id}/feedback", response_model=None)
+    async def save_feedback(case_id: str, request: Request) -> HTMLResponse | RedirectResponse:
+        refused = _refuse_case(case_id)
+        if refused is not None:
+            return refused
+        raw = await request.body()
+        parsed = parse_qs(raw.decode("utf-8", errors="replace"), keep_blank_values=True)
+        notice = _store_feedback(submissions, reports_dir, case_id, parsed)
+        return _redirect(case_id, notice)
 
     @app.post("/cases/{case_id}/check", response_model=None)
     def check_case(case_id: str) -> HTMLResponse | RedirectResponse:
@@ -298,12 +322,24 @@ def list_cases(submissions: Path) -> list[dict]:
     return rows
 
 
-def _render(submissions: Path, case_system: Ledger, case_id: str | None, notice: str | None) -> HTMLResponse:
+def _render(
+    submissions: Path,
+    case_system: Ledger,
+    case_id: str | None,
+    notice: str | None,
+    corpus: FileCorpus | None = None,
+    tools: HttpToolClient | FakeToolClient | None = None,
+) -> HTMLResponse:
     context = _context(submissions, case_system, case_id, notice)
+    complaint = _complaint_text(corpus, tools, case_id)
+    slot = "<!-- complaint-slot -->"
+    context["complaint_slot"] = slot
+    context["categories"] = [item.value for item in Classification]
     html = TEMPLATES.get_template("review.html").render(context)
-    if Redactor().contains_restricted(html):
+    page = html.replace(slot, escape(complaint), 1)
+    if Redactor().contains_restricted(page):
         return HTMLResponse(_REFUSED, status_code=403)
-    return HTMLResponse(html)
+    return HTMLResponse(page)
 
 
 def _context(submissions: Path, case_system: Ledger, case_id: str | None, notice: str | None) -> dict:
@@ -568,3 +604,81 @@ def _notice_code(exc: CreateRejected) -> str:
 
 def _redirect(case_id: str, notice: str) -> RedirectResponse:
     return RedirectResponse(url=f"/cases/{quote(case_id)}?notice={quote(notice)}", status_code=303)
+
+
+def _complaint_text(
+    corpus: FileCorpus | None,
+    tools: HttpToolClient | FakeToolClient | None,
+    case_id: str | None,
+) -> str:
+    """Customer complaint for the open case. Empty when the intake is not loaded."""
+    if corpus is None or tools is None or not case_id:
+        return ""
+    try:
+        cases = tools.list_cases()
+    except (MockUnavailable, OSError, TypeError, ValueError):
+        return ""
+    intake_id = ""
+    for case in cases:
+        if isinstance(case, dict) and case.get(CASE_ID) == case_id:
+            source = case.get("intake_source")
+            intake_id = source if isinstance(source, str) else ""
+            break
+    if not intake_id:
+        return ""
+    try:
+        return complaint_text(corpus.get(intake_id))
+    except (OSError, ValueError, KeyError):
+        return ""
+
+
+def _model_note(submissions: Path, case_id: str) -> dict:
+    empty = {
+        "haiku_called": False,
+        "haiku_class": None,
+        "haiku_reason": "",
+        "haiku_unusable": False,
+        "haiku_quote_missing": False,
+    }
+    path = submissions / CLASSIFICATION / "applied" / f"{case_id}.json"
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return empty
+    if not isinstance(loaded, dict):
+        return empty
+    reason = loaded.get("haiku_reason")
+    chosen = loaded.get("haiku_class")
+    return {
+        "haiku_called": loaded.get("haiku_called") is True,
+        "haiku_class": chosen if isinstance(chosen, str) else None,
+        "haiku_reason": reason if isinstance(reason, str) else "",
+        "haiku_unusable": loaded.get("haiku_unusable") is True,
+        "haiku_quote_missing": loaded.get("haiku_quote_missing") is True,
+    }
+
+
+def _store_feedback(submissions: Path, reports_dir: Path | None, case_id: str, parsed: dict) -> str:
+    name = _posted(parsed, "reviewer")
+    category = _posted(parsed, "category")
+    note = _posted(parsed, "note")
+    if not name.strip():
+        return "feedback_name"
+    allowed = {item.value for item in Classification}
+    if category not in allowed:
+        return "feedback_category"
+    body = {CASE_ID: case_id, "reviewer": name.strip(), "category": category, "note": note.strip()}
+    text = json.dumps(body, indent=2, sort_keys=True) + "\n"
+    folders = [submissions]
+    if reports_dir is not None:
+        folders.append(reports_dir)
+    for folder in folders:
+        path = folder / "feedback" / f"{case_id}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return "feedback"
+
+
+def _posted(parsed: dict, key: str) -> str:
+    values = parsed.get(key) or [""]
+    return values[0] if values else ""

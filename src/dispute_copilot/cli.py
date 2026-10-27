@@ -29,7 +29,7 @@ from dispute_copilot.reliability.retry import load_policy
 from dispute_copilot.review import create_record, submit_review
 from dispute_copilot.review_flow.agent_review import format_reviewer_note, record_agent_review
 from dispute_copilot.storage import latest_draft, write_draft
-from dispute_copilot.workflow import prepare
+from dispute_copilot.workflow import compare_approaches, prepare
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     label = getattr(args, "label", None)
     if isinstance(label, str) and label.strip():
         os.environ["RUN_LABEL"] = label.strip()[:64]
-    if args.command not in {"run-all", "metrics", "dashboard", "evals", "review-page"} and not isinstance(case_id, str):
+    if args.command not in {"run-all", "metrics", "dashboard", "evals", "review-page", "compare"} and not isinstance(case_id, str):
         print("case id is required", file=sys.stderr)
         return 1
     if not _safe_case(case_id if isinstance(case_id, str) else None):
@@ -83,11 +83,13 @@ def main(argv: list[str] | None = None) -> int:
         try:
             if args.command == "review-page":
                 return _serve_review_page(settings, ledger, corpus, tools, getattr(args, "state", None))
+            if args.command == "compare":
+                return _compare(args, settings, corpus, tools)
             drafter = build_drafter()
             if args.command == "run":
-                return _run_one(case_id, settings, corpus, tools, ledger, drafter, run_id)
+                return _run_one(case_id, settings, corpus, tools, ledger, drafter, run_id, args)
             if args.command == "run-all":
-                return _run_all(settings, corpus, tools, ledger, drafter, run_id)
+                return _run_all(settings, corpus, tools, ledger, drafter, run_id, args)
             with case_trace(case_id, run_id, trace_dir, args.command) as tracer, tracer.span(args.command):
                 return _review_command(args.command, case_id, settings, ledger)
         except MockUnavailable as exc:
@@ -118,7 +120,14 @@ def _serve_review_page(
     if state is None:
         state = Path(".state") / "run.sqlite"
     uvicorn.run(
-        create_app(settings.submissions_dir, ledger, corpus, tools, state_path=state),
+        create_app(
+            settings.submissions_dir,
+            ledger,
+            corpus,
+            tools,
+            state_path=state,
+            reports_dir=settings.reports_dir,
+        ),
         host="127.0.0.1",
         port=8080,
     )
@@ -160,6 +169,8 @@ def _traced_case(
     run_id: str,
     case: dict | None = None,
     sink: list[dict] | None = None,
+    approach: str | None = None,
+    shadow: bool = False,
 ):
     """Draft and write one case inside its own trace. Trace records go to sink even when the case is skipped."""
     with case_trace(case_id, run_id, settings.reports_dir / "traces") as tracer:
@@ -167,7 +178,18 @@ def _traced_case(
             tracer.records = sink
         with tracer.span("case", run_id=run_id) as root:
             try:
-                draft = prepare(case_id, corpus=corpus, tools=tools, case_system=ledger, case=case, drafter=drafter)
+                draft = prepare(
+                    case_id,
+                    corpus=corpus,
+                    tools=tools,
+                    case_system=ledger,
+                    case=case,
+                    drafter=drafter,
+                    approach=approach,
+                    shadow=shadow,
+                    submissions_dir=settings.submissions_dir,
+                    reports_dir=settings.reports_dir,
+                )
             except CopilotError as exc:
                 root.set(outcome="not_written", reason=type(exc).__name__)
                 raise
@@ -183,13 +205,75 @@ def _traced_case(
     return draft, path
 
 
-def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str) -> int:
-    draft, path = _traced_case(case_id, settings, corpus, tools, ledger, drafter, run_id)
+def _run_one(case_id: str, settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str, args) -> int:
+    draft, path = _traced_case(
+        case_id,
+        settings,
+        corpus,
+        tools,
+        ledger,
+        drafter,
+        run_id,
+        approach=getattr(args, "approach", None),
+        shadow=bool(getattr(args, "shadow", False)),
+    )
     print(json.dumps(_summary(draft, path), indent=2))
     return 0
 
 
-def run_all_report(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str) -> dict:
+def _compare(args, settings: Settings, corpus: FileCorpus, tools: HttpToolClient) -> int:
+    requested = [part.strip() for part in str(getattr(args, "approaches", "1,2,3")).split(",") if part.strip()]
+    if not requested:
+        requested = ["1", "2", "3"]
+    listed = tools.list_cases()
+    if isinstance(getattr(args, "case", None), str):
+        chosen = [args.case]
+    else:
+        chosen = []
+        for item in listed:
+            case_id = item.get(CASE_ID) if isinstance(item, dict) else None
+            if isinstance(case_id, str) and _safe_case(case_id):
+                chosen.append(case_id)
+    by_id = {item.get(CASE_ID): item for item in listed if isinstance(item, dict)}
+    lines = ["case\tapproach\tclass\troute\tmissing\tpath"]
+    for case_id in chosen:
+        rows = compare_approaches(
+            case_id,
+            corpus=corpus,
+            tools=tools,
+            case=by_id.get(case_id),
+            approaches=tuple(requested),
+            submissions_dir=settings.submissions_dir,
+            reports_dir=settings.reports_dir,
+        )
+        for row in rows:
+            missing = ",".join(row.get("missing") or []) or "-"
+            lines.append(
+                "\t".join(
+                    [
+                        str(row.get(CASE_ID) or case_id),
+                        str(row.get("approach") or ""),
+                        str(row.get("final_class") or ""),
+                        str(row.get("route") or ""),
+                        missing,
+                        str(row.get("path") or ""),
+                    ]
+                )
+            )
+    print("\n".join(lines))
+    return 0
+
+
+def run_all_report(
+    settings: Settings,
+    corpus: FileCorpus,
+    tools: HttpToolClient,
+    ledger: HttpCaseSystem,
+    drafter,
+    run_id: str,
+    approach: str | None = None,
+    shadow: bool = False,
+) -> dict:
     """Draft every listed case and return the same payload the command prints."""
     written = []
     skipped = []
@@ -201,7 +285,19 @@ def run_all_report(settings: Settings, corpus: FileCorpus, tools: HttpToolClient
             continue
         traced: list[dict] = []
         try:
-            draft, path = _traced_case(case_id, settings, corpus, tools, ledger, drafter, run_id, case, traced)
+            draft, path = _traced_case(
+                case_id,
+                settings,
+                corpus,
+                tools,
+                ledger,
+                drafter,
+                run_id,
+                case,
+                traced,
+                approach=approach,
+                shadow=shadow,
+            )
         except MockUnavailable:
             raise
         except (OutsideCheckpoint, ToolFailed, CopilotError) as exc:
@@ -220,8 +316,17 @@ def run_all_report(settings: Settings, corpus: FileCorpus, tools: HttpToolClient
     }
 
 
-def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str) -> int:
-    payload = run_all_report(settings, corpus, tools, ledger, drafter, run_id)
+def _run_all(settings: Settings, corpus: FileCorpus, tools: HttpToolClient, ledger: HttpCaseSystem, drafter, run_id: str, args) -> int:
+    payload = run_all_report(
+        settings,
+        corpus,
+        tools,
+        ledger,
+        drafter,
+        run_id,
+        approach=getattr(args, "approach", None),
+        shadow=bool(getattr(args, "shadow", False)),
+    )
     print(json.dumps(payload, indent=2))
     return 0 if not payload["not_written"] else 2
 
@@ -322,7 +427,14 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", parents=[common])
     run.add_argument("case", metavar="CASE")
-    commands.add_parser("run-all", parents=[common])
+    run.add_argument("--approach", choices=("1", "2", "3", "ab"), default=None)
+    run.add_argument("--shadow", action="store_true")
+    run_all = commands.add_parser("run-all", parents=[common])
+    run_all.add_argument("--approach", choices=("1", "2", "3", "ab"), default=None)
+    run_all.add_argument("--shadow", action="store_true")
+    compare = commands.add_parser("compare", parents=[common])
+    compare.add_argument("--case", dest="case", default=None)
+    compare.add_argument("--approaches", default="1,2,3")
     page = commands.add_parser("review-page", parents=[common])
     page.add_argument("--state", type=Path, default=None, help="mock state file; default .state/run.sqlite")
     review = commands.add_parser("agent-review", parents=[common])

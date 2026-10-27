@@ -1,0 +1,17 @@
+# Classification settings. Approach 1 does not read this file.
+jev:
+  # Placeholder. Tune this later from reviewer feedback.
+  threshold: 0.70
+  model: jev-latest
+  timeout_s: 30
+haiku:
+  timeout_s: 30
+ab:
+  seed: 1729
+  weights:
+    "1": 1
+    "2": 1
+    "3": 1
+comparison:
+  # Reviewer-feedback rows below this count are too small to conclude.
+  min_sample: 30

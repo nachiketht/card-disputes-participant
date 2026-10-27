@@ -48,7 +48,7 @@ class PromptRegistry:
         self.rules_path = rules_path or (_ROOT / "config" / "rules" / "prompts.yaml")
 
     def render(self, task: str, variables: dict[str, str]) -> RenderedPrompt:
-        self._reject_raw(variables)
+        self._reject_raw(variables, task)
         version = self._pinned_version(task)
         path = self.root / task / f"v{version}.md"
         if not path.is_file():
@@ -91,8 +91,10 @@ class PromptRegistry:
             raise ValueError(f"pinned version for {task} is not a positive integer")
         return version
 
-    def _reject_raw(self, variables: dict[str, str]) -> None:
+    def _reject_raw(self, variables: dict[str, str], task: str = "") -> None:
         banned = set(variables) & _RAW_PROSE
+        if task == "classifier":
+            banned.discard("complaint")
         if banned:
             raise ValueError("raw prose is not a prompt variable")
         for value in variables.values():

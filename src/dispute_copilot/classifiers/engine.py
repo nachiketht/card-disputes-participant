@@ -1,0 +1,200 @@
+"""Run one approach. Model calls are not reused across approaches."""
+
+import time
+from dataclasses import dataclass
+
+from dispute_copilot.classifiers.eligibility import accept_proposed_class, model_allowed
+from dispute_copilot.classifiers.guard import apply_duplicate_guard
+from dispute_copilot.classifiers.haiku import call_model, known_class, redact_complaint
+from dispute_copilot.classifiers.jev import call_jev
+from dispute_copilot.fields import Classification
+from dispute_copilot.rules.classify import Decision, missing_for
+from dispute_copilot.rules.routing import choose_routing
+
+
+@dataclass(frozen=True)
+class Outcome:
+    decision: Decision
+    path: str
+    rules: Decision
+    jev: dict | None
+    haiku: dict | None
+    called_model: bool
+    latency_ms: float
+    route: str
+
+
+def run_approach(
+    *,
+    approach: str,
+    rules: Decision,
+    complaint: str,
+    authorization: str,
+    promised_service_date: str | None,
+    purchase_receipt: str | None,
+    attachment_status: str | None,
+    transactions: dict | None,
+    transactions_unavailable: bool,
+    model=None,
+    jev=None,
+    jev_threshold: float = 0.70,
+) -> Outcome:
+    started = time.perf_counter()
+    fields = (authorization, promised_service_date, purchase_receipt, attachment_status)
+    if approach == "1" or not model_allowed(rules, authorization):
+        return _close(
+            rules,
+            "rules_only",
+            rules,
+            None,
+            None,
+            False,
+            started,
+            transactions,
+            transactions_unavailable,
+            fields,
+        )
+    cleaned = redact_complaint(complaint)
+    if approach == "2":
+        return _approach_two(
+            rules,
+            cleaned,
+            fields,
+            transactions,
+            transactions_unavailable,
+            model,
+            started,
+        )
+    return _approach_three(
+        rules,
+        cleaned,
+        fields,
+        transactions,
+        transactions_unavailable,
+        model,
+        jev,
+        jev_threshold,
+        started,
+    )
+
+
+def _approach_two(rules, cleaned, fields, transactions, unavailable, model, started):
+    if cleaned is None or model is None:
+        return _close(rules, "haiku_rejected", rules, None, None, False, started, transactions, unavailable, fields)
+    reply = call_model(model, cleaned)
+    if reply.get("unclear"):
+        decision = Decision(Classification.AMBIGUOUS, (), False)
+        return _close(decision, "haiku_unclear", rules, None, reply, True, started, transactions, unavailable, fields)
+    if not reply.get("accepted"):
+        return _close(rules, "haiku_rejected", rules, None, reply, True, started, transactions, unavailable, fields)
+    chosen = known_class(str(reply.get("class") or ""))
+    if chosen is None:
+        return _close(rules, "haiku_rejected", rules, None, reply, True, started, transactions, unavailable, fields)
+    return _accept_model(chosen, "haiku_assigned", rules, None, reply, started, transactions, unavailable, fields)
+
+
+def _approach_three(
+    rules,
+    cleaned,
+    fields,
+    transactions,
+    unavailable,
+    model,
+    jev,
+    threshold,
+    started,
+):
+    if cleaned is None or jev is None:
+        return _manual(rules, "model_failed", None, None, False, started, transactions, unavailable, fields)
+    answer = call_jev(jev, cleaned, threshold)
+    if answer.get("failed"):
+        return _manual(rules, "model_failed", answer, None, True, started, transactions, unavailable, fields)
+    if answer.get(Classification.AMBIGUOUS.value):
+        return _manual(rules, "jev_ambiguous", answer, None, True, started, transactions, unavailable, fields)
+    jev_class = known_class(str(answer.get("class") or ""))
+    if jev_class is not None and jev_class == rules.classification:
+        return _accept_model(jev_class, "jev_agreed", rules, answer, None, started, transactions, unavailable, fields)
+    if model is None:
+        return _manual(rules, "model_failed", answer, None, True, started, transactions, unavailable, fields)
+    reply = call_model(model, cleaned)
+    chosen = known_class(str(reply.get("class") or "")) if reply.get("accepted") else None
+    allowed = {rules.classification, jev_class}
+    if chosen is None or chosen not in allowed:
+        return _manual(rules, "model_failed", answer, reply, True, started, transactions, unavailable, fields)
+    return _accept_model(chosen, "haiku_assigned", rules, answer, reply, started, transactions, unavailable, fields)
+
+
+def _accept_model(chosen, path, rules, jev, haiku, started, transactions, unavailable, fields) -> Outcome:
+    """Keep a model class only when the labeled authorization allows it."""
+    authorization = fields[0]
+    accepted = accept_proposed_class(chosen, authorization)
+    if accepted is None:
+        decision = Decision(Classification.AMBIGUOUS, (), False)
+        path = "authorization_conflict"
+    else:
+        decision = Decision(accepted, (), False)
+    return _close(decision, path, rules, jev, haiku, True, started, transactions, unavailable, fields)
+
+
+def _manual(rules, path, jev, haiku, called, started, transactions, unavailable, fields) -> Outcome:
+    decision = Decision(Classification.AMBIGUOUS, (), False)
+    return _close(decision, path, rules, jev, haiku, called, started, transactions, unavailable, fields)
+
+
+def _close(decision, path, rules, jev, haiku, called, started, transactions, unavailable, fields) -> Outcome:
+    authorization, promised, receipt, attachment = fields
+    refreshed = Decision(
+        decision.classification,
+        missing_for(decision.classification, authorization, promised, receipt, attachment),
+        decision.conflict,
+    )
+    guarded, withdrawn = apply_duplicate_guard(refreshed, transactions, unavailable)
+    if withdrawn:
+        path = "duplicate_unmatched"
+    route = choose_routing(guarded.classification, guarded.missing, unavailable)
+    return Outcome(
+        decision=guarded,
+        path=path,
+        rules=rules,
+        jev=_public_jev(jev),
+        haiku=_public_haiku(haiku),
+        called_model=called,
+        latency_ms=round((time.perf_counter() - started) * 1000, 3),
+        route=route.value,
+    )
+
+
+def _public_jev(answer: dict | None) -> dict | None:
+    if not isinstance(answer, dict):
+        return None
+    return {
+        "class": answer.get("class"),
+        "probabilities": answer.get("probabilities") or {},
+        "confidence": answer.get("confidence"),
+        "latency_ms": answer.get("latency_ms"),
+        "tokens_in": answer.get("tokens_in"),
+        "tokens_out": answer.get("tokens_out"),
+        "cost": answer.get("cost") or {"status": "unpriced", "usd": None},
+    }
+
+
+def _public_haiku(reply: dict | None) -> dict | None:
+    if not isinstance(reply, dict):
+        return None
+    reason = reply.get("reason") if isinstance(reply.get("reason"), str) else ""
+    evidence = reply.get("evidence") if isinstance(reply.get("evidence"), str) else ""
+    if reply.get("unusable"):
+        reason = ""
+        evidence = ""
+    return {
+        "class": reply.get("class"),
+        "reason": reason,
+        "evidence": evidence,
+        "evidence_ok": bool(reply.get("evidence_ok")) and not bool(reply.get("unusable")),
+        "unusable": bool(reply.get("unusable")),
+        "latency_ms": reply.get("latency_ms"),
+        "tokens_in": reply.get("tokens_in"),
+        "tokens_out": reply.get("tokens_out"),
+        "cost": reply.get("cost") or {"status": "unpriced", "usd": None},
+        "model": reply.get("model") or "",
+    }

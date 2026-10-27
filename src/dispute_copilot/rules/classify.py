@@ -125,17 +125,59 @@ def classify(
     if sum((unauthorized, duplicate, service)) > 1:
         return Decision(Classification.AMBIGUOUS, (), False)
     if unauthorized and authorization == AUTH_DENIED:
-        return Decision(Classification.UNAUTHORIZED, (), False)
+        return Decision(
+            Classification.UNAUTHORIZED,
+            missing_for(Classification.UNAUTHORIZED, authorization, promised_service_date, purchase_receipt, attachment_status),
+            False,
+        )
     if unauthorized:
-        return Decision(Classification.UNAUTHORIZED, (MissingId.AUTHORIZATION_CONFIRMATION,), False)
+        return Decision(
+            Classification.UNAUTHORIZED,
+            missing_for(Classification.UNAUTHORIZED, authorization, promised_service_date, purchase_receipt, attachment_status),
+            False,
+        )
     if duplicate:
-        return Decision(Classification.DUPLICATE_CHARGE, (), False)
+        return Decision(
+            Classification.DUPLICATE_CHARGE,
+            missing_for(Classification.DUPLICATE_CHARGE, authorization, promised_service_date, purchase_receipt, attachment_status),
+            False,
+        )
     if service:
+        return Decision(
+            Classification.SERVICE_NOT_RECEIVED,
+            missing_for(
+                Classification.SERVICE_NOT_RECEIVED,
+                authorization,
+                promised_service_date,
+                purchase_receipt,
+                attachment_status,
+            ),
+            False,
+        )
+    return Decision(Classification.AMBIGUOUS, (), False)
+
+
+def missing_for(
+    classification: Classification,
+    authorization: str,
+    promised_service_date: str | None,
+    purchase_receipt: str | None,
+    attachment_status: str | None,
+) -> tuple[MissingId, ...]:
+    """Missing fields for the final class. Every approach calls this.
+
+    Unauthorized with authorization not supplied asks for that confirmation.
+    A labeled denial does not. A service class with authorization not supplied
+    lists that confirmation first, then the service fields.
+    """
+    if classification == Classification.SERVICE_NOT_RECEIVED:
         missing = _service_fields(promised_service_date, purchase_receipt, attachment_status)
         if authorization == AUTH_NOT_SUPPLIED:
-            missing = (MissingId.AUTHORIZATION_CONFIRMATION, *missing)
-        return Decision(Classification.SERVICE_NOT_RECEIVED, missing, False)
-    return Decision(Classification.AMBIGUOUS, (), False)
+            return (MissingId.AUTHORIZATION_CONFIRMATION, *missing)
+        return missing
+    if classification == Classification.UNAUTHORIZED and authorization == AUTH_NOT_SUPPLIED:
+        return (MissingId.AUTHORIZATION_CONFIRMATION,)
+    return ()
 
 
 def _unsupported(text: str) -> bool:

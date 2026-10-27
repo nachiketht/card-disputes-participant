@@ -81,14 +81,12 @@ Brief check: the run commands take a base URL and the tests use a loopback port.
 Rollback: a written reply can allow a loopback mock inside a later cloud task.
 Status: default is in force. Cloud deployment is not built.
 
-# ADR-27. A duplicate report with one returned transaction goes to manual review
+# ADR-27. A duplicate stands only when two fetched charges match
 
-Context: the procedure says to retrieve both transaction records for a duplicate charge. The transaction service can answer successfully and return only the named transaction. The current routing marks that case ready for review with no second-charge citation.
-Decision: decision-table row 4b. When the classification is duplicate_charge, the tool call succeeded, the named transaction is present, and no second distinct row is returned, routing is manual review. Classification stays duplicate_charge, the deadline is still computed, amount and currency come from the named transaction, missing_information stays empty, the duplicate_transaction citation is omitted, the routing citation also quotes the retrieve-both sentence, and the narrative discloses the single returned id. Persistent failure and a missing named transaction (ADR-7) take precedence. This is a fixed rule, not a configurable degradation kind.
-Alternatives: ready for review with a disclosure, which marks an uncorroborated claim ready; ambiguous, which the procedure reserves for authorization conflicts and which would null the deadline.
-Brief check: no fabricated citation, deadline kept for a supported type, D02, D08 and D09 unchanged.
-Rollback: edit row 4b and its generated test, logged as an R change.
-Status: accepted 2026-10-23 (closes Q5). Not yet built.
+Context: a duplicate report is supposed to have two transaction records. A successful read can return a single row. An earlier note kept the duplicate class and only changed the route.
+Decision: one shared check, used by every approach, including the plain rules. A final class of duplicate_charge stands only when the already-fetched transactions contain at least two charges with the same merchant id, amount, and currency. If they do not, the class does not stand: classification becomes ambiguous, the deadline is cleared, and routing is manual review. Amount and currency still come from the named transaction when it is present. If the transaction read is unavailable, the class stays duplicate_charge and the existing unavailable path applies: manual review, with the deadline still calculated. Persistent failure and a missing named transaction (ADR-7) still take that unavailable path.
+Alternatives: keep the class and only change the route, which leaves an uncorroborated duplicate marked as that type.
+Status: implemented. Code: `classifiers/guard.py`, called from `classifiers/engine.py` and `workflow.py`.
 
 # ADR-28. The procedure is data, not a constant
 
@@ -178,11 +176,21 @@ Context: a reader needs the order one case actually took, including a failed rea
 Decision: the request path is a left-to-right diagram in fixed columns: intake, evidence side by side, ledger, rules and routing, draft, checklist, then a separate human stage. A saved name outside that list still appears. Retries are chips on the step. A failed read has a dashed line to the route taken. Routing shows three outcomes, with the chosen one marked. An injection flag is a badge and a side branch. Steps with no record stay visible and read not run. The parallel reads and the join are labelled. Two runs stack on the same columns. Replay lights the saved order on the diagram, including at 0.5x. The open page is a short strip, that diagram, and four cards. Tables, logs, and identifiers stay under Technical details, closed until opened. The script is in the page, including the exported file. It does not contact a service and it does not write. Colours are variables. Light is the default. Dark follows the system setting, and a header control can pin either. No font file is requested. Text from logs is escaped.
 Status: implemented. Code: `observability/path.py`, `observability/board.py`.
 
+# ADR-40. A model class must agree with the labeled authorization
+
+Context: approaches 2 and 3 can assign a class the rules did not choose. The labeled authorization is a field on the intake, separate from the complaint wording. A denied label is already ineligible for a model.
+Decision: after a model proposes a final class, `accept_proposed_class` checks that label before the class is kept. Approach 2 and approach 3 use that one function.
+
+Unauthorized from a model is kept only when the label is not supplied or denied. Not supplied is the case where the rules would also infer unauthorized from wording. A confirmed label contradicts that proposal: the class does not stand, the final class is ambiguous, and routing is manual review (`authorization_conflict`). Duplicate and service from a model are kept only when the label is confirmed or not supplied, the same limit the rules use. A denied label never reaches a model. If a class other than unauthorized is screened with a denied label, the check raises AssertionError.
+
+Missing fields for the final class always come from `missing_for`. That covers the rules, a class kept after the ranker agrees, and a class a model assigns. Unauthorized with authorization not supplied lists authorization confirmation. A labeled denial does not add that field. A service class with authorization not supplied lists authorization confirmation first, then the service fields.
+Status: implemented. Code: `classifiers/eligibility.py`, `classifiers/engine.py`, `rules/classify.py`.
+
 # Accepted, not built in this checkpoint
 
 ADR-8, the ordered decision table, is implemented in `rules/classify.py`. The first match wins. These remain for a later checkpoint:
 
-- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. The scorecard is ADR-36. Guardrail events are ADR-37. The live exec check and the manual image update are ADR-38. The request path and replay are ADR-39. An image build was not run from this workspace. The live container was not contacted from this workspace.
+- ADR-9 through ADR-15 in the plan: claim-line search beyond labeled lines, ask-once, second approval, fixed-clock display, and the change-control freeze after the 12/12 line. The stdio wrapper is ADR-31. The running Azure layout is ADR-33. The status page is ADR-34. The local check workflow is ADR-35. The scorecard is ADR-36. Guardrail events are ADR-37. The live exec check and the manual image update are ADR-38. The request path and replay are ADR-39. A model class is checked against the labeled authorization in ADR-40. An image build was not run from this workspace. The live container was not contacted from this workspace.
 - Open assumptions, asked in `docs/FACILITATOR_QUESTIONS.md`: Q3 pass bar, Q4 assessor state path, Q6 withdrawn statement, Q7 out-of-range date, Q8 authorization edges, Q9 create after a non-ready routing.
 
 # Process note
