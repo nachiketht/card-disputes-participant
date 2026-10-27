@@ -301,7 +301,7 @@ def _apply_approaches(
         if name == chosen:
             primary = outcome
             if submissions_dir is not None:
-                write_applied(submissions_dir, case_id, outcome)
+                write_applied(submissions_dir, case_id, outcome, complaint)
     if primary is None:
         return rules
     return primary.decision

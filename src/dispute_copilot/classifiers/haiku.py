@@ -1,5 +1,7 @@
 """Rules, then the configured model. The reply is strict JSON."""
 
+import hashlib
+import re
 import time
 
 from dispute_copilot.evidence.redaction import Redactor
@@ -31,10 +33,43 @@ def redact_complaint(complaint: str, redactor: Redactor | None = None) -> str | 
 
 def quote_found(quote: str, complaint: str) -> bool:
     """True when the quote is exact complaint text, with whitespace collapsed."""
+    return quote_mark(quote, complaint)["matched"]
+
+
+def quote_mark(quote: str, complaint: str) -> dict:
+    """Match result for a quote. The quote text is not part of the result."""
     folded = " ".join(quote.split())
+    source = " ".join(complaint.split())
     if not folded:
-        return False
-    return folded in " ".join(complaint.split())
+        return {"matched": False, "start": None, "end": None, "sha256": ""}
+    digest = hashlib.sha256(folded.encode("utf-8")).hexdigest()
+    index = source.find(folded)
+    if index < 0:
+        return {"matched": False, "start": None, "end": None, "sha256": digest}
+    return {"matched": True, "start": index, "end": index + len(folded), "sha256": digest}
+
+
+def without_complaint_text(text: str, complaint: str) -> str:
+    """Remove the complaint and its sentences from a saved string."""
+    if not text or not complaint:
+        return text
+    cleaned = text
+    for piece in complaint_pieces(complaint):
+        if piece and piece in cleaned:
+            cleaned = cleaned.replace(piece, " ")
+    return " ".join(cleaned.split())
+
+
+def complaint_pieces(complaint: str) -> list[str]:
+    folded = " ".join(complaint.split())
+    if not folded:
+        return []
+    pieces = [folded]
+    for part in re.split(r"(?<=[.!?])\s+", folded):
+        part = part.strip()
+        if len(part) >= 12 and part not in pieces:
+            pieces.append(part)
+    return pieces
 
 
 def parse_reply(text: str) -> dict | None:
@@ -81,24 +116,28 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
         "evidence_ok": False,
         "class": None,
         "reason": "",
-        "evidence": "",
+        "evidence_sha256": "",
+        "evidence_start": None,
+        "evidence_end": None,
         "unclear": False,
     }
     if parsed is None or rejects(parsed["reason"]):
         base["unusable"] = True
         _trace_evidence(base)
         return base
-    found = quote_found(parsed["evidence"], complaint)
+    mark = quote_mark(parsed["evidence"], complaint)
     chosen = known_class(parsed["class"])
-    base["evidence_ok"] = found
-    base["evidence"] = parsed["evidence"]
-    base["reason"] = parsed["reason"]
+    base["evidence_ok"] = mark["matched"]
+    base["evidence_sha256"] = mark["sha256"]
+    base["evidence_start"] = mark["start"]
+    base["evidence_end"] = mark["end"]
+    base["reason"] = without_complaint_text(parsed["reason"], complaint)
     if parsed["class"] == UNCLEAR:
         base["unclear"] = True
         base["class"] = UNCLEAR
         _trace_evidence(base)
         return base
-    if chosen is None or not found:
+    if chosen is None or not mark["matched"]:
         base["class"] = chosen.value if chosen is not None else None
         _trace_evidence(base)
         return base
@@ -132,7 +171,9 @@ def _failed(started: float, _detail: str) -> dict:
         "evidence_ok": False,
         "class": None,
         "reason": "",
-        "evidence": "",
+        "evidence_sha256": "",
+        "evidence_start": None,
+        "evidence_end": None,
         "unclear": False,
     }
 

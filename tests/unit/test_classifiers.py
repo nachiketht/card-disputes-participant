@@ -1,11 +1,13 @@
 """Model classes are checked against the labeled authorization."""
 
 import json
+import os
 from pathlib import Path
 
 import httpx
 import pytest
 
+from dispute_copilot.classifiers.audit import write_audit
 from dispute_copilot.classifiers.eligibility import accept_proposed_class, model_allowed
 from dispute_copilot.classifiers.assign import assign_approach
 from dispute_copilot.classifiers.config import ClassifierSettings
@@ -18,6 +20,7 @@ from dispute_copilot.fields import (
     AUTH_CONFIRMED,
     AUTH_DENIED,
     AUTH_NOT_SUPPLIED,
+    CLASSIFICATION,
     Classification,
     MissingId,
     Routing,
@@ -462,15 +465,20 @@ def test_a_missing_haiku_quote_keeps_the_rules_class():
 def test_approach_two_without_a_model_stays_on_rules():
     rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
     outcome = _run("2", rules, WORDING, AUTH_NOT_SUPPLIED, model=None)
-    assert outcome.path == "haiku_rejected"
+    assert outcome.path == "rules_only"
     assert outcome.called_model is False
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert WORDING not in json.dumps(outcome.haiku)
 
 
-def test_approach_three_without_a_ranker_goes_to_manual_review():
+def test_approach_three_without_a_ranker_keeps_the_rules_class():
     rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
     outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, jev=None)
-    assert outcome.path == "model_failed"
-    assert outcome.decision.classification == Classification.AMBIGUOUS
+    assert outcome.path == "rules_only"
+    assert outcome.called_model is False
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert outcome.route == Routing.REQUEST_INFORMATION.value
+    assert MissingId.AUTHORIZATION_CONFIRMATION in outcome.decision.missing
 
 
 def test_an_ambiguous_ranker_choice_goes_to_manual_review():
@@ -479,7 +487,7 @@ def test_an_ambiguous_ranker_choice_goes_to_manual_review():
     assert outcome.path == "jev_ambiguous"
 
 
-def test_a_failed_ranker_goes_to_manual_review():
+def test_a_failed_ranker_keeps_the_rules_class():
     class BoomJev:
         model = "m"
         calls = 0
@@ -493,6 +501,122 @@ def test_a_failed_ranker_goes_to_manual_review():
     outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, jev=jev)
     assert jev.calls == 1
     assert outcome.path == "model_failed"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert outcome.route == Routing.REQUEST_INFORMATION.value
+
+
+def test_approach_three_without_a_ranker_can_still_ask_haiku():
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    model = ScriptedModel("unauthorized", WORDING)
+    outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, model=model, jev=None)
+    assert model.calls == 1
+    assert outcome.path == "haiku_assigned"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert WORDING not in json.dumps(outcome.haiku)
+
+
+def test_a_rejected_haiku_class_on_approach_three_goes_to_manual_review():
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    outcome = _run(
+        "3",
+        rules,
+        WORDING,
+        AUTH_NOT_SUPPLIED,
+        model=ScriptedModel("service_not_received", "not a quote"),
+        jev=ScriptedJev("service_not_received"),
+    )
+    assert outcome.path == "haiku_rejected"
+    assert outcome.decision.classification == Classification.AMBIGUOUS
+    assert outcome.route == Routing.MANUAL_REVIEW.value
+
+
+def test_saved_model_answer_omits_complaint_sentences(tmp_path: Path):
+    complaint = "I do not recognize this purchase. The merchant was new to the card."
+    sentence = "I do not recognize this purchase."
+
+    class Echo:
+        calls = 0
+
+        def complete(self, *, system: str, user: str) -> Completion:
+            self.calls += 1
+            del system, user
+            body = {"class": "unauthorized", "reason": "Quote: " + sentence, "evidence": sentence}
+            return Completion(text=json.dumps(body), tokens_in=3, tokens_out=4, model="scripted")
+
+    rules = _rules(complaint, AUTH_NOT_SUPPLIED)
+    outcome = _run("2", rules, complaint, AUTH_NOT_SUPPLIED, model=Echo())
+    saved = write_audit(
+        case_id="CARD-D04",
+        approach="2",
+        outcome=outcome,
+        submissions_dir=tmp_path,
+        reports_dir=tmp_path / "reports",
+        complaint=complaint,
+    )
+    text = json.dumps(saved)
+    assert complaint not in text
+    assert sentence not in text
+    assert "The merchant was new to the card." not in text
+    assert saved["haiku"]["evidence_ok"] is True
+    assert saved["haiku"]["evidence_sha256"]
+    assert "evidence" not in saved["haiku"]
+    applied = tmp_path / CLASSIFICATION / "applied" / "CARD-D04.json"
+    from dispute_copilot.classifiers.audit import write_applied
+
+    write_applied(tmp_path, "CARD-D04", outcome, complaint)
+    applied_text = applied.read_text(encoding="utf-8")
+    assert sentence not in applied_text
+    assert complaint not in applied_text
+
+
+def test_ranker_settings_are_read_from_the_env_file(tmp_path: Path, monkeypatch):
+    env = tmp_path / ".env"
+    env.write_text(
+        "\n".join(
+            [
+                "AZURE_BASE_URL=https://haiku.example",
+                "LLM_API_KEY=haiku-key",
+                "JEV_API_KEY=",
+                "JEV_BASE_URL=",
+                "export JEV_API_KEY=ranker-key",
+                'export JEV_BASE_URL="https://ranker.example/v1" # not part of the url',
+                "JEV_MODEL=",
+                "RANK_HOST=https://from-name.example",
+                "JEV_BASE_URL=${RANK_HOST}",
+                'export QUOTED_HOST="https://quoted.example" # trailing note',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+    for name in (
+        "AZURE_BASE_URL",
+        "LLM_API_KEY",
+        "JEV_API_KEY",
+        "JEV_BASE_URL",
+        "JEV_MODEL",
+        "RANK_HOST",
+        "QUOTED_HOST",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("JEV_API_KEY", "")
+    from dispute_copilot.cli import _load_env_file
+
+    _load_env_file()
+    assert os.environ["AZURE_BASE_URL"] == "https://haiku.example"
+    assert os.environ["LLM_API_KEY"] == "haiku-key"
+    assert os.environ["JEV_API_KEY"] == "ranker-key"
+    assert os.environ["JEV_BASE_URL"] == "https://from-name.example"
+    assert os.environ["JEV_MODEL"] == ""
+    assert os.environ["QUOTED_HOST"] == "https://quoted.example"
+    client = build_jev()
+    assert client is not None
+    assert client.base_url == "https://from-name.example"
+    assert client.model == "jev-latest"
+    monkeypatch.setenv("JEV_BASE_URL", "https://kept.example")
+    _load_env_file()
+    assert os.environ["JEV_BASE_URL"] == "https://kept.example"
 
 
 def test_zero_assignment_weights_stay_on_approach_one():

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from dispute_copilot.classifiers.engine import Outcome
+from dispute_copilot.classifiers.haiku import complaint_pieces, without_complaint_text
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import CASE_ID, CLASSIFICATION
 
@@ -19,7 +20,7 @@ def write_audit(
 ) -> dict:
     body = record_body(case_id, approach, outcome, complaint)
     text = json.dumps(body, indent=2, sort_keys=True) + "\n"
-    if complaint and complaint in text:
+    if _leaks_complaint(text, complaint):
         raise RuntimeError("classification record included the complaint")
     redactor = Redactor()
     if redactor.contains_restricted(text):
@@ -32,13 +33,16 @@ def write_audit(
     return body
 
 
-def write_applied(submissions_dir: Path, case_id: str, outcome: Outcome) -> None:
+def write_applied(submissions_dir: Path, case_id: str, outcome: Outcome, complaint: str = "") -> None:
     haiku = outcome.haiku if isinstance(outcome.haiku, dict) else None
+    reason = "" if haiku is None else haiku.get("reason") or ""
+    if not isinstance(reason, str):
+        reason = ""
     body = {
         CASE_ID: case_id,
         "haiku_called": haiku is not None,
         "haiku_class": None if haiku is None else haiku.get("class"),
-        "haiku_reason": "" if haiku is None else haiku.get("reason") or "",
+        "haiku_reason": without_complaint_text(reason, complaint),
         "haiku_unusable": bool(haiku and haiku.get("unusable")),
         "haiku_quote_missing": bool(haiku and haiku.get("evidence_ok") is False and not haiku.get("unusable")),
     }
@@ -77,17 +81,28 @@ def record_body(case_id: str, approach: str, outcome: Outcome, complaint: str = 
 
 
 def _without_complaint(value, complaint: str):
-    if not complaint or not isinstance(value, dict):
+    if not isinstance(value, dict):
+        return value
+    return _scrub(value, complaint)
+
+
+def _scrub(value, complaint: str):
+    if isinstance(value, str):
+        return without_complaint_text(value, complaint)
+    if isinstance(value, list):
+        return [_scrub(item, complaint) for item in value]
+    if not isinstance(value, dict):
         return value
     cleaned = {}
     for key, item in value.items():
-        if isinstance(item, str) and complaint in item:
-            cleaned[key] = ""
-        else:
-            cleaned[key] = item
-    if "evidence" in cleaned and cleaned["evidence"] == "":
-        cleaned["evidence_ok"] = False
+        if key == "evidence":
+            continue
+        cleaned[key] = _scrub(item, complaint)
     return cleaned
+
+
+def _leaks_complaint(text: str, complaint: str) -> bool:
+    return any(piece and piece in text for piece in complaint_pieces(complaint))
 
 
 def _roots(*folders: Path | None) -> list[Path]:

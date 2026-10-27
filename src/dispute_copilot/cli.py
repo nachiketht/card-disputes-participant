@@ -9,6 +9,7 @@ a review.
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -343,8 +344,13 @@ def _summary(draft: dict, path: Path) -> dict:
     }
 
 
+_ENV_KEY = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_ENV_REF = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)")
+
+
 def _load_env_file() -> None:
-    """Load .env without overriding variables already set in the process."""
+    """Load .env. A non-empty process value wins. An empty one is filled from the file."""
+    preexisting = {key for key, value in os.environ.items() if str(value).strip()}
     candidates = (Path.cwd() / ".env", Path(__file__).resolve().parents[2] / ".env")
     seen: set[Path] = set()
     for path in candidates:
@@ -354,15 +360,60 @@ def _load_env_file() -> None:
         if resolved in seen:
             continue
         seen.add(resolved)
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
+        for key, value in _env_assignments(path).items():
+            if key in preexisting:
                 continue
-            key, value = line.split("=", 1)
-            key = key.strip()
-            if key and key not in os.environ:
-                os.environ[key] = value.strip().strip("'\"" )
+            current = os.environ.get(key, "")
+            if str(current).strip() and not value.strip():
+                continue
+            os.environ[key] = value
 
+
+def _env_assignments(path: Path) -> dict[str, str]:
+    found: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        parsed = _env_line(raw, found)
+        if parsed is None:
+            continue
+        key, value = parsed
+        found[key] = value
+    return found
+
+
+def _env_line(raw: str, found: dict[str, str]) -> tuple[str, str] | None:
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        return None
+    if line.startswith("export "):
+        line = line[7:].strip()
+    if "=" not in line:
+        return None
+    key, value = line.split("=", 1)
+    key = key.strip()
+    if not _ENV_KEY.fullmatch(key):
+        return None
+    value = value.strip()
+    quote = ""
+    if value and value[0] in "\"'":
+        quote = value[0]
+        end = value.find(quote, 1)
+        value = value[1:] if end < 0 else value[1:end]
+    elif " #" in value:
+        value = value.split(" #", 1)[0].rstrip()
+    return key, _expand_env(value, quote, found)
+
+
+def _expand_env(value: str, quote: str, found: dict[str, str]) -> str:
+    if quote == "'":
+        return value
+
+    def repl(match: re.Match[str]) -> str:
+        name = match.group(1) or match.group(2)
+        if name in found:
+            return found[name]
+        return os.environ.get(name, "")
+
+    return _ENV_REF.sub(repl, value)
 
 def _evals(args, settings: Settings) -> int:
     from dispute_copilot.evals.scorecard import write_scorecard

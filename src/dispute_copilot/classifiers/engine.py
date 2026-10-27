@@ -80,17 +80,8 @@ def run_approach(
 
 def _approach_two(rules, cleaned, fields, transactions, unavailable, model, started):
     if cleaned is None or model is None:
-        return _close(rules, "haiku_rejected", rules, None, None, False, started, transactions, unavailable, fields)
-    reply = call_model(model, cleaned)
-    if reply.get("unclear"):
-        decision = Decision(Classification.AMBIGUOUS, (), False)
-        return _close(decision, "haiku_unclear", rules, None, reply, True, started, transactions, unavailable, fields)
-    if not reply.get("accepted"):
-        return _close(rules, "haiku_rejected", rules, None, reply, True, started, transactions, unavailable, fields)
-    chosen = known_class(str(reply.get("class") or ""))
-    if chosen is None:
-        return _close(rules, "haiku_rejected", rules, None, reply, True, started, transactions, unavailable, fields)
-    return _accept_model(chosen, "haiku_assigned", rules, None, reply, started, transactions, unavailable, fields)
+        return _close(rules, "rules_only", rules, None, None, False, started, transactions, unavailable, fields)
+    return _from_haiku(rules, cleaned, fields, transactions, unavailable, model, started, None, manual_on_reject=False)
 
 
 def _approach_three(
@@ -104,11 +95,26 @@ def _approach_three(
     threshold,
     started,
 ):
-    if cleaned is None or jev is None:
-        return _manual(rules, "model_failed", None, None, False, started, transactions, unavailable, fields)
+    if cleaned is None:
+        return _close(rules, "rules_only", rules, None, None, False, started, transactions, unavailable, fields)
+    if jev is None:
+        return _from_haiku(
+            rules, cleaned, fields, transactions, unavailable, model, started, None, manual_on_reject=True
+        )
     answer = call_jev(jev, cleaned, threshold)
     if answer.get("failed"):
-        return _manual(rules, "model_failed", answer, None, True, started, transactions, unavailable, fields)
+        return _from_haiku(
+            rules,
+            cleaned,
+            fields,
+            transactions,
+            unavailable,
+            model,
+            started,
+            answer,
+            manual_on_reject=True,
+            quiet_path="model_failed",
+        )
     if answer.get(Classification.AMBIGUOUS.value):
         return _manual(rules, "jev_ambiguous", answer, None, True, started, transactions, unavailable, fields)
     jev_class = known_class(str(answer.get("class") or ""))
@@ -120,8 +126,37 @@ def _approach_three(
     chosen = known_class(str(reply.get("class") or "")) if reply.get("accepted") else None
     allowed = {rules.classification, jev_class}
     if chosen is None or chosen not in allowed:
-        return _manual(rules, "model_failed", answer, reply, True, started, transactions, unavailable, fields)
+        return _manual(rules, "haiku_rejected", answer, reply, True, started, transactions, unavailable, fields)
     return _accept_model(chosen, "haiku_assigned", rules, answer, reply, started, transactions, unavailable, fields)
+
+
+def _from_haiku(
+    rules,
+    cleaned,
+    fields,
+    transactions,
+    unavailable,
+    model,
+    started,
+    jev_answer,
+    *,
+    manual_on_reject: bool,
+    quiet_path: str = "rules_only",
+):
+    """Ask Haiku when a client exists. Otherwise keep the rules class."""
+    if model is None:
+        called = jev_answer is not None
+        return _close(rules, quiet_path, rules, jev_answer, None, called, started, transactions, unavailable, fields)
+    reply = call_model(model, cleaned)
+    if reply.get("unclear"):
+        decision = Decision(Classification.AMBIGUOUS, (), False)
+        return _close(decision, "haiku_unclear", rules, jev_answer, reply, True, started, transactions, unavailable, fields)
+    chosen = known_class(str(reply.get("class") or "")) if reply.get("accepted") else None
+    if chosen is None:
+        if manual_on_reject:
+            return _manual(rules, "haiku_rejected", jev_answer, reply, True, started, transactions, unavailable, fields)
+        return _close(rules, "haiku_rejected", rules, jev_answer, reply, True, started, transactions, unavailable, fields)
+    return _accept_model(chosen, "haiku_assigned", rules, jev_answer, reply, started, transactions, unavailable, fields)
 
 
 def _accept_model(chosen, path, rules, jev, haiku, started, transactions, unavailable, fields) -> Outcome:
@@ -182,15 +217,18 @@ def _public_haiku(reply: dict | None) -> dict | None:
     if not isinstance(reply, dict):
         return None
     reason = reply.get("reason") if isinstance(reply.get("reason"), str) else ""
-    evidence = reply.get("evidence") if isinstance(reply.get("evidence"), str) else ""
     if reply.get("unusable"):
         reason = ""
-        evidence = ""
+    start = reply.get("evidence_start")
+    end = reply.get("evidence_end")
+    digest = reply.get("evidence_sha256") if isinstance(reply.get("evidence_sha256"), str) else ""
     return {
         "class": reply.get("class"),
         "reason": reason,
-        "evidence": evidence,
         "evidence_ok": bool(reply.get("evidence_ok")) and not bool(reply.get("unusable")),
+        "evidence_sha256": digest,
+        "evidence_start": start if isinstance(start, int) else None,
+        "evidence_end": end if isinstance(end, int) else None,
         "unusable": bool(reply.get("unusable")),
         "latency_ms": reply.get("latency_ms"),
         "tokens_in": reply.get("tokens_in"),
