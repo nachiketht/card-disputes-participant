@@ -381,9 +381,10 @@ def _evals(args, settings: Settings) -> int:
 
 def _dashboard(args, settings: Settings) -> int:
     from dispute_copilot.observability.board import bind_page, load_view, render, write_html
+    from dispute_copilot.observability.compare_page import load_comparison, render_comparison
 
     if args.export is not None:
-        write_html(settings.reports_dir, args.export)
+        write_html(settings.reports_dir, args.export, settings.submissions_dir)
         print(args.export)
         return 0
     port = args.port
@@ -391,7 +392,9 @@ def _dashboard(args, settings: Settings) -> int:
         print("port must be from 1 to 65535", file=sys.stderr)
         return 1
     try:
-        server = bind_page(render(load_view(settings.reports_dir)), port)
+        page = render(load_view(settings.reports_dir))
+        compare = render_comparison(load_comparison(settings.reports_dir, settings.submissions_dir))
+        server = bind_page(page, port, compare)
     except OSError as exc:
         print(f"could not listen on 127.0.0.1:{port}: {exc}", file=sys.stderr)
         return 1

@@ -48,6 +48,18 @@
         </div>
         <p class="muted action-note">Accept, decline, and create the record here.</p>
       </div>
+      <section id="complaint">
+        <h3>Complaint</h3>
+        {% if has_complaint %}
+        <p class="prose"><!-- complaint-slot --></p>
+        {% else %}
+        <p class="muted">No complaint text is loaded for this draft.</p>
+        {% endif %}
+      </section>
+      <section id="narrative">
+        <h3>Narrative</h3>
+        <p class="prose">{{ narrative_text }}</p>
+      </section>
       <section class="judge-note {{ judge_verdict }}">
         <h3>Judge note</h3>
         {% if judge_verdict %}
@@ -64,6 +76,39 @@
         </ul>
         {% endif %}
         <p class="muted">This note does not accept the case.</p>
+      </section>
+      <details id="model-note">
+        <summary>Model note</summary>
+        {% if model_note.haiku_called %}
+        <p>Class {{ model_note.haiku_class }}</p>
+        {% if model_note.haiku_reason %}<p class="prose">{{ model_note.haiku_reason }}</p>{% endif %}
+        {% if model_note.haiku_quote_missing %}
+        <p class="muted">The quote was not exact complaint text, so the class was not kept.</p>
+        {% endif %}
+        {% if model_note.haiku_unusable %}
+        <p class="muted">The reply could not be used.</p>
+        {% endif %}
+        {% else %}
+        <p class="muted">No model note for this case.</p>
+        {% endif %}
+        <p class="muted">Evidence must be exact text copied from the complaint. A quote that is not in the complaint is rejected.</p>
+      </details>
+      <section class="message-block" id="feedback">
+        <h3>Reviewer feedback</h3>
+        <p class="muted">This saves a category. It does not accept or decline the review.</p>
+        <form method="post" action="/cases/{{ selected }}/feedback">
+          <label>Reviewer <input name="reviewer" autocomplete="name"></label>
+          <label>Correct category
+            <select name="category">
+              {% for item in categories %}
+              <option value="{{ item }}">{{ item }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Note <input name="note"></label>
+          <input type="hidden" name="haiku_opened" id="haiku-opened" value="0">
+          <button type="submit">Save feedback</button>
+        </form>
       </section>
       <section class="summary">
         <div class="decision">
@@ -140,10 +185,6 @@
         <p class="muted">None</p>
         {% endif %}
       </section>
-      <details class="fold">
-        <summary>Narrative</summary>
-        <p class="prose">{{ narrative_text }}</p>
-      </details>
       {% endif %}
     </main>
   </div>
@@ -161,6 +202,13 @@
           }
         }).catch(function () {});
       }, 5000);
+      var note = document.getElementById("model-note");
+      var opened = document.getElementById("haiku-opened");
+      if (note && opened) {
+        note.addEventListener("toggle", function () {
+          if (note.open) opened.value = "1";
+        });
+      }
     })();
   </script>
 </body>

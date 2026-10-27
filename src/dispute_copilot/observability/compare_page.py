@@ -1,0 +1,366 @@
+"""Comparison page for saved classification runs.
+
+The page lists counts, rates, and case ids. It does not copy complaint text,
+model reasons, or evidence quotes.
+"""
+
+import json
+from pathlib import Path
+
+from dispute_copilot.classifiers.config import load_settings
+from dispute_copilot.evidence.redaction import Redactor
+from dispute_copilot.fields import CASE_ID, CLASSIFICATION, Routing
+from dispute_copilot.observability.board import page_css
+from dispute_copilot.observability.metrics import percentile
+from dispute_copilot.observability.path import PAGE_SCRIPT
+
+_APPROACHES = ("1", "2", "3")
+
+
+def load_comparison(reports_dir: Path, submissions_dir: Path | None = None) -> dict:
+    roots = _roots(reports_dir, submissions_dir)
+    return build_comparison(
+        _read_runs(roots),
+        _read_feedback(roots),
+        min_sample=load_settings().min_sample,
+    )
+
+
+def build_comparison(runs: dict[str, dict[str, dict]], feedback: dict[str, str], *, min_sample: int) -> dict:
+    """Summarize one row per approach. `runs` maps approach to case id to a safe row."""
+    approaches = []
+    for name in _APPROACHES:
+        rows = runs.get(name) or {}
+        approaches.append(_approach(name, rows, feedback, min_sample))
+    return {
+        "min_sample": min_sample,
+        "approaches": approaches,
+        "matrix": _matrix(runs),
+        "disagreements": _disagreements(runs),
+        "cases": _case_rows(runs),
+    }
+
+
+def render_comparison(view: dict, back_href: str = "index.html") -> str:
+    page = _markup(view, back_href)
+    redactor = Redactor()
+    if not redactor.contains_restricted(page):
+        return page
+    masked = redactor.mask(page)
+    if redactor.contains_restricted(masked):
+        return "<!DOCTYPE html><title>redacted</title><p>redacted</p>"
+    return masked
+
+
+def _approach(name: str, rows: dict[str, dict], feedback: dict[str, str], min_sample: int) -> dict:
+    ordered = [rows[key] for key in sorted(rows)]
+    called = sum(1 for row in ordered if row.get("called_model") is True)
+    manual = sum(1 for row in ordered if row.get("route") == Routing.MANUAL_REVIEW.value)
+    latencies = [float(row["latency_ms"]) for row in ordered if isinstance(row.get("latency_ms"), (int, float))]
+    priced = [float(row["haiku_usd"]) for row in ordered if isinstance(row.get("haiku_usd"), (int, float))]
+    paired = [row for row in ordered if row.get(CASE_ID) in feedback]
+    wrong = sum(1 for row in paired if row.get("final_class") != feedback.get(str(row.get(CASE_ID))))
+    sample = len(paired)
+    return {
+        "name": name,
+        "cases": len(ordered),
+        "called_model": called,
+        "manual_count": manual,
+        "p50": None if not latencies else round(percentile(latencies, 0.50) or 0, 3),
+        "p95": None if not latencies else round(percentile(latencies, 0.95) or 0, 3),
+        "priced_calls": len(priced),
+        "haiku_per_case": None if not priced else round(sum(priced) / len(priced), 6),
+        "wrong": wrong,
+        "sample": sample,
+        "too_small": sample < min_sample,
+    }
+
+
+def _matrix(runs: dict[str, dict[str, dict]]) -> list[list[dict]]:
+    rows = []
+    for left in _APPROACHES:
+        cells = []
+        for right in _APPROACHES:
+            shared = sorted(set(runs.get(left) or {}) & set(runs.get(right) or {}))
+            agree = 0
+            for case_id in shared:
+                if (runs[left][case_id].get("final_class")) == (runs[right][case_id].get("final_class")):
+                    agree += 1
+            cells.append({"agree": agree, "shared": len(shared)})
+        rows.append(cells)
+    return rows
+
+
+def _disagreements(runs: dict[str, dict[str, dict]]) -> list[dict]:
+    found = []
+    names = list(_APPROACHES)
+    for index, left in enumerate(names):
+        for right in names[index + 1 :]:
+            shared = sorted(set(runs.get(left) or {}) & set(runs.get(right) or {}))
+            ids = [
+                case_id
+                for case_id in shared
+                if runs[left][case_id].get("final_class") != runs[right][case_id].get("final_class")
+            ]
+            found.append({"left": left, "right": right, "ids": ids, "shared": len(shared)})
+    return found
+
+
+def _case_rows(runs: dict[str, dict[str, dict]]) -> list[dict]:
+    rows = []
+    for name in _APPROACHES:
+        for case_id in sorted(runs.get(name) or {}):
+            row = runs[name][case_id]
+            rows.append(
+                {
+                    "approach": name,
+                    CASE_ID: case_id,
+                    "final_class": str(row.get("final_class") or ""),
+                    "route": str(row.get("route") or ""),
+                    "latency_ms": row.get("latency_ms"),
+                    "haiku_usd": row.get("haiku_usd"),
+                }
+            )
+    return rows
+
+
+def _read_runs(roots: list[Path]) -> dict[str, dict[str, dict]]:
+    found = {name: {} for name in _APPROACHES}
+    for root in roots:
+        base = root / CLASSIFICATION
+        if not base.is_dir():
+            continue
+        for name in _APPROACHES:
+            folder = base / name
+            if not folder.is_dir():
+                continue
+            for path in sorted(folder.glob("*.json")):
+                case_id = path.stem
+                if not _safe(case_id) or case_id in found[name]:
+                    continue
+                row = _safe_row(path, case_id)
+                if row is not None:
+                    found[name][case_id] = row
+    return found
+
+
+def _read_feedback(roots: list[Path]) -> dict[str, str]:
+    found: dict[str, str] = {}
+    for root in roots:
+        folder = root / "feedback"
+        if not folder.is_dir():
+            continue
+        for path in sorted(folder.glob("*.json")):
+            case_id = path.stem
+            if not _safe(case_id) or case_id in found:
+                continue
+            try:
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError, UnicodeError):
+                continue
+            if not isinstance(loaded, dict):
+                continue
+            category = loaded.get("category")
+            if isinstance(category, str) and category.strip():
+                found[case_id] = category.strip()
+    return found
+
+
+def _safe_row(path: Path, case_id: str) -> dict | None:
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    stored = loaded.get(CASE_ID)
+    if isinstance(stored, str) and stored != case_id:
+        return None
+    haiku = loaded.get("haiku") if isinstance(loaded.get("haiku"), dict) else {}
+    return {
+        CASE_ID: case_id,
+        "final_class": loaded.get("final_class") if isinstance(loaded.get("final_class"), str) else "",
+        "route": loaded.get("route") if isinstance(loaded.get("route"), str) else "",
+        "called_model": loaded.get("called_model") is True,
+        "latency_ms": loaded.get("latency_ms") if isinstance(loaded.get("latency_ms"), (int, float)) else None,
+        "haiku_usd": _usd(haiku.get("cost") if isinstance(haiku, dict) else None),
+    }
+
+
+def _usd(cost: object) -> float | None:
+    if not isinstance(cost, dict):
+        return None
+    value = cost.get("usd")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _markup(view: dict, back_href: str) -> str:
+    from html import escape
+
+    parts = [
+        "<!DOCTYPE html>",
+        "<html lang=\"en\"><head><meta charset=\"utf-8\">",
+        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+        "<title>Comparison</title>",
+        f"<style>{page_css()}</style></head><body>",
+        "<header><div class=\"top\">",
+        f"<a class=\"mark\" href=\"{escape(back_href)}\">Run status</a>",
+        "<p class=\"mark\">Read-only</p>",
+        "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
+        "<h1>Comparison</h1>",
+        "<p class=\"lede\">Saved classification runs. This page has case ids and counts. It does not include complaint text.</p>",
+        "</header><main>",
+        _approach_table(view),
+        _matrix_section(view),
+        _disagree_section(view),
+        "<details id=\"technical\"><summary>Technical details</summary><div class=\"tech\">",
+        _case_table(view),
+        "</div></details>",
+        "</main>",
+        PAGE_SCRIPT,
+        "</body></html>",
+    ]
+    return "".join(parts)
+
+
+def _approach_table(view: dict) -> str:
+    from html import escape
+
+    head = (
+        "<tr><th>Approach</th><th>Cases run</th><th>Called a model</th><th>Manual review</th>"
+        "<th>p50</th><th>p95</th><th>Haiku per case</th><th>Jev</th>"
+        "<th>Wrong-label rate</th><th>Sample size</th></tr>"
+    )
+    body = []
+    notes = []
+    floor = view["min_sample"]
+    for row in view["approaches"]:
+        total = row["cases"]
+        body.append(
+            "<tr>"
+            f"<td>{escape(row['name'])}</td>"
+            f"<td>{total}</td>"
+            f"<td>{escape(_share(row['called_model'], total))}</td>"
+            f"<td>{escape(_share(row['manual_count'], total))}</td>"
+            f"<td>{escape(_ms(row['p50']))}</td>"
+            f"<td>{escape(_ms(row['p95']))}</td>"
+            f"<td>{escape(_haiku(row))}</td>"
+            "<td>unpriced</td>"
+            f"<td>{escape(_share(row['wrong'], row['sample']))}</td>"
+            f"<td>{row['sample']}</td>"
+            "</tr>"
+        )
+        if row["too_small"]:
+            notes.append(
+                f"Approach {row['name']} sample size {row['sample']} is below {floor}. Too small to conclude."
+            )
+    note = "".join(f"<p class=\"note\">{escape(line)}</p>" for line in notes)
+    return (
+        "<section id=\"approaches\"><h2>Approaches</h2>"
+        f"<table><thead>{head}</thead><tbody>{''.join(body)}</tbody></table>"
+        f"{note}</section>"
+    )
+
+
+def _matrix_section(view: dict) -> str:
+    from html import escape
+
+    head = "<tr><th>Agreement</th>" + "".join(f"<th>{escape(name)}</th>" for name in _APPROACHES) + "</tr>"
+    body = []
+    for name, cells in zip(_APPROACHES, view["matrix"], strict=True):
+        rendered = "".join(f"<td>{escape(_pair(cell['agree'], cell['shared']))}</td>" for cell in cells)
+        body.append(f"<tr><th>{escape(name)}</th>{rendered}</tr>")
+    return (
+        "<section id=\"agreement\"><h2>Agreement</h2>"
+        "<p class=\"note\">Each cell is the cases that share a class, over the cases saved for that pair.</p>"
+        f"<table><thead>{head}</thead><tbody>{''.join(body)}</tbody></table></section>"
+    )
+
+
+def _disagree_section(view: dict) -> str:
+    from html import escape
+
+    lines = []
+    for item in view["disagreements"]:
+        if item["shared"] == 0:
+            text = f"Approaches {item['left']} and {item['right']} have no shared cases."
+        elif not item["ids"]:
+            text = f"Approaches {item['left']} and {item['right']} agree on every shared case."
+        else:
+            text = f"Approaches {item['left']} and {item['right']} disagree: {', '.join(item['ids'])}."
+        lines.append(f"<p>{escape(text)}</p>")
+    return "<section id=\"disagreements\"><h2>Disagreeing cases</h2>" + "".join(lines) + "</section>"
+
+
+def _case_table(view: dict) -> str:
+    from html import escape
+
+    rows = []
+    for item in view["cases"]:
+        latency = item["latency_ms"]
+        haiku = item["haiku_usd"]
+        rows.append(
+            "<tr>"
+            f"<td>{escape(str(item['approach']))}</td>"
+            f"<td>{escape(str(item[CASE_ID]))}</td>"
+            f"<td>{escape(str(item['final_class']))}</td>"
+            f"<td>{escape(str(item['route']))}</td>"
+            f"<td>{escape(_ms(latency if isinstance(latency, (int, float)) else None))}</td>"
+            f"<td>{escape(_usd_text(haiku if isinstance(haiku, (int, float)) else None))}</td>"
+            "<td>unpriced</td>"
+            "</tr>"
+        )
+    if not rows:
+        rows.append("<tr><td colspan=\"7\">No classification records.</td></tr>")
+    return (
+        "<section id=\"case-costs\"><h2>Per case</h2>"
+        "<table><thead><tr><th>Approach</th><th>Case</th><th>Class</th><th>Route</th>"
+        "<th>Latency ms</th><th>Haiku USD</th><th>Jev</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></section>"
+    )
+
+
+def _share(part: int, total: int) -> str:
+    if total <= 0:
+        return "—"
+    return f"{part} of {total} ({part / total:.2f})"
+
+
+def _pair(agree: int, shared: int) -> str:
+    if shared <= 0:
+        return "—"
+    return f"{agree} / {shared}"
+
+
+def _ms(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
+def _haiku(row: dict) -> str:
+    if row["priced_calls"] <= 0 or row["haiku_per_case"] is None:
+        return "no priced call"
+    return f"{row['haiku_per_case']:.6f} USD over {row['priced_calls']} priced calls"
+
+
+def _usd_text(value: float | None) -> str:
+    if value is None:
+        return "unpriced"
+    return f"{value:.6f}"
+
+
+def _roots(*folders: Path | None) -> list[Path]:
+    found = []
+    for folder in folders:
+        if folder is not None and folder not in found:
+            found.append(folder)
+    return found
+
+
+def _safe(case_id: str) -> bool:
+    if not case_id or case_id in {".", ".."} or ".." in case_id:
+        return False
+    return "/" not in case_id and "\\" not in case_id

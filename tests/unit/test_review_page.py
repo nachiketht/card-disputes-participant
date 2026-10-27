@@ -97,8 +97,13 @@ def test_a_saved_draft_renders_the_contract_sections(tmp_path: Path, monkeypatch
     assert "Draft" in text
     assert "No check yet" in text
     assert "Review not submitted" in text
+    assert text.index("Complaint") < text.index("Narrative")
+    assert text.index("Narrative") < text.index("Judge note")
     assert text.index("Judge note") < text.index("Type")
     assert "No judge note yet." in text
+    assert 'id="model-note"' in text
+    assert '<details id="model-note" open' not in text
+    assert "exact text copied from the complaint" in text
 
 
 def test_the_judge_note_is_above_the_decision(tmp_path: Path, monkeypatch):
@@ -126,6 +131,33 @@ def test_the_judge_note_is_above_the_decision(tmp_path: Path, monkeypatch):
     text = TestClient(create_app(tmp_path, FakeCaseSystem())).get("/cases/CARD-D01").text
     assert text.index("Judge note") < text.index("Type")
     assert "The draft names the purchase and does not promise an outcome." in text
+
+
+def test_feedback_records_whether_the_model_note_was_opened(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    reports = tmp_path / "reports"
+    client = TestClient(create_app(tmp_path, FakeCaseSystem(), reports_dir=reports))
+    response = client.post(
+        "/cases/CARD-D01/feedback",
+        data={"reviewer": "N", "category": "unauthorized", "note": "label", "haiku_opened": "1"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert "Feedback was saved" in response.text
+    saved = json.loads((tmp_path / "feedback" / "CARD-D01.json").read_text(encoding="utf-8"))
+    mirrored = json.loads((reports / "feedback" / "CARD-D01.json").read_text(encoding="utf-8"))
+    assert saved["haiku_block_opened"] is True
+    assert saved["category"] == "unauthorized"
+    assert mirrored == saved
+    closed = client.post(
+        "/cases/CARD-D01/feedback",
+        data={"reviewer": "N", "category": "unauthorized", "note": "", "haiku_opened": "0"},
+        follow_redirects=True,
+    )
+    assert closed.status_code == 200
+    again = json.loads((tmp_path / "feedback" / "CARD-D01.json").read_text(encoding="utf-8"))
+    assert again["haiku_block_opened"] is False
 
 
 def test_the_page_has_no_approve_control(tmp_path: Path, monkeypatch):

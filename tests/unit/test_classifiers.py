@@ -1,10 +1,12 @@
 """Model classes are checked against the labeled authorization."""
 
 import json
+from pathlib import Path
 
 import pytest
 
 from dispute_copilot.classifiers.eligibility import accept_proposed_class
+from dispute_copilot.classifiers.haiku import quote_found
 from dispute_copilot.classifiers.engine import run_approach
 from dispute_copilot.fields import (
     AUTH_CONFIRMED,
@@ -99,6 +101,16 @@ def _run(
         model=model,
         jev=jev,
     )
+
+
+def test_evidence_must_be_exact_complaint_text():
+    complaint = "Please review the posted amount."
+    assert quote_found(complaint, complaint) is True
+    assert quote_found("Please   review\nthe posted amount.", complaint) is True
+    assert quote_found("Please look at the posted amount.", complaint) is False
+    prompt = (Path(__file__).resolve().parents[2] / "prompts" / "classifier" / "v1.md").read_text(encoding="utf-8")
+    assert "exact text copied from the complaint" in prompt
+    assert "Do not paraphrase" in prompt
 
 
 def test_proposed_class_follows_the_labeled_authorization():

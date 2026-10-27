@@ -697,7 +697,7 @@ uv run --locked dispute-copilot \
 ```text
 usage: dispute-copilot [-h] [--mock-url MOCK_URL] [--data-dir DATA_DIR]
                        [--submissions SUBMISSIONS]
-                       {run,run-all,agent-review,submit-review,create-record,metrics,evals,dashboard}
+                       {run,run-all,compare,agent-review,submit-review,create-record,metrics,evals,dashboard}
                        ...
 ```
 
@@ -705,8 +705,9 @@ Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--
 
 | Command | Arguments | Mock required | Exit 0 | Other exits |
 |---|---|---|---|---|
-| `run CASE` | one case id | yes | draft written | 1 health or bad id; 2 case not written |
-| `run-all` | none | yes | every case written | 1 health; 2 any case skipped |
+| `run CASE` | `--approach 1\|2\|3\|ab`, `--shadow` | yes | draft written | 1 health or bad id; 2 case not written |
+| `run-all` | `--approach 1\|2\|3\|ab`, `--shadow` | yes | every case written | 1 health; 2 any case skipped |
+| `compare` | `--case CASE`, `--approaches 1,2,3` | yes | one row per approach, no draft | 1 health; 2 a case was not read |
 | `agent-review CASE` | one case id | yes (health is checked) | `passed` true | 2 checklist failed, or no draft |
 | `submit-review CASE` | one case id | yes | review posted | 2 refused or no draft |
 | `create-record CASE` | one case id | yes | created, or existing row reported | 2 gate or missing handle |
@@ -734,6 +735,33 @@ Other stderr lines seen from this tree:
 The status 400 and 403 lines do not include the inner reason. For `submit-review` before a passing checklist, that reason is `agent_approval_required`.
 
 `metrics` reads `reports/traces/*.jsonl` (or `$REPORTS_DIR/traces`), rewrites `metrics.json`, and prints `metrics` plus `alerts_fired`. It does not contact the mock. Every trace file in that directory is included, so a directory left over from a partial run can fire alerts even when the last full `run-all` was clean. `run` replaces `CASE.jsonl`. Checklist, submit, and create traces are separate files: `CASE.agent-review.jsonl`, `CASE.submit-review.jsonl`, `CASE.create-record.jsonl`.
+
+## Classification
+
+Approach 1 is the rules and is the default. Set the approach with `--approach` or `CLASSIFIER_APPROACH`. Allowed values are `1`, `2`, `3`, and `ab`. An empty value stays on approach 1.
+
+```sh
+uv run --locked dispute-copilot run CARD-D01 --approach 1
+uv run --locked dispute-copilot run-all --approach 2
+uv run --locked dispute-copilot run-all --approach ab --shadow
+```
+
+`--approach 2` asks the configured model after the rules, only on a case the rules leave open. `--approach 3` asks the ranker first and the configured model only when those two answers differ. `--approach ab` assigns the case from a seeded hash (`config/rules/classifier.yaml`, `ab.seed` and `ab.weights`). The draft uses the assigned approach.
+
+`--shadow` also runs the approaches that were not selected. Each one is written under `submissions/classification/<approach>/CASE.json` and, when reports are configured, `reports/classification/<approach>/CASE.json`. The draft stays on the selected approach. The saved record does not include the complaint.
+
+The model step returns one JSON object with `class`, `reason`, and `evidence`. `evidence` must be exact text copied from the complaint. Whitespace may be collapsed. A paraphrase is rejected and the rules result is kept.
+
+`dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list and writes the same records. It does not write a draft. `--case CASE` limits the run to one case. `--approaches 1,2` limits the set. `make compare` is the same command.
+
+```sh
+uv run --locked dispute-copilot compare --case CARD-D01
+make compare
+```
+
+On the review page, the complaint is first, then the narrative. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review.
+
+The comparison page is served at `/compare` and written as `compare.html` beside a dashboard export. For each approach it shows cases run, the share that called a model, the manual-review rate, latency p50 and p95, Haiku cost per priced call, and Jev as unpriced. The agreement matrix counts shared cases. Disagreeing rows list case ids only. Wrong-label rate compares each saved approach, including a shadow run, with the reviewer category. The sample size is printed. When it is below `comparison.min_sample` (default 30), the page says the sample is too small to conclude. Technical details stay closed. The page does not include complaint text.
 
 ## Evaluate
 
@@ -771,7 +799,7 @@ LOG_STDOUT=1 uv run --locked dispute-copilot run-all --label azure
 
 ### Status page
 
-`dispute-copilot dashboard` reads traces, `logs/run.jsonl`, `logs/mcp.jsonl`, and `audit.json` when that file is present. It does not contact the mock. With `--export out.html` it writes one HTML file and exits. Without `--export` it serves that page on `127.0.0.1` only. The default port is `8754`. There is no host flag. GET `/` and GET `/health` are the only successful routes. POST, PUT, PATCH, and DELETE return 405. The page does not approve, reject, reset, or post. The file uses no remote font and no remote script. A theme control switches light and dark; with no choice stored, the page follows the system setting.
+`dispute-copilot dashboard` reads traces, `logs/run.jsonl`, `logs/mcp.jsonl`, and `audit.json` when that file is present. It also reads `classification/` and `feedback/` under the reports directory and the submissions directory. It does not contact the mock. With `--export out.html` it writes that file and a sibling `compare.html`, then exits. Without `--export` it serves the status page and the comparison page on `127.0.0.1` only. The default port is `8754`. There is no host flag. GET `/`, GET `/index.html`, GET `/compare`, GET `/compare.html`, and GET `/health` are the successful routes. POST, PUT, PATCH, and DELETE return 405. The page does not approve, reject, reset, or post. The file uses no remote font and no remote script. A theme control switches light and dark; with no choice stored, the page follows the system setting. The comparison link is `compare.html`, next to the status file.
 
 ```sh
 uv run --locked dispute-copilot dashboard --export reports/status.html

@@ -30,6 +30,7 @@ def redact_complaint(complaint: str, redactor: Redactor | None = None) -> str | 
 
 
 def quote_found(quote: str, complaint: str) -> bool:
+    """True when the quote is exact complaint text, with whitespace collapsed."""
     folded = " ".join(quote.split())
     if not folded:
         return False

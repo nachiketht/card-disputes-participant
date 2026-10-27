@@ -92,13 +92,23 @@ def render(view: dict) -> str:
     return masked
 
 
-def write_html(reports_dir: Path, dest: Path) -> None:
+def write_html(reports_dir: Path, dest: Path, submissions_dir: Path | None = None) -> None:
+    from dispute_copilot.observability.compare_page import load_comparison, render_comparison
+
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(render(load_view(reports_dir)), encoding="utf-8")
+    sibling = dest.with_name("compare.html")
+    if sibling.resolve() == dest.resolve():
+        sibling = dest.with_name("approach-compare.html")
+    sibling.write_text(
+        render_comparison(load_comparison(reports_dir, submissions_dir), back_href=dest.name),
+        encoding="utf-8",
+    )
 
 
-def bind_page(html: str, port: int) -> ThreadingHTTPServer:
-    handler = _handler(html.encode("utf-8"))
+def bind_page(html: str, port: int, compare_html: str | None = None) -> ThreadingHTTPServer:
+    encoded = None if compare_html is None else compare_html.encode("utf-8")
+    handler = _handler(html.encode("utf-8"), encoded)
     return ThreadingHTTPServer((_HOST, port), handler)
 
 
@@ -400,6 +410,7 @@ def _page(view: dict) -> str:
         "<title>Run status</title>",
         f"<style>{_CSS}</style></head><body>",
         "<header><div class=\"top\"><p class=\"mark\">Read-only</p>"
+        "<a class=\"mark\" href=\"compare.html\">Comparison</a>"
         "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
         "<h1>Run status</h1>",
         "<p class=\"lede\">A read-only view of the runs already saved.</p>",
@@ -962,12 +973,15 @@ def _log_row(item: dict) -> dict:
     }
 
 
-def _handler(page: bytes):
+def _handler(page: bytes, compare: bytes | None = None):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
             path = self.path.split("?", 1)[0]
             if path in {"/", "/index.html"}:
                 self._send(200, "text/html; charset=utf-8", page)
+                return
+            if path in {"/compare", "/compare.html"} and compare is not None:
+                self._send(200, "text/html; charset=utf-8", compare)
                 return
             if path == "/health":
                 self._send(200, "application/json", b'{"status":"ok","read_only":true}')
@@ -1285,6 +1299,7 @@ header, main { width:min(1120px, calc(100% - 48px)); margin:0 auto; }
 header { padding:48px 0 8px; }
 .top { display:flex; justify-content:space-between; align-items:center; gap:16px; }
 .mark { letter-spacing:.16em; text-transform:uppercase; font-size:12px; color:var(--accent); margin:0; }
+a.mark { text-decoration:none; }
 #theme-toggle, .replay button, .path-picks select, .filters input, .filters select {
   font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:999px;
 }
@@ -1401,3 +1416,7 @@ code { font-size:.92em; }
   .detail { display:none; }
 }
 """
+
+
+def page_css() -> str:
+    return _CSS

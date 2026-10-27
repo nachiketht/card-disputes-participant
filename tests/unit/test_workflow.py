@@ -76,6 +76,46 @@ def _assert_gold(draft, case_id):
     assert CONTRACT_VERSION not in draft
 
 
+def test_shadow_writes_every_approach_and_leaves_the_draft(tmp_path: Path):
+    case_id = "CARD-D01"
+    payload = _tx(case_id, "TX-D01", 117, "XCR", "2026-08-19")
+    class Quiet:
+        def complete(self, *, system: str, user: str):
+            raise AssertionError("model was called")
+
+        def ask(self, state: str):
+            raise AssertionError("ranker was called")
+
+    draft = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, payload, _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        approach="1",
+        shadow=True,
+        submissions_dir=tmp_path,
+        model_client=Quiet(),
+        jev_client=Quiet(),
+    )
+    _assert_gold(draft, case_id)
+    complaint = "I found a card purchase at Morrow Supplies for 117 crowns."
+    for name in ("1", "2", "3"):
+        saved = (tmp_path / "classification" / name / f"{case_id}.json").read_text(encoding="utf-8")
+        assert complaint not in saved
+        assert "I do not recognize it" not in saved
+    plain = prepare(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, payload, _merchant("Morrow Supplies")),
+        case_system=FakeCaseSystem(),
+        case=_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        approach="1",
+    )
+    assert plain["classification"] == draft["classification"]
+    assert plain["routing"] == draft["routing"]
+
+
 def test_denied_purchase_on_v2_matches_the_october_case():
     case_id = "CARD-D01"
     payload = _tx(case_id, "TX-D01", 117, "XCR", "2026-08-19")

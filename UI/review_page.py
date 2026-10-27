@@ -334,7 +334,9 @@ def _render(
     complaint = _complaint_text(corpus, tools, case_id)
     slot = "<!-- complaint-slot -->"
     context["complaint_slot"] = slot
+    context["has_complaint"] = bool(complaint.strip())
     context["categories"] = [item.value for item in Classification]
+    context["model_note"] = _model_note(submissions, case_id) if case_id else _empty_note()
     html = TEMPLATES.get_template("review.html").render(context)
     page = html.replace(slot, escape(complaint), 1)
     if Redactor().contains_restricted(page):
@@ -632,14 +634,18 @@ def _complaint_text(
         return ""
 
 
-def _model_note(submissions: Path, case_id: str) -> dict:
-    empty = {
+def _empty_note() -> dict:
+    return {
         "haiku_called": False,
         "haiku_class": None,
         "haiku_reason": "",
         "haiku_unusable": False,
         "haiku_quote_missing": False,
     }
+
+
+def _model_note(submissions: Path, case_id: str) -> dict:
+    empty = _empty_note()
     path = submissions / CLASSIFICATION / "applied" / f"{case_id}.json"
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
@@ -662,12 +668,19 @@ def _store_feedback(submissions: Path, reports_dir: Path | None, case_id: str, p
     name = _posted(parsed, "reviewer")
     category = _posted(parsed, "category")
     note = _posted(parsed, "note")
+    opened = _posted(parsed, "haiku_opened").strip().lower() in {"1", "true", "on", "yes"}
     if not name.strip():
         return "feedback_name"
     allowed = {item.value for item in Classification}
     if category not in allowed:
         return "feedback_category"
-    body = {CASE_ID: case_id, "reviewer": name.strip(), "category": category, "note": note.strip()}
+    body = {
+        CASE_ID: case_id,
+        "reviewer": name.strip(),
+        "category": category,
+        "note": note.strip(),
+        "haiku_block_opened": opened,
+    }
     text = json.dumps(body, indent=2, sort_keys=True) + "\n"
     folders = [submissions]
     if reports_dir is not None:
