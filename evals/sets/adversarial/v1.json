@@ -35,7 +35,7 @@
       "category": "deadlines"
     },
     {
-      "node": "tests/adversarial/test_synthetic_cases.py::test_a_duplicate_combined_with_another_issue_stays_a_duplicate",
+      "node": "tests/adversarial/test_synthetic_cases.py::test_a_duplicate_combined_with_another_issue_is_ambiguous",
       "category": "routing"
     },
     {
