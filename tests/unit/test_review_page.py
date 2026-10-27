@@ -101,8 +101,8 @@ def test_a_saved_draft_renders_the_contract_sections(tmp_path: Path, monkeypatch
     assert "Draft" in text
     assert "No check yet" in text
     assert "Review not submitted" in text
-    assert text.index("Complaint") < text.index("Narrative")
-    assert text.index("Narrative") < text.index("Judge note")
+    assert text.index("Narrative") < text.index("Complaint")
+    assert text.index("Complaint") < text.index("Judge note")
     assert text.index("Judge note") < text.index("Type")
     assert "No judge note yet." in text
     assert 'id="model-note"' in text
