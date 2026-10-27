@@ -2,7 +2,7 @@
 
 Azure Container Apps is the deployment that is running. The app never approves. The mock listens on `127.0.0.1` inside the replica. There is no public ingress and no public address.
 
-This session could not sign in to `<subscription>`, so it did not query these resources. The names below are the ones supplied for that deployment. Do not put the subscription name or the model endpoint in this file. Use `<subscription>` and `<model-endpoint>`.
+This session could not sign in to `<subscription>`, so it did not query these resources. The names below are the ones supplied for that deployment. Do not put the subscription id or a model host in this file.
 
 | Item | In use |
 |---|---|
@@ -14,11 +14,12 @@ This session could not sign in to `<subscription>`, so it did not query these re
 | Shares | `mock-data` (only `dataset.json`) and `app-data` (`documents/` and `policies/`) |
 | Environment | `card-disputes-env` |
 | App | `card-disputes`, one replica, no public ingress |
-| Judge | Azure-hosted `claude-haiku-4-5` at `<model-endpoint>`, secret `llm-api-key` (not in git). It only checks a finished draft. It does not approve. |
+| Model | Azure-hosted Claude Haiku 4.5 (`claude-haiku-4-5`), secret `llm-api-key` (not in git). The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. The host is not written in this file. |
+| Ranker | Optional. `JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL`. An empty url or key skips it. The container template does not set these. Cost is unpriced. The threshold placeholder `0.70` is in `config/rules/classifier.yaml`, not a secret. |
 
 ## What was checked from this workspace
 
-The layout files were read on `mvp-v1`. `azure-deploy` was not deleted. Docker was not installed here, and this session did not run `az login`. None of the following were run from here: `docker build`, `docker compose up`, `docker compose exec`, a container-app query, or the copilot flow inside a container (`run`, `run-all`, `agent-review`, `submit-review`, approve, `create-record`, evaluate).
+The layout files were read in this workspace. Docker was not installed here, and this session did not run `az login`. None of the following were run from here: `docker build`, `docker compose up`, `docker compose exec`, a container-app query, or the copilot flow inside a container (`run`, `run-all`, `agent-review`, `submit-review`, approve, `create-record`, evaluate).
 
 File checks that did run:
 
@@ -55,16 +56,12 @@ flowchart LR
   app -->|read| corpus[documents and policies]
   mock -->|read| fixture[dataset.json]
   mock -->|write| ledger[SQLite ledger]
-  app -->|judge call| judge["claude-haiku-4-5 at model-endpoint"]
+  app -->|model call| judge["claude-haiku-4-5"]
 ```
 
-## Step 1. Use this branch
+## Step 1. Use the repository copy
 
-These files are on `mvp-v1`. They were merged from `azure-deploy`. That branch is still on the remote; do not delete it to deploy.
-
-```sh
-git switch mvp-v1
-```
+The layout files are `Dockerfile`, `docker-compose.yml`, and `deploy/azure/containerapp.yaml`. The image tag recorded for the running app is `card-disputes:promptfix`. This workspace did not build or push a replacement image, so that tag is not a claim that the replica is running the classification approaches.
 
 Do not commit `.env`, `submissions/`, or `reports/dev.json`.
 
@@ -128,7 +125,7 @@ docker run --rm pod3disputes.azurecr.io/card-disputes:promptfix python -c "from 
 
 ## Step 5. Create the Container Apps environment
 
-The environment in use is `card-disputes-env`. It is the network around the app, not `<model-endpoint>`.
+The environment in use is `card-disputes-env`. It is the network around the app. It is not the model host.
 
 ```sh
 az containerapp env create \
@@ -250,7 +247,7 @@ az containerapp secret set \
 
 If the YAML create fails because the placeholder secret is invalid, delete the `secrets:` block from the YAML, create the app, then run `az containerapp secret set` and add the `LLM_API_KEY` secret ref in a second update. Do not paste the key into the YAML.
 
-The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The judge is the Azure-hosted `claude-haiku-4-5` deployment at `<model-endpoint>`. Its key is the Container App secret `llm-api-key`. That call only checks a finished draft. It does not approve.
+The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The checklist judge is Azure-hosted Claude Haiku 4.5. Its key is the Container App secret `llm-api-key`. That call checks a finished draft. It does not approve. The same model id is what approaches 2 and 3 call on an eligible case. The replica template does not set the ranker variables.
 
 ## Step 9. Check the cloud pair
 
@@ -286,7 +283,7 @@ az containerapp exec \
   --command "dispute-copilot run CARD-D04"
 ```
 
-`FEATURE_LLM_REVIEW=block` is set on the app container in the template, so a later check calls `claude-haiku-4-5` at `<model-endpoint>`:
+`FEATURE_LLM_REVIEW=block` is set on the app container in the template, so a later check calls Claude Haiku 4.5:
 
 ```sh
 az containerapp exec \
@@ -296,7 +293,7 @@ az containerapp exec \
   --command "dispute-copilot agent-review CARD-D04"
 ```
 
-A real pass or block reason means the container reached `<model-endpoint>`. `The model reply was not usable.` means the key or the base URL was refused. A pass does not approve the case.
+A real pass or block reason means the container reached the configured model host. `The model reply was not usable.` means the key or that host was refused. A pass does not approve the case.
 
 Submit runs in `app`. Approve runs in `mock`. Create runs in `app` and still stops unless the human approve has been recorded:
 
@@ -334,14 +331,24 @@ az containerapp exec \
   --command "dispute-copilot dashboard --export /submissions/reports/status.html"
 ```
 
-If that `az` build only opens a shell, run the same export at the prompt, then `cat /submissions/reports/status.html` and `cat /submissions/reports/logs/run.jsonl`. Open the HTML on your machine. Do not add an ingress rule for port 8754.
+That export also writes `/submissions/reports/compare.html` beside the status file. If that `az` build only opens a shell, run the same export at the prompt, then `cat /submissions/reports/status.html`, `cat /submissions/reports/compare.html`, and `cat /submissions/reports/logs/run.jsonl`. Open the HTML on your machine. Do not add an ingress rule for port 8754.
 
 `LOG_STDOUT=1 dispute-copilot run-all --label azure` writes the same JSON lines to that process's stdout. The replica command is still `sleep infinity`, so Log Analytics shows that process, not an exec session. Use the file copy above until the copilot itself is the process whose stdout the platform collects. Leave `LOG_STDOUT` unset for the stdio context server.
+
+## Classification settings the app reads
+
+Approach 1 is the default and does not call a model. `CLASSIFIER_APPROACH` may be `1`, `2`, `3`, or `ab`. `--shadow` on `run` and `run-all` writes an audit for every approach and leaves the draft on the selected approach. `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list.
+
+`JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL` are optional. Leave the url and the key empty to skip the ranker. Approach 3 with no ranker does not call Haiku 4.5 for that case; the class is ambiguous and the route is `manual_review`. The ranker threshold is the placeholder `0.70` in `config/rules/classifier.yaml`. Jev cost is unpriced. `deploy/azure/containerapp.yaml` does not set `JEV_*`, and this workspace did not add those secrets on the replica.
+
+A duplicate stands only when the fetched transactions contain two charges with the same merchant id, amount, and currency. Without that pair the class does not stand. Classification audits do not store the complaint. The review page is the only page that shows it. Reviewer login is phase 2.
+
+Haiku 4.5 list price is 1.00 USD per million input tokens and 5.00 USD per million output tokens.
 
 ## What was left out on purpose
 
 - No public ingress and no load balancer. The mock stays on loopback inside the replica.
-- The judge calls `https://pod3-resource.services.ai.azure.com/anthropic` only to check a finished draft. It does not approve. The app never approves. The key is `LLM_API_KEY`.
+- Haiku 4.5 checks a finished draft when the checklist judge is on, and approaches 2 and 3 may call the same model on an eligible case. It does not approve. The app never approves. The key is `LLM_API_KEY`. The ranker stays off until `JEV_BASE_URL` and `JEV_API_KEY` are set. Its cost is unpriced. The model host is not written in this file.
 - Restarting the replica clears the ledger at `/state` and the drafts at `/submissions`. Files on `mock-data` and `app-data` stay. Run `reset` only when you mean to:
 
 ```sh

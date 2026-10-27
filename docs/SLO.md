@@ -9,6 +9,10 @@
 - Measured from traces by `dispute-copilot metrics` into `reports/metrics.json`. `config/rules/slo.yaml` holds the 2000 ms target, the 0.95 objective, the alert thresholds, and the same good-case sentence: drafted, inside the latency target, route not included. The rate above is what the program counts.
 - A drafted outage case inside the time limit counts as good, including `manual_review` after transactions fail. The procedure says to degrade. The metric does not check that the route matches the procedure.
 
+## Classification latency
+
+`good_case_rate` is the SLO above. It is not the classification latency on the comparison page. That page reports p50 and p95 of `latency_ms` on each approach's audit records. Approach 1 does not call a model. Approach 2 and approach 3 can add a model call on an eligible case. Haiku 4.5 cost on that page uses the list price in `config/rules/cost.yaml`: 1.00 USD per million input tokens and 5.00 USD per million output tokens. Jev is unpriced. Those figures do not replace `good_case_rate` or the error budget.
+
 ## Why 2 seconds
 
 Measured on the local mock with default settings (`evidence/week10/04_scenarios.txt`, 2026-10-25):

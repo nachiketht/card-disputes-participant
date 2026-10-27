@@ -14,3 +14,7 @@ Each firing writes an event named `guardrail.input`, `guardrail.output`, `guardr
 The input mark is the existing untrusted-text scan. The output checks are the existing phrase list, redactor, and contract validator, including the checklist step. The boundary check is the loopback rule on the mock URL. The approval check is `approval_gate` before a record is posted. A passing gate does not emit `guardrail.approval`.
 
 These events are evidence that a protection fired. They are not a second decision, and they are not semantic review.
+
+Classification is a separate path. Approach 1, the default, stays on the rules. Approach 2 and approach 3 may assign a class on an eligible case, then apply the labeled-authorization screen and the duplicate guard. A guardrail event still does not set that class and still does not approve.
+
+The original complaint is shown on the review page only. Traces, logs, classification audits, and the comparison page do not carry it. The review page still runs the redactor, and a restricted value withholds the page. Reviewer login is phase 2. The feedback form stores a typed name. Saving feedback does not approve.

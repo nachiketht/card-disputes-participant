@@ -1,6 +1,6 @@
 # Security audit: least privilege, human boundary, credentials
 
-Audited on branch `mvp-v1`, 2026-10-25. Evidence: `evidence/week10/05_injection.txt`, `06_human_boundary.txt`, `07_credentials.txt`.
+Evidence for the human boundary and the credential scan: `evidence/week10/05_injection.txt`, `06_human_boundary.txt`, `07_credentials.txt`.
 
 ## Human boundary (brief)
 
@@ -8,7 +8,7 @@ Audited on branch `mvp-v1`, 2026-10-25. Evidence: `evidence/week10/05_injection.
 
 | Rule | Enforced in code | Proof |
 |---|---|---|
-| No record before human approval | `review_flow/__init__.py:create_record` calls `review_flow/gate.py:approval_gate`, which returns True only when the step-1 agent approval and the human review both name this case and this server hash, the review status is `approved`, and a reviewer is named. Any exception fails closed. A False result raises 403 before any POST. The mock also rejects with 403 (`approval_missing_or_draft_changed`). | `test_approval.py::test_gate_fails_closed`, `test_review.py::test_create_posts_the_server_draft_only_after_approval`, `test_live_checkpoint.py` (pending review: exit 2, no `record_created`, no `unapproved_write_attempt`), `06_human_boundary.txt` |
+| No record before human approval | `review_flow/__init__.py:create_record` calls `review_flow/gate.py:approval_gate`, which returns True only when the step-1 approval and the human review each name this case and this server hash, the review status is `approved`, and a reviewer is named. Any exception fails closed. A False result raises 403 before any POST. The mock also rejects with 403 (`approval_missing_or_draft_changed`). | `test_approval.py::test_gate_fails_closed`, `test_review.py::test_create_posts_the_server_draft_only_after_approval`, `test_live_checkpoint.py` (pending review: exit 2, no `record_created`, no `unapproved_write_attempt`), `06_human_boundary.txt` |
 | No create after the draft changed | `create_record` posts the server's stored draft, not the local file, and checks `digest(draft) == server_hash`. | same tests; mock 403 on hash change |
 | The software cannot approve | No `approve` function or call exists in `src/` (`tools/lint_gates.py:approve_calls`, run by `make lint` and pre-commit). The case-system adapter has no approve method. No source file calls `tools/runtime.py`. The step-1 agent review can only block: `agent_review.py:apply_critic` can add a failing check, never remove one. | `test_gates.py::test_source_tree_passes_gates`, `test_security.py::test_no_source_calls_the_operator_commands`, `test_approval.py::test_critic_can_only_block` |
 | No promised outcome | The customer message is a fixed template ("We cannot confirm an outcome... human approval remains required"). The `commitment_guard` check in agent review blocks refund or outcome language. | `test_review.py`, `05_injection.txt` |
@@ -23,9 +23,10 @@ Audited on branch `mvp-v1`, 2026-10-25. Evidence: `evidence/week10/05_injection.
 | `adapters/tools.py` | Two evidence reads | `GET /health`, `GET /v1/cases`, `GET /v1/cases/CASE/transactions`, `GET /v1/cases/CASE/merchant` | POST anything. Raise attempts above 3 (rejected at load) |
 | `adapters/case_system.py` | Submit a review, create an approved record | `GET /v1/records/CASE`, `GET /v1/reviews/ID`, `POST /v1/reviews`, `POST /v1/records` | Approve, reject, reset, or call any other path (`test_security.py::test_the_only_mock_writes_are_review_submission_and_record_creation`) |
 | `review_flow/gate.py` | Decide if create may post | Pure function, single caller (`create_record`) | Post, change a review |
-| `review_flow/agent_review.py` + `llm/` critic | Optional step-1 check | Sends scored fields and the template narrative to the configured model, never raw document or merchant text; key from the environment | Approve, pass a failing check, set a scored field |
-| `observability/*` | Record what happened | Writes under `reports/` only; every attribute redacted and truncated | Log document or merchant text, restricted values |
-| `cli.py` | Operator commands `run`, `run-all`, `agent-review`, `submit-review`, `create-record`, `metrics` | Uses the adapters above | Approve or reject (no such command) |
+| `review_flow/agent_review.py` + `llm/` critic | Optional checklist check | Sends scored fields and the template narrative to Claude Haiku 4.5 when `FEATURE_LLM_REVIEW=block`; never raw document or merchant text; key from the environment | Approve, pass a failing check, set a scored field |
+| `classifiers/*` | Optional class on approach 2 and approach 3 | Sends a redacted complaint only when the case is eligible. Writes audit JSON that must not contain the complaint. Jev cost stays unpriced | Approve; call a model on approach 1; call a model when the label is denied or the rules class is unsupported, duplicate, or service |
+| `observability/*` | Record what happened | Writes under `reports/` only; every attribute redacted and truncated. The comparison page copies case id, class, route, latency, and cost, not the complaint | Log document or merchant text, restricted values, the complaint |
+| `cli.py` | Operator commands `run`, `run-all`, `compare`, `review-page`, `agent-review`, `submit-review`, `create-record`, `metrics`, `evals`, `dashboard` | Uses the adapters above. `run` and `run-all` take `--approach` and `--shadow` | Approve or reject (no such command) |
 | `tools/runtime.py` operator CLI | Human approval | Local SQLite state | Not imported or called by `src/` |
 
 Known limits, not claimed as solved: the mock has no authentication, so least privilege here is by code structure and tests, not by credentials. In production the tool client and the case-system client would get separate service identities with read-only and create-only scopes.
@@ -34,7 +35,12 @@ Known limits, not claimed as solved: the mock has no authentication, so least pr
 
 - Keys are read only from the environment: `llm/openai_compat.py:resolve_api_key` (`LLM_API_KEY`). `cli.py:_load_env_file` loads an untracked `.env` without overriding the environment.
 - `.env` and `.env.*` are git-ignored; `.env.example` has `LLM_API_KEY=` blank.
+- `JEV_API_KEY`, `JEV_BASE_URL`, and `JEV_MODEL` are read from the environment. `.env.example` leaves them empty. An empty url or key means the ranker is not built. The host is not written in this file.
 - The mock needs no credentials.
+
+## Complaint text and review
+
+The original complaint is shown on the review page only. Logs, traces, classification audits, and the comparison page do not store it. Approach 2 or 3 may send a redacted complaint to Haiku 4.5, and approach 3 may send that redacted text to the ranker, only when the eligibility rules allow the call. The review page escapes the complaint and runs the redactor on the finished HTML. A restricted value returns 403 and the page is withheld. Reviewer login is phase 2. The feedback form takes a typed name, a category, and a note, and it records whether the closed Haiku block was opened. Saving that form does not approve or decline.
 
 Scan command (run in `07_credentials.txt`):
 

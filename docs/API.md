@@ -34,4 +34,12 @@ Unknown resources return 404. Invalid input returns 400 or 413. No batch process
 `pending`, `approve`, `reject`, `audit`, and `reset --confirm` accept `--state PATH`.
 `serve` accepts `--data PATH`, `--state PATH`, and `--port NUMBER`.
 When using a nondefault state, supply the same path to every operator command. Stop clients before resetting.
-Operator CLI access is a training simplification. Approval identity and immutable audit storage are future design work, not claims made by this mock.
+Operator CLI access is a training simplification. Approval identity and immutable audit storage are future design work, not claims made by this mock. Reviewer login on the copilot review page is phase 2.
+
+## Copilot stdio server
+
+`src/dispute_copilot/mcp_server.py` speaks stdio only. It does not listen on a port. `run_case` and `run_all` take `approach` (`1`, `2`, `3`, `ab`, or omit for the default, approach 1) and `shadow` (true or false). An unknown approach is rejected with `approach must be 1, 2, 3, or ab`. There is no compare tool on this server, and there is no approve, reject, or reset tool. Shadow writes an audit for every approach and leaves the draft on the selected approach.
+
+The mock HTTP API above is unchanged. It has no classification route. The `409` `duplicate_case` body is the ledger rule for an already-created complaint. It is not the charge guard. That guard runs in the copilot: a `duplicate_charge` class stands only when the fetched transactions contain two charges with the same merchant id, amount, and currency.
+
+`dispute-copilot dashboard` is a separate local process on `127.0.0.1:8754`. It serves the status page and the comparison page. It is not part of the mock. `dispute-copilot review-page` is the review page. The original complaint is shown there only. Reviewer login is phase 2.

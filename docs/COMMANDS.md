@@ -50,16 +50,17 @@ export LLM_PROVIDER=null
 export FEATURE_LLM_REVIEW=off
 ```
 
-Azure judge, Claude Haiku 4.5. The id is `claude-haiku-4-5`. Prices for that id are in `config/rules/cost.yaml`. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. The sample values are the ones in `.env.example`. Put the real key in `.env`.
+Checklist judge, Claude Haiku 4.5. The id is `claude-haiku-4-5`. Prices for that id are in `config/rules/cost.yaml`. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
 
 ```sh
 export FEATURE_LLM_REVIEW=block
 export LLM_MODEL=claude-haiku-4-5
 export LLM_API_STYLE=anthropic
-export LLM_BASE_URL=https://pod3-resource.services.ai.azure.com/anthropic
 export LLM_API_KEY=<key>
 unset LLM_PROVIDER
 ```
+
+`LLM_BASE_URL` belongs in `.env` with the key. It is not listed here.
 
 Do not commit `LLM_API_KEY`.
 
@@ -192,7 +193,7 @@ uv run --locked --extra mcp python tools/check_mcp_names.py
 
 ### 14. Status page
 
-Export writes one HTML file and exits. The serve form binds `127.0.0.1:8754` and answers GET only.
+Export writes the status HTML and a sibling `compare.html`, then exits. The serve form binds `127.0.0.1:8754` and answers GET `/`, `/index.html`, `/compare`, `/compare.html`, and `/health`.
 
 ```sh
 uv run --locked dispute-copilot dashboard --export reports/status.html
@@ -364,8 +365,8 @@ export FEATURE_LLM_REVIEW=off
 | `RUN_ID` | `dispute-copilot` | Trace run id. Default `run-` plus 10 hex characters. |
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
-| `LLM_API_KEY` | model client | Azure AI key. Empty means no model call. |
-| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Placeholders are in [Run everything](#run-everything). Unused when the provider is `null`. The Azure judge id is `claude-haiku-4-5`. The default base is `https://pod3-resource.services.ai.azure.com/anthropic`. |
+| `LLM_API_KEY` | model client | Haiku 4.5 key. Empty means no Haiku call. |
+| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. The model id is `claude-haiku-4-5`. The host is not written in this file. |
 | `HTTP_TIMEOUT_S`, `RETRY_BASE_DELAY_S`, `RETRY_MAX_DELAY_S` | read tools | Override `config/rules/retry.yaml`. |
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |

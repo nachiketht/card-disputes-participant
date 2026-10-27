@@ -17,6 +17,16 @@ uv run --locked dispute-copilot metrics     # recompute metrics and alerts from 
 
 `submit-review` before a passing `agent-review` for that draft exits 2 and does not post. Approval is the human command at the bottom of this page. The app never approves. Command order and exits are in `docs/COMMANDS.md`.
 
+Default classification is approach 1 (rules only). Pass `--approach 2`, `--approach 3`, or `--approach ab` on `run` and `run-all` to select another approach. `--shadow` writes an audit for every approach and leaves the draft on the selected approach. `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list.
+
+Leave `JEV_BASE_URL` and `JEV_API_KEY` empty to skip the ranker. `JEV_MODEL` is optional and defaults to `jev-latest`. Approach 3 with no ranker does not call Haiku 4.5 for that case; the class is ambiguous and the route is `manual_review`. The threshold placeholder is `0.70` in `config/rules/classifier.yaml`. Jev cost is unpriced. Haiku 4.5 list price is 1.00 USD per million input tokens and 5.00 USD per million output tokens.
+
+A duplicate stands only when the fetched transactions contain two charges with the same merchant id, amount, and currency. One charge, or two charges that differ, does not keep that class: the class is ambiguous, the deadline is null, and the route is `manual_review`. An unavailable transaction read keeps `duplicate_charge`, uses `manual_review`, and still calculates the deadline. The check runs on every approach.
+
+A model is asked only on an eligible case: ambiguous with no conflict, or unauthorized from complaint wording while authorization is not supplied. A labeled denial, a conflict, and a rules class of unsupported, duplicate, or service are not sent. A proposed unauthorized class is kept only when the label is not supplied or denied. A confirmed label on that proposal does not stand. Duplicate and service are kept only when the label is confirmed or not supplied.
+
+Classification audits under `submissions/classification/` and `reports/` do not store the complaint. The review page (`dispute-copilot review-page`) is the only page that shows the original complaint, then the narrative, then a closed Haiku block. The redactor still runs on that page. A restricted value withholds it. Feedback is stored under `submissions/feedback/` and, when reports are configured, `reports/feedback/`. The record includes whether that block was opened (`haiku_block_opened`). Saving feedback does not approve. Reviewer login is phase 2.
+
 Open the status page after a run. It is read-only and, when served, binds `127.0.0.1` only:
 
 ```sh
@@ -24,7 +34,9 @@ uv run --locked dispute-copilot dashboard --export reports/status.html
 uv run --locked dispute-copilot dashboard
 ```
 
-The first command writes one HTML file. The second serves `http://127.0.0.1:8754`. Neither command approves a case. Tag a run with `--label local` or `--label azure` when that place should appear on the status page. A place is listed only when a saved run has it. List prices are in `config/rules/cost.yaml`.
+The first command writes the status HTML and a sibling `compare.html`. The second serves `http://127.0.0.1:8754`, including `/compare` and `/compare.html`. Neither command approves a case. Tag a run with `--label local` or `--label azure` when that place should appear on the status page. A place is listed only when a saved run has it. List prices are in `config/rules/cost.yaml`.
+
+The comparison page reads saved classification audits. Per approach it shows cases run, the share that called a model, the manual-review rate, an agreement matrix, disagreeing case ids, latency p50 and p95, Haiku cost from list price, Jev as unpriced, and the wrong-label rate from reviewer feedback with the sample size. A sample under `comparison.min_sample` (30) is marked too small to conclude. Disagreeing rows are case ids only. The page does not include the complaint. Those latency figures are not the case-span SLO in `docs/SLO.md`.
 
 The page opens with the case counts, the request-path diagram, and four short cards. Technical details stays closed. The diagram lists every run id saved under `REPORTS_DIR`. Pick a case and a run, or show a second run under the first; the columns stay aligned. A failed read, a retry chip, an injection badge, and a step marked not run all come from the saved record. The parallel reads and the join are labelled. Replay walks that saved order on the diagram at 0.5x, 1x, 2x, or 5x. It does not call the mock, the app, or a model, and it does not write. The theme control is in the header. Leave it unset to follow the system light or dark setting. Open the exported file the same way: the diagram and the replay are already in that file.
 
@@ -75,7 +87,7 @@ grep -c -E 'SYSTEM OVERRIDE|refund|SYNTHETIC-' submissions/drafts/CARD-D08/v*.js
 
 1. Do not approve the review. Reject it so it cannot be created:
    `uv run --locked python tools/runtime.py reject REVIEW_ID --reviewer YOUR_NAME --state .state/run.sqlite`
-2. Turn the model step off so no untrusted text reaches a model: `FEATURE_LLM_REVIEW=off` in `.env`.
+2. Keep classification on the rules and keep the checklist judge off, so untrusted text is not sent to a model: leave `CLASSIFIER_APPROACH` unset (or set it to `1`) and set `FEATURE_LLM_REVIEW=off` in `.env`. Approach 2 or 3 can send a redacted complaint on an eligible case. Leave `JEV_BASE_URL` and `JEV_API_KEY` empty so the ranker is not called.
 3. Stop batch runs (`run-all`) until the cause is known; single cases with manual review are fine.
 4. If a record was created wrongly, it cannot be deleted through the API. Record the record id from the audit, escalate to the dispute operations lead, and log it in `docs/CHANGES.md`.
 5. Add the payload as a regression fixture next to `tests/unit/test_security.py::test_injected_merchant_note_is_treated_as_data`.
