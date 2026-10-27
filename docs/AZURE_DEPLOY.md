@@ -341,8 +341,7 @@ If that `az` build only opens a shell, run the same export at the prompt, then `
 ## What was left out on purpose
 
 - No public ingress and no load balancer. The mock stays on loopback inside the replica.
-- AWS ECS is not deployed. It is an unbuilt alternative in `docs/CLOUD_BREAKDOWN.md`.
-- The judge calls `<model-endpoint>` only to check a finished draft. It does not approve. The app never approves.
+- The judge calls `https://pod3-resource.services.ai.azure.com/anthropic` only to check a finished draft. It does not approve. The app never approves. The key is `LLM_API_KEY`.
 - Restarting the replica clears the ledger at `/state` and the drafts at `/submissions`. Files on `mock-data` and `app-data` stay. Run `reset` only when you mean to:
 
 ```sh

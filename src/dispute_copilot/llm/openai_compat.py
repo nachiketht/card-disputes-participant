@@ -1,33 +1,27 @@
-"""One provider client for Bedrock.
+"""One provider client for Azure AI.
 
 The default wire format is the Anthropic Messages API (`POST {base}/v1/messages`).
-`style="openai"` speaks chat completions. `style="converse"` speaks the Bedrock
-Converse API, with the model id in the URL and message text in `[{"text": ...}]`.
+The key is `LLM_API_KEY`. `style="openai"` speaks chat completions.
 """
 
 import os
-from urllib.parse import quote
 
 import httpx
 
 from dispute_copilot.llm.base import Completion, LLMError
 
-HAIKU_MODEL = "us.anthropic.claude-haiku-5-5"
+HAIKU_MODEL = "claude-haiku-4-5"
+AZURE_BASE_URL = "https://pod3-resource.services.ai.azure.com/anthropic"
 ANTHROPIC_VERSION = "2023-06-01"
 
 
 def default_base_url() -> str:
-    """Anthropic Messages route on Bedrock Runtime. The key's region must match AWS_REGION."""
-    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
-    return f"https://bedrock-runtime.{region}.amazonaws.com/anthropic"
+    """Anthropic Messages route on the Azure AI resource."""
+    return AZURE_BASE_URL
 
 
 def resolve_api_key() -> str:
-    for name in ("AWS_API_KEY", "AWS_BEARER_TOKEN_BEDROCK", "LLM_API_KEY"):
-        value = os.environ.get(name, "").strip()
-        if value:
-            return value
-    return ""
+    return os.environ.get("LLM_API_KEY", "").strip()
 
 
 class OpenAIProvider:
@@ -56,8 +50,6 @@ class OpenAIProvider:
         try:
             if self.style == "openai":
                 return self._openai(system, user)
-            if self.style == "converse":
-                return self._converse(system, user)
             return self._anthropic(system, user)
         except LLMError:
             raise
@@ -114,25 +106,6 @@ class OpenAIProvider:
             self.model,
         )
 
-    def _converse(self, system: str, user: str) -> Completion:
-        model_id = quote(self.model, safe=".")
-        payload = {
-            "system": [{"text": system}],
-            "messages": [{"role": "user", "content": [{"text": user}]}],
-        }
-        body = self._post(
-            f"{self.base_url}/model/{model_id}/converse",
-            payload,
-            {"Authorization": f"Bearer {self.api_key}"},
-        )
-        usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
-        return Completion(
-            _converse_text(body),
-            _count(usage.get("inputTokens")),
-            _count(usage.get("outputTokens")),
-            self.model,
-        )
-
     def _post(self, url: str, payload: dict, headers: dict[str, str]) -> dict:
         request_headers = {"content-type": "application/json", **headers}
         with httpx.Client(timeout=self.timeout_s, transport=self._transport) as client:
@@ -175,22 +148,6 @@ def _anthropic_text(body: dict) -> str:
     parts: list[str] = []
     for block in content:
         if isinstance(block, dict) and block.get("type") == "text" and isinstance(block.get("text"), str):
-            parts.append(block["text"])
-    text = "\n".join(part.strip() for part in parts if part.strip())
-    if not text:
-        raise LLMError("provider response has no text")
-    return text
-
-
-def _converse_text(body: dict) -> str:
-    output = body.get("output")
-    message = output.get("message") if isinstance(output, dict) else None
-    content = message.get("content") if isinstance(message, dict) else None
-    if not isinstance(content, list):
-        raise LLMError("provider response has no content")
-    parts: list[str] = []
-    for block in content:
-        if isinstance(block, dict) and isinstance(block.get("text"), str):
             parts.append(block["text"])
     text = "\n".join(part.strip() for part in parts if part.strip())
     if not text:

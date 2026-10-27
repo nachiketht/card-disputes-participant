@@ -32,8 +32,8 @@ Known limits, not claimed as solved: the mock has no authentication, so least pr
 
 ## Credentials
 
-- Keys are read only from the environment: `llm/openai_compat.py:resolve_api_key` (`AWS_API_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `LLM_API_KEY`). `cli.py:_load_env_file` loads an untracked `.env` without overriding the environment.
-- `.env` and `.env.*` are git-ignored; `.env.example` has `AWS_API_KEY=` blank.
+- Keys are read only from the environment: `llm/openai_compat.py:resolve_api_key` (`LLM_API_KEY`). `cli.py:_load_env_file` loads an untracked `.env` without overriding the environment.
+- `.env` and `.env.*` are git-ignored; `.env.example` has `LLM_API_KEY=` blank.
 - The mock needs no credentials.
 
 Scan command (run in `07_credentials.txt`):

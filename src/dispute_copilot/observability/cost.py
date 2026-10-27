@@ -103,10 +103,6 @@ def host_class(url: str) -> str:
     host = (urlparse(url.strip()).hostname or "").lower()
     if host == "services.ai.azure.com" or host.endswith(".services.ai.azure.com"):
         return "azure"
-    if host == "bedrock-runtime.amazonaws.com" or (
-        host.startswith("bedrock-runtime.") and host.endswith(".amazonaws.com")
-    ):
-        return "aws"
     if host in {"localhost", "::1"} or host.startswith("127."):
         return "local"
     return "other"
@@ -118,7 +114,7 @@ def configured_model() -> str:
 
     name = os.environ.get("LLM_PROVIDER", "").strip().lower()
     if not name:
-        name = "bedrock" if resolve_api_key() else "null"
+        name = "azure" if resolve_api_key() else "null"
     if name in {"null", "template", "templates", "off"}:
         return ""
     chosen = os.environ.get("LLM_MODEL", "").strip()

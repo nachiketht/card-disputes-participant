@@ -12,7 +12,7 @@ def provider_name() -> str:
     if explicit:
         return explicit
     if resolve_api_key():
-        return "bedrock"
+        return "azure"
     return "null"
 
 

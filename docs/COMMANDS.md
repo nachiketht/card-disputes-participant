@@ -50,30 +50,18 @@ export LLM_PROVIDER=null
 export FEATURE_LLM_REVIEW=off
 ```
 
-Azure judge, Claude Haiku 4.5. The id is `claude-haiku-4-5`. Prices for that id are in `config/rules/cost.yaml`. The call can only fail a checklist that already passed. It does not approve.
+Azure judge, Claude Haiku 4.5. The id is `claude-haiku-4-5`. Prices for that id are in `config/rules/cost.yaml`. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. The sample values are the ones in `.env.example`. Put the real key in `.env`.
 
 ```sh
 export FEATURE_LLM_REVIEW=block
 export LLM_MODEL=claude-haiku-4-5
 export LLM_API_STYLE=anthropic
-export LLM_BASE_URL=https://<resource>.services.ai.azure.com/anthropic
+export LLM_BASE_URL=https://pod3-resource.services.ai.azure.com/anthropic
 export LLM_API_KEY=<key>
 unset LLM_PROVIDER
 ```
 
-AWS Bedrock. Leave `LLM_PROVIDER` unset so a key selects that client. The sample id below is the one in `.env.example`.
-
-```sh
-export FEATURE_LLM_REVIEW=block
-export AWS_REGION=<region>
-export LLM_MODEL=us.amazon.nova-2-lite-v1:0
-export LLM_API_STYLE=converse
-export LLM_BASE_URL=https://bedrock-runtime.<region>.amazonaws.com
-export AWS_API_KEY=<key>
-unset LLM_PROVIDER
-```
-
-`LLM_API_KEY` is also accepted in place of `AWS_API_KEY`. Do not commit either value.
+Do not commit `LLM_API_KEY`.
 
 ### 4. One case, then every development case
 
@@ -320,7 +308,7 @@ The image default process is `python tools/runtime.py serve --data /data --state
 ### When something fails
 
 - Judge unreachable: `agent-review` with `FEATURE_LLM_REVIEW=block` prints `Verdict: block` and `Reason: The model reply was not usable.` A connection failure and a timeout take that same path.
-- Bad or missing key: the same `Verdict: block` line. `LLM_PROVIDER=null` never calls the model. For a real call, unset `LLM_PROVIDER` and set `LLM_API_KEY` or `AWS_API_KEY` to a placeholder you replace locally.
+- Bad or missing key: the same `Verdict: block` line. `LLM_PROVIDER=null` never calls the model. For a real call, unset `LLM_PROVIDER` and set `LLM_API_KEY` in `.env`.
 - Mock not running: `dispute-copilot run` prints `mock health check failed` and exits 1. Start `make mock` first.
 - Port in use: `tools/runtime.py serve` exits 1 with `OSError: [Errno 98] Address already in use`. Stop the other process or pass a free `--port` and the matching `--mock-url`.
 
@@ -376,8 +364,8 @@ export FEATURE_LLM_REVIEW=off
 | `RUN_ID` | `dispute-copilot` | Trace run id. Default `run-` plus 10 hex characters. |
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
-| `AWS_API_KEY`, `AWS_BEARER_TOKEN_BEDROCK`, `LLM_API_KEY` | model client | First non-empty value is the key. Empty means no model call. |
-| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S`, `AWS_REGION` | model client | Placeholders are in [Run everything](#run-everything). Unused when the provider is `null`. The Azure judge id is `claude-haiku-4-5`. |
+| `LLM_API_KEY` | model client | Azure AI key. Empty means no model call. |
+| `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Placeholders are in [Run everything](#run-everything). Unused when the provider is `null`. The Azure judge id is `claude-haiku-4-5`. The default base is `https://pod3-resource.services.ai.azure.com/anthropic`. |
 | `HTTP_TIMEOUT_S`, `RETRY_BASE_DELAY_S`, `RETRY_MAX_DELAY_S` | read tools | Override `config/rules/retry.yaml`. |
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |
@@ -774,7 +762,7 @@ Per-case checks: `classification`, `routing`, `policy_selection`, `facts`, `miss
 
 Defaults: traces in `reports/traces/`, logs in `reports/logs/run.jsonl`, metrics in `reports/metrics.json`. `REPORTS_DIR` moves all three. `LOG_STDERR=1` copies log lines to stderr. `LOG_STDOUT=1` copies the same JSON lines to stdout, for a platform log collector. Times in traces are UTC. `LOG_STDOUT` is not applied to the stdio context server, because that process already uses stdout for its protocol.
 
-`--label NAME` on a command (or `RUN_LABEL`) stores `label` on each trace record. A case and a model call also store `where`: that label when one is set, otherwise the host class of the model endpoint (`azure`, `aws`, `local`, or `other`). The endpoint, the key, and headers are not stored. The status page lists one row per place and model found in the saved runs. It does not add an empty place.
+`--label NAME` on a command (or `RUN_LABEL`) stores `label` on each trace record. A case and a model call also store `where`: that label when one is set, otherwise the host class of the model endpoint (`azure`, `local`, or `other`). The endpoint, the key, and headers are not stored. The status page lists one row per place and model found in the saved runs. It does not add an empty place.
 
 ```sh
 uv run --locked dispute-copilot run-all --label local

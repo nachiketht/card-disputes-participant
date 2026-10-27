@@ -59,12 +59,7 @@ def test_step_latency_uses_that_rank():
 
 def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     table = load_cost()
-    assert set(table["models"]) == {
-        "claude-haiku-4-5",
-        "us.amazon.nova-2-lite-v1:0",
-        "global.amazon.nova-2-lite-v1:0",
-        "amazon.nova-2-lite-v1:0",
-    }
+    assert set(table["models"]) == {"claude-haiku-4-5"}
     assert price_call("claude-haiku-4-5", 1000, 500, table) == {
         "status": "estimate from list price",
         "usd": 0.0035,
@@ -73,10 +68,6 @@ def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     assert price_call("anthropic.claude-haiku-4-5", 1_000_000, 0, table)["usd"] == 1.0
     assert price_call("claude-haiku-4-5-20261026", 1_000_000, 0, table)["usd"] == 1.0
     assert price_call("claude-haiku-4-5-2026-10-26", 1_000_000, 0, table)["usd"] == 1.0
-    assert price_call("us.amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.33
-    assert price_call("foo.us.amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.33
-    assert price_call("amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.3
-    assert price_call("global.amazon.nova-2-lite-v1:0", 1_000_000, 0, table)["usd"] == 0.3
     missing = price_call("other-model", 1000, 1000, table)
     assert missing == {"status": "no price configured for other-model", "usd": None}
     assert compute_cost() == {"status": "estimate, unmeasured", "usd": None}
@@ -573,27 +564,6 @@ def test_where_table_prices_an_azure_haiku_run():
     assert "Per case: C 1.000000 estimate from list price" in card
 
 
-def test_where_table_prices_an_aws_nova_run():
-    records = [
-        _case_row("C", "r", 40, "aws", "aws"),
-        _model_row("C", "r", "aws", "us.amazon.nova-2-lite-v1:0", 1_000_000, 1_000_000),
-    ]
-    view = build_view(records, [])
-    row = _where_row(view, "aws", "us.amazon.nova-2-lite-v1:0")
-    assert row["tokens_in"] == 1_000_000
-    assert row["tokens_out"] == 1_000_000
-    assert row["cost_usd"] == 3.08
-    assert row["cost_status"] == "estimate from list price"
-    bare = build_view(
-        [
-            _case_row("C", "r", 11, "aws"),
-            _model_row("C", "r", "aws", "amazon.nova-2-lite-v1:0", 1_000_000, 0),
-        ],
-        [],
-    )
-    assert _where_row(bare, "aws", "amazon.nova-2-lite-v1:0")["cost_usd"] == 0.3
-
-
 def test_where_table_shows_local_templates_without_empty_places():
     records = [_case_row("C1", "r", 10, "local"), _case_row("C2", "r", 30, "local")]
     view = build_view(records, [])
@@ -650,8 +620,7 @@ def test_where_table_lists_each_saved_place_and_names_an_unpriced_model():
 
 def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert host_class("https://unit.services.ai.azure.com/v1") == "azure"
-    assert host_class("https://bedrock-runtime.us-east-1.amazonaws.com/anthropic") == "aws"
-    assert host_class("https://bedrock-runtime.amazonaws.com/anthropic") == "aws"
+    assert host_class("https://pod3-resource.services.ai.azure.com/anthropic") == "azure"
     assert host_class("http://127.0.0.1:9/v1") == "local"
     assert host_class("http://localhost/v1") == "local"
     assert host_class("http://[::1]/v1") == "local"

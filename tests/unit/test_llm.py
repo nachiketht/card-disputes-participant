@@ -13,7 +13,7 @@ from dispute_copilot.fields import CLASSIFICATION
 from dispute_copilot.llm.base import Completion, LLMError
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.null import NullProvider
-from dispute_copilot.llm.openai_compat import HAIKU_MODEL, OpenAIProvider
+from dispute_copilot.llm.openai_compat import HAIKU_MODEL, OpenAIProvider, default_base_url, resolve_api_key
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.workflow import prepare
 
@@ -86,7 +86,17 @@ def test_unknown_prompt_variable_is_rejected():
     raise AssertionError("raw prose variable was rendered")
 
 
-def test_haiku_request_uses_the_bedrock_messages_api():
+def test_api_key_is_only_the_azure_env_value(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "azure-key")
+    monkeypatch.setenv("AWS_API_KEY", "aws-key")
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "aws-bearer")
+    assert resolve_api_key() == "azure-key"
+    assert default_base_url() == "https://pod3-resource.services.ai.azure.com/anthropic"
+    monkeypatch.delenv("LLM_API_KEY")
+    assert resolve_api_key() == ""
+
+
+def test_haiku_request_uses_the_azure_messages_api():
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -103,7 +113,7 @@ def test_haiku_request_uses_the_bedrock_messages_api():
         )
 
     provider = OpenAIProvider(
-        base_url="https://bedrock-runtime.us-east-1.amazonaws.com/anthropic",
+        base_url="https://pod3-resource.services.ai.azure.com/anthropic",
         model=HAIKU_MODEL,
         api_key="test-key",
         style="anthropic",
@@ -111,51 +121,12 @@ def test_haiku_request_uses_the_bedrock_messages_api():
     )
     completion = provider.complete(system="system", user="user")
     assert seen["body"]["model"] == HAIKU_MODEL
+    assert seen["body"]["model"] == "claude-haiku-4-5"
     assert seen["body"]["thinking"] == {"type": "disabled"}
     assert seen["url"].endswith("/anthropic/v1/messages")
+    assert "amazonaws.com" not in seen["url"]
     assert completion.tokens_in == 5
     assert completion.text.startswith("Draft for human review:")
-
-
-def test_converse_request_uses_text_blocks_and_returns_the_reply():
-    seen: dict = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen["path"] = request.url.raw_path.decode()
-        seen["body"] = json.loads(request.content.decode())
-        assert request.headers.get("authorization") == "Bearer test-key"
-        return httpx.Response(
-            200,
-            json={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [
-                            {
-                                "text": '```json\n{"verdict": "pass", "reason": "Citations are present."}\n```'
-                            }
-                        ],
-                    }
-                },
-                "usage": {"inputTokens": 62, "outputTokens": 41},
-            },
-        )
-
-    provider = OpenAIProvider(
-        base_url="https://bedrock-runtime.us-east-1.amazonaws.com",
-        model="us.amazon.nova-2-lite-v1:0",
-        api_key="test-key",
-        style="converse",
-        transport=httpx.MockTransport(handler),
-    )
-    completion = provider.complete(system="system", user="user")
-    assert "/model/us.amazon.nova-2-lite-v1%3A0/converse" in seen["path"]
-    assert seen["body"]["system"] == [{"text": "system"}]
-    assert seen["body"]["messages"] == [{"role": "user", "content": [{"text": "user"}]}]
-    assert completion.text.startswith("```json")
-    assert '"verdict": "pass"' in completion.text
-    assert completion.tokens_in == 62
-    assert completion.tokens_out == 41
 
 
 def test_provider_http_error_is_an_llm_error():
@@ -164,7 +135,7 @@ def test_provider_http_error_is_an_llm_error():
         return httpx.Response(401, json={"error": {"type": "authentication_error"}})
 
     provider = OpenAIProvider(
-        base_url="https://bedrock-runtime.us-east-1.amazonaws.com/anthropic",
+        base_url="https://pod3-resource.services.ai.azure.com/anthropic",
         model=HAIKU_MODEL,
         api_key="test-key",
         transport=httpx.MockTransport(handler),

@@ -1,6 +1,6 @@
 # Cloud breakdown
 
-Azure Container Apps is the deployment that is running. AWS ECS Fargate is an unbuilt alternative only. This note does not add a second cloud's deployment file.
+Azure Container Apps is the deployment that is running. This note does not add a second cloud's deployment file.
 
 This session could not sign in to `<subscription>`, so it did not query the resource group or the bill. Every cost cell is still unmeasured.
 
@@ -39,21 +39,6 @@ az containerapp exec \
 ## What leaves the app
 
 Case files, drafts, and the mock stay in the replica. The checklist judge, when it is on, calls `<model-endpoint>`. That call can send the checklist facts and the draft narrative. It does not send the key to the mock, and the mock does not call the model. With `FEATURE_LLM_REVIEW=off`, that call is not made. The key is the Container App secret `llm-api-key`.
-
-## AWS ECS Fargate (unbuilt alternative)
-
-Not deployed. The table is the earlier plan only. Cost is unmeasured.
-
-| Item | Plan |
-|---|---|
-| Region | `us-east-1` |
-| Image | One image with the app and `tools/runtime.py`. App and mock are two containers in one Fargate task so they share localhost |
-| Registry | ECR |
-| Data | One read-only data root. The mock reads `dataset.json`. The app reads `documents/` and `policies/` |
-| State | The `--state` SQLite file is mounted into the mock container only |
-| Network | Private subnet, no public IP, no ingress |
-| Approval | `aws ecs execute-command` into the mock container, `tools/runtime.py approve`, same `--state` path |
-| Monthly cost | unmeasured |
 
 ## Not in this breakdown
 
