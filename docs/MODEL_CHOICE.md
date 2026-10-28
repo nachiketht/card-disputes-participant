@@ -1,6 +1,6 @@
 # Model choice
 
-The checklist judge and the classifier on approach 2 and approach 3 read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. It does not approve a case, and it does not post a record.
+The checklist judge, the drafter, and the classifier on approach 2 and approach 3 read the model id from `LLM_MODEL` in `.env`. The id is kept exactly as it is written. It does not approve a case, and it does not post a record. When `LLM_FALLBACK_API_KEY` and `LLM_FALLBACK_BASE_URL` are set, a failed call asks `LLM_FALLBACK_MODEL` once. An empty fallback model uses `claude-haiku-5-5`. An empty key or host means there is no fallback. The saved record names the model that answered, plus `fallback_used` and `primary_failure` when the first call failed. Those two fields stay in the audit and in the closed technical details on the comparison page.
 
 The checklist judge runs after the deterministic checklist has already passed, and only when `FEATURE_LLM_REVIEW=block`. It returns `pass` or `block` plus a short paragraph for the reviewer. It does not set classification, routing, policy, facts, deadline, or citations. The customer message stays the fixed template, so a judge failure cannot change that sentence.
 
@@ -10,7 +10,8 @@ Approach 3 asks Jev first. Jev's model name defaults to `jev-latest`. The thresh
 
 | Item | Value |
 |---|---|
-| Model id | `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. An empty value falls back to `claude-haiku-4-5`. |
+| Model id | `LLM_MODEL` in `.env`, kept exactly as written. An empty value uses `claude-haiku-4-5`. |
+| Fallback | `LLM_FALLBACK_API_KEY`, `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_STYLE`. Empty key or host means no fallback. Empty model uses `claude-haiku-5-5`. |
 | API style | Anthropic Messages. `LLM_API_STYLE=anthropic`. The host is `AZURE_BASE_URL` in `.env`. It is not written in this file. A model call fails when that variable is empty. |
 | Credential | `LLM_API_KEY` in `.env`, sent as `x-api-key`. Empty means no configured-model call. |
 | Ranker | `JEV_BASE_URL`, `JEV_API_KEY`, `JEV_MODEL`. Leave the url and the key empty until a host is chosen. |

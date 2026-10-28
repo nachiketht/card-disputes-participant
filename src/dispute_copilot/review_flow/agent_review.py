@@ -30,7 +30,7 @@ from dispute_copilot.fields import (
     NARRATIVE,
     ROUTING,
 )
-from dispute_copilot.llm.base import LLMError
+from dispute_copilot.llm.base import LLMError, failure_kind
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.llm.schema import CriticReply, complete_json, parse_model
@@ -170,11 +170,12 @@ def record_agent_review(
         llm_review = {"mode": "skipped", "verdict": "skipped", "reason": judge_skip}
     elif mode == "block" and all(checks.values()):
         verdict, reason = _ask_critic(draft, critic)
+        meta = _critic_meta(critic)
         if verdict == "skipped":
-            llm_review = {"mode": "skipped", "verdict": "skipped", "reason": reason}
+            llm_review = {"mode": "skipped", "verdict": "skipped", "reason": reason, **meta}
         else:
             checks = apply_critic(checks, verdict=verdict, errored=False)
-            llm_review = {"mode": mode, "verdict": verdict, "reason": reason}
+            llm_review = {"mode": mode, "verdict": verdict, "reason": reason, **meta}
     approval = {
         CASE_ID: case_id,
         "draft_version": version,
@@ -208,12 +209,54 @@ def _ask_critic(draft: dict, critic) -> tuple[str, str]:
         system, user = _critic_messages(draft)
         result = complete_json(critic, CriticReply, system=system, user=user)
     except (LLMError, OSError):
+        _remember_critic(critic, None)
         return "skipped", "The judge step was skipped because the model call failed."
     except (ValueError, TypeError):
+        _remember_critic(critic, None)
         return "block", UNUSABLE_REASON
+    _remember_critic(critic, result.last)
     if not isinstance(result.value, CriticReply):
         return "block", UNUSABLE_REASON
     return result.value.verdict, result.value.reason
+
+
+def _remember_critic(critic, completion) -> None:
+    if critic is None:
+        return
+    if completion is None:
+        used = bool(getattr(critic, "fallback_used", False))
+        failure = _short_failure(getattr(critic, "primary_failure", ""))
+        model = str(getattr(critic, "model", "") or "") if used else ""
+    else:
+        used = bool(getattr(completion, "fallback_used", False))
+        failure = _short_failure(getattr(completion, "primary_failure", ""))
+        model = str(getattr(completion, "model", "") or "")
+    try:
+        critic.last_meta = {
+            "model": model,
+            "fallback_used": used,
+            "primary_failure": failure if used else "",
+        }
+    except (AttributeError, TypeError):
+        return
+
+
+def _short_failure(value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        return ""
+    return failure_kind(LLMError(value))
+
+
+def _critic_meta(critic) -> dict:
+    meta = getattr(critic, "last_meta", None)
+    if not isinstance(meta, dict):
+        return {"model": "", "fallback_used": False, "primary_failure": ""}
+    failure = meta.get("primary_failure") if meta.get("fallback_used") else ""
+    return {
+        "model": str(meta.get("model") or ""),
+        "fallback_used": bool(meta.get("fallback_used")),
+        "primary_failure": str(failure or ""),
+    }
 
 
 def _critic_messages(draft: dict) -> tuple[str, str]:

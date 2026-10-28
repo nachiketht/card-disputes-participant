@@ -353,7 +353,7 @@ The process reads `.env` from the working directory and from the repository root
 A non-empty value already exported in the shell wins over the same key in `.env`. An empty process value is filled from the file. After editing `.env`, unset the names you changed, or open a new shell:
 
 ```sh
-unset LLM_MODEL LLM_API_KEY AZURE_BASE_URL JEV_API_KEY JEV_BASE_URL JEV_MODEL CLEF_API_KEY CLEF_ACCOUNT_ID CLEF_MODEL
+unset LLM_MODEL LLM_API_KEY AZURE_BASE_URL LLM_API_STYLE LLM_FALLBACK_MODEL LLM_FALLBACK_API_KEY LLM_FALLBACK_BASE_URL LLM_FALLBACK_API_STYLE JEV_API_KEY JEV_BASE_URL JEV_MODEL CLEF_API_KEY CLEF_ACCOUNT_ID CLEF_MODEL
 ```
 
 Copy `.env.example` to `.env` for a local run. That example sets `FEATURE_LLM_REVIEW=block` and leaves `LLM_API_KEY` empty. Check draft still saves the checklist. When the judge cannot run, the page shows a notice that names the missing setting (`LLM_API_KEY` when the key is empty). Submit stays allowed. The notice does not approve. To skip the judge entirely, use:
@@ -375,6 +375,10 @@ export FEATURE_LLM_REVIEW=off
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `LLM_API_KEY` | model client | Key for the configured model. Empty means no model call. |
 | `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. An id missing from `config/rules/cost.yaml` is recorded as `no price configured for <model>` with no USD figure. |
+| `LLM_FALLBACK_API_KEY` | fallback model | Optional. Empty means the configured model has no fallback. |
+| `LLM_FALLBACK_BASE_URL` | fallback model | Optional host for that fallback. Empty means no fallback. Leave it empty in git. |
+| `LLM_FALLBACK_MODEL` | fallback model | Optional. Empty uses `claude-haiku-5-5` only when the fallback key and host are set. |
+| `LLM_FALLBACK_API_STYLE` | fallback model | `anthropic` or `openai`. Empty uses `anthropic`. |
 | `JEV_BASE_URL` | ranker | Ranker host. Empty means the ranker is not built. Leave it empty in git. |
 | `JEV_API_KEY` | ranker | Ranker key. Empty means the ranker is not built. |
 | `JEV_MODEL` | ranker | Optional. Empty uses `jev-latest`. |
@@ -791,6 +795,14 @@ python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); h=d.get("haiku") or
 ```
 
 The line prints `called_model` and the model id on the saved model block. It does not print a key or a host.
+
+### Check the fallback
+
+```sh
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); h=d.get("haiku") or {}; print(h.get("model"), h.get("fallback_used"), h.get("primary_failure") or "")' reports/classification/2/CARD-D01.json
+```
+
+The line prints the model that answered, whether the fallback was used, and the primary failure label when there is one. It does not print a key or a host.
 
 The model step returns one JSON object with `class`, `reason`, and `evidence`. `evidence` must be exact text copied from the complaint. Whitespace may be collapsed. A paraphrase is rejected and the rules result is kept. The saved record stores the quote check (`evidence_ok`, `evidence_sha256`, `evidence_start`, `evidence_end`) and does not store the quote text. A complaint sentence is removed from the saved reason.
 

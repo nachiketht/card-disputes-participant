@@ -137,6 +137,7 @@ def _case_rows(runs: dict[str, dict[str, dict]]) -> list[dict]:
                     "route": str(row.get("route") or ""),
                     "latency_ms": row.get("latency_ms"),
                     "haiku_usd": row.get("haiku_usd"),
+                    "fallback_used": row.get("fallback_used") is True,
                 }
             )
     return rows
@@ -202,6 +203,7 @@ def _safe_row(path: Path, case_id: str) -> dict | None:
         "called_model": loaded.get("called_model") is True,
         "latency_ms": loaded.get("latency_ms") if isinstance(loaded.get("latency_ms"), (int, float)) else None,
         "haiku_usd": _usd(haiku.get("cost") if isinstance(haiku, dict) else None),
+        "fallback_used": haiku.get("fallback_used") is True if isinstance(haiku, dict) else False,
     }
 
 
@@ -384,14 +386,16 @@ def _case_table(view: dict) -> str:
             f"<td>{escape(_ms(latency if isinstance(latency, (int, float)) else None))}</td>"
             f"<td>{escape(_usd_text(haiku if isinstance(haiku, (int, float)) else None))}</td>"
             "<td>unpriced</td>"
+            f"<td>{'yes' if item.get('fallback_used') else 'no'}</td>"
             "</tr>"
         )
     if not rows:
-        rows.append("<tr><td colspan=\"7\">No classification records.</td></tr>")
+        rows.append("<tr><td colspan=\"8\">No classification records.</td></tr>")
     return (
         "<section id=\"case-costs\"><h2>Per case</h2>"
+        "<p class=\"note\">Fallback used names the answering model when the configured model could not answer.</p>"
         "<table><thead><tr><th>Approach</th><th>Case</th><th>Class</th><th>Route</th>"
-        "<th>Latency ms</th><th>Haiku USD</th><th>Jev</th></tr></thead>"
+        "<th>Latency ms</th><th>Haiku USD</th><th>Jev</th><th>Fallback used</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></section>"
     )
 

@@ -312,7 +312,10 @@ def _public_haiku(reply: dict | None) -> dict | None:
         "tokens_out": reply.get("tokens_out"),
         "cost": reply.get("cost") or {"status": "unpriced", "usd": None},
         "model": reply.get("model") or "",
+        "fallback_used": bool(reply.get("fallback_used")),
     }
+    if reply.get("fallback_used") and reply.get("primary_failure"):
+        public["primary_failure"] = failure_kind(LLMError(str(reply.get("primary_failure"))))
     if reply.get("failure"):
         public["failure"] = failure_kind(LLMError(str(reply.get("failure"))))
     return public

@@ -61,7 +61,12 @@ def test_step_latency_uses_that_rank():
 
 def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     table = load_cost()
-    assert set(table["models"]) == {"claude-haiku-4-5", "claude-haiku-5-5", "clef-flash"}
+    assert set(table["models"]) == {"claude-haiku-4-5", "claude-haiku-5-5", "clef-flash", "gpt-6-luna"}
+    assert price_call("gpt-6-luna", 1_000_000, 2_000_000, table) == {
+        "status": "estimate from list price",
+        "usd": 1.1,
+    }
+    assert price_call("gpt-6 luna", 1_000_000, 0, table)["usd"] == 0.1
     assert price_call("claude-haiku-5-5", 1_000_000, 2_000_000, table) == {
         "status": "estimate from list price",
         "usd": 1.1,
@@ -509,6 +514,7 @@ def test_default_view_keeps_the_client_page_and_closes_the_rest():
     assert "More information" in head
     assert "Approach 1" in head
     assert 'id="status-line"' in head
+    assert "fallback" not in head.lower()
     assert 'href="compare.html"' in head
     assert 'href="http://127.0.0.1:8080"' in head
     assert "fonts.googleapis" not in page

@@ -39,6 +39,9 @@ def test_when_each_approach_wins_is_only_a_proposal():
     }
     page = render_comparison(view)
     assert "When each approach wins" in page
+    before, technical = page.split('<details id="technical">', 1)
+    assert "Fallback used" not in before
+    assert "Fallback used" in technical
     assert "Proposed thresholds, to be confirmed by the A/B test. Not measured results." in page
     assert "False positives under 10%" in page
     assert "false negatives under the ceiling (2%)" in page

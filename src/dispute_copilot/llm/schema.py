@@ -68,12 +68,17 @@ def parse_model(schema: type[T], text: str) -> T | None:
 
 
 def complete_json(model, schema: type[T], *, system: str, user: str) -> JsonCall:
-    """Call once, then once more only when the first reply misses the schema."""
+    """Call once, then once more only when the first reply misses the schema.
+
+    A configured fallback is asked once after that, or when the first call raises.
+    """
     total_in = 0
     total_out = 0
     last: Completion | None = None
     prompts = (user, f"{user}\n{REPAIR_USER}")
     for attempt, prompt in enumerate(prompts, start=1):
+        if attempt == 2 and getattr(model, "fallback_used", False):
+            break
         with current().span("model.call") as span:
             completion = model.complete(system=system, user=prompt)
             note_model_span(span, completion)
@@ -84,7 +89,20 @@ def complete_json(model, schema: type[T], *, system: str, user: str) -> JsonCall
         if parsed is not None:
             return JsonCall(parsed, completion, total_in, total_out, attempt)
     assert last is not None
-    return JsonCall(None, last, total_in, total_out, 2)
+    use_fallback = getattr(model, "use_fallback", None)
+    if use_fallback is None or getattr(model, "fallback_used", False):
+        return JsonCall(None, last, total_in, total_out, 2)
+    with current().span("model.call") as span:
+        completion = use_fallback(system=system, user=user)
+        note_model_span(span, completion)
+    parsed = parse_model(schema, completion.text)
+    return JsonCall(
+        parsed,
+        completion,
+        total_in + completion.tokens_in,
+        total_out + completion.tokens_out,
+        3,
+    )
 
 
 def _json_object(text: str) -> dict | None:

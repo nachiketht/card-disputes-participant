@@ -65,7 +65,16 @@ def note_model_span(span, completion) -> None:
     model = str(getattr(completion, "model", "") or "")
     tokens_in = _tokens(getattr(completion, "tokens_in", None))
     tokens_out = _tokens(getattr(completion, "tokens_out", None))
-    span.set(model=model, tokens_in=tokens_in, tokens_out=tokens_out, where=run_where())
+    span.set(
+        model=model,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        where=run_where(),
+        fallback_used=bool(getattr(completion, "fallback_used", False)),
+    )
+    primary_failure = str(getattr(completion, "primary_failure", "") or "")
+    if primary_failure:
+        span.set(primary_failure=primary_failure)
     if tokens_in is None or tokens_out is None:
         span.set(cost_status="unmeasured")
         return
@@ -128,6 +137,8 @@ def _rates_for(model: str, models: dict) -> dict | None:
     if not needle:
         return None
     direct = folded.get(needle)
+    if direct is None and " " in needle:
+        direct = folded.get(needle.replace(" ", "-"))
     if direct is not None:
         return direct
     best: tuple[int, int] | None = None

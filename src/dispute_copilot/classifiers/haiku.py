@@ -99,7 +99,7 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
             user="Return the JSON object now.",
         )
     except (LLMError, ValueError, TypeError) as exc:
-        return _failed(started, failure_kind(exc))
+        return _failed(started, failure_kind(exc), model)
     latency = round((time.perf_counter() - started) * 1000, 3)
     priced = price_call(result.last.model, result.tokens_in, result.tokens_out)
     parsed = None
@@ -120,6 +120,8 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
         "evidence_start": None,
         "evidence_end": None,
         "unclear": False,
+        "fallback_used": bool(getattr(result.last, "fallback_used", False)),
+        "primary_failure": _kept_failure(getattr(result.last, "primary_failure", "")),
     }
     if parsed is None or rejects(parsed["reason"]):
         base["unusable"] = True
@@ -159,13 +161,14 @@ def _trace_evidence(base: dict) -> None:
     )
 
 
-def _failed(started: float, detail: str) -> dict:
+def _failed(started: float, detail: str, model=None) -> dict:
+    used = bool(getattr(model, "fallback_used", False))
+    primary = _kept_failure(getattr(model, "primary_failure", "") or "")
     return {
         "latency_ms": round((time.perf_counter() - started) * 1000, 3),
         "tokens_in": None,
         "tokens_out": None,
         "cost": {"status": "unpriced", "usd": None},
-        "model": "",
         "accepted": False,
         "unusable": True,
         "evidence_ok": False,
@@ -176,7 +179,16 @@ def _failed(started: float, detail: str) -> dict:
         "evidence_end": None,
         "unclear": False,
         "failure": detail or "unusable",
+        "fallback_used": used,
+        "primary_failure": primary if used else "",
+        "model": str(getattr(model, "model", "") or "") if used else "",
     }
+
+
+def _kept_failure(value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        return ""
+    return failure_kind(LLMError(value))
 
 
 def _meaning(item: Classification) -> str:

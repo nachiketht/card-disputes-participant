@@ -42,6 +42,8 @@ class Completion:
     tokens_in: int
     tokens_out: int
     model: str
+    fallback_used: bool = False
+    primary_failure: str = ""
 
 
 class LLMProvider(Protocol):

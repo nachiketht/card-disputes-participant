@@ -15,6 +15,7 @@ This session could not sign in to `<subscription>`, so it did not query these re
 | Environment | `card-disputes-env` |
 | App | `card-disputes`, one replica, no public ingress |
 | Model | Model id from `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`), secret `llm-api-key` (not in git). The host is Container App secret `azure-base-url`, read as `AZURE_BASE_URL` from `.env`. The template does not store the host. The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. `claude-haiku-5-5` is priced from list in `config/rules/cost.yaml` at 0.10 USD per million input tokens and 0.50 USD per million output tokens. |
+| Fallback | Optional. `LLM_FALLBACK_API_KEY`, `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, and `LLM_FALLBACK_API_STYLE`. An empty key or host means no fallback. An empty model uses `claude-haiku-5-5` only when the key and host are set. The container template does not set these. Do not write the host in this file. |
 | Ranker | Optional. `JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL`. An empty url or key skips it. The container template does not set these. Cost is unpriced. The threshold placeholder `0.70` is in `config/rules/classifier.yaml`, not a secret. |
 
 ## What was checked from this workspace
