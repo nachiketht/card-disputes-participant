@@ -1,7 +1,7 @@
 """Serve the review page for the Postgres drafts.
 
 The mock stays on loopback. The page listens on every interface so ingress can open it.
-Check does not call a model. This process does not write blobs.
+Model settings are left as given. This process does not write blobs.
 """
 
 import os
@@ -30,8 +30,6 @@ def child_env() -> dict[str, str]:
     env = dict(os.environ)
     env.pop("POSTGRES_TEST_URL", None)
     env.pop("AUDIT_BACKEND", None)
-    env["LLM_PROVIDER"] = "null"
-    env["FEATURE_LLM_REVIEW"] = "off"
     env["MOCK_BASE_URL"] = MOCK_URL
     return env
 

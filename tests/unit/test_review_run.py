@@ -24,8 +24,10 @@ def _ready(monkeypatch):
     monkeypatch.setenv("AUDIT_BACKEND", "blob")
 
 
-def test_review_listens_on_every_interface_and_leaves_the_model_off(monkeypatch):
+def test_review_listens_on_every_interface_and_keeps_the_model_settings(monkeypatch):
     _ready(monkeypatch)
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "block")
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
     module = _load()
     started = []
     served = []
@@ -50,8 +52,10 @@ def test_review_listens_on_every_interface_and_leaves_the_model_off(monkeypatch)
     assert "reset" not in argv
     assert served[0][0] == "0.0.0.0"
     assert served[0][1] == 8080
-    assert env["LLM_PROVIDER"] == "null"
-    assert env["FEATURE_LLM_REVIEW"] == "off"
+    assert "LLM_PROVIDER" not in env
+    assert env["FEATURE_LLM_REVIEW"] == "block"
+    assert served[0][2]["FEATURE_LLM_REVIEW"] == "block"
+    assert "LLM_PROVIDER" not in served[0][2]
     assert env["MOCK_BASE_URL"] == "http://127.0.0.1:8765"
     assert "POSTGRES_TEST_URL" not in env
     assert "AUDIT_BACKEND" not in env
