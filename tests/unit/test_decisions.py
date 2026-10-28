@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -191,3 +192,51 @@ def test_decision_helpers_cover_empty_and_invalid_values(tmp_path: Path):
     assert _safe_id("x" * 129) is False
     assert _safe_id("rev..1") is False
     assert _safe_id("rev_1") is True
+
+
+def test_record_decision_uses_the_ledger_api(monkeypatch):
+    class Session:
+        def __init__(self) -> None:
+            self.row = {
+                "id": "rev_1",
+                "case_id": "CARD-D01",
+                "draft": "stored",
+                "hash": "hash-1",
+                "status": "pending",
+                "reviewer": None,
+            }
+            self.status = None
+            self.audit = None
+
+        def get_review(self, review_id: str):
+            if review_id != self.row["id"]:
+                return None
+            return dict(self.row)
+
+        def set_review_status(self, review_id: str, status: str, reviewer: str) -> None:
+            self.status = (review_id, status, reviewer)
+            self.row["status"] = status
+            self.row["reviewer"] = reviewer
+
+        def append_audit(self, at: str, event: str, case_id: str, detail: str, payload: dict) -> None:
+            self.audit = (at, event, case_id, detail, payload)
+
+    session = Session()
+
+    class Ledger:
+        def transaction(self, *, immediate: bool = True):
+            del immediate
+
+            @contextmanager
+            def opened():
+                yield session
+
+            return opened()
+
+    monkeypatch.setattr("dispute_copilot.adapters.ledger.open_ledger", lambda _path: Ledger())
+    assert record_decision(Path("ignored.sqlite"), "rev_1", "Ada", accepted=True) == "approved"
+    assert session.status == ("rev_1", "approved", "Ada")
+    assert session.audit is not None
+    assert session.audit[1] == "human_approved"
+    assert session.audit[2] == "CARD-D01"
+    assert session.audit[4] == {"review_id": "rev_1", "reviewer": "Ada", "draft_hash": "hash-1"}

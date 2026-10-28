@@ -23,9 +23,9 @@ Ledger = HttpCaseSystem | FakeCaseSystem
 
 
 def load_handle(path: Path) -> dict:
-    if not path.is_file():
-        raise CreateRejected(400, {"error": "review_not_submitted"})
     handle = read_handle(path)
+    if not handle and not path.is_file():
+        raise CreateRejected(400, {"error": "review_not_submitted"})
     if not isinstance(handle.get("review_id"), str):
         raise CreateRejected(400, {"error": "review_handle_unusable"})
     return handle
@@ -45,7 +45,7 @@ def agent_approval_matches(handle: dict, case_id: str, draft: dict) -> bool:
 def submit_review(case_id: str, submissions: Path, case_system: Ledger) -> dict:
     _path, draft, version = latest_draft(submissions, case_id)
     destination = handle_path(submissions, case_id)
-    existing = read_handle(destination) if destination.is_file() else {}
+    existing = read_handle(destination)
     matched = agent_approval_matches(existing, case_id, draft)
     current().event("review.step1_check", passed=matched, draft_version=version)
     with current().span("review.submit") as span:

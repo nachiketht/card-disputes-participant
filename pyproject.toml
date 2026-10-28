@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 openai = ["openai"]
 mcp = ["mcp"]
+cloud = ["psycopg[binary]>=3.2", "azure-storage-blob>=12.24", "azure-identity>=1.19"]
 
 [project.scripts]
 dispute-copilot = "dispute_copilot.cli:main"

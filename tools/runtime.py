@@ -2,7 +2,7 @@
 import argparse
 import hashlib
 import json
-import sqlite3
+import os
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -10,6 +10,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _src_path() -> None:
+    src = ROOT / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
 
 
 def canonical(value):
@@ -21,29 +27,32 @@ def digest(value):
 
 
 def connect(path):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    db = sqlite3.connect(path, timeout=15)
-    db.row_factory = sqlite3.Row
-    db.executescript('''
-      CREATE TABLE IF NOT EXISTS reviews(id TEXT PRIMARY KEY, case_id TEXT,
-        draft TEXT, hash TEXT, status TEXT, reviewer TEXT);
-      CREATE TABLE IF NOT EXISTS records(id TEXT PRIMARY KEY, case_id TEXT UNIQUE,
-        draft TEXT, review_id TEXT);
-      CREATE TABLE IF NOT EXISTS keys(key TEXT PRIMARY KEY, hash TEXT, response TEXT);
-      CREATE TABLE IF NOT EXISTS calls(case_id TEXT, tool TEXT, n INTEGER,
-        PRIMARY KEY(case_id, tool));
-      CREATE TABLE IF NOT EXISTS audit(seq INTEGER PRIMARY KEY AUTOINCREMENT,
-        at TEXT, event TEXT, case_id TEXT, detail TEXT);
-    ''')
-    return db
+    """SQLite state file. Decisions and tests keep using this connection."""
+    _src_path()
+    from dispute_copilot.adapters.ledger import connect_sqlite
+
+    return connect_sqlite(path)
+
+
+def _ledger(path):
+    _src_path()
+    from dispute_copilot.adapters.ledger import open_ledger
+
+    return open_ledger(path)
+
+
+def load_dataset(data_dir):
+    if os.environ.get("CASES_BACKEND") == "blob":
+        _src_path()
+        from dispute_copilot.adapters.cases_blob import read_blob_dataset
+
+        return read_blob_dataset()
+    return json.loads((Path(data_dir) / "dataset.json").read_text())
 
 
 def _redact_audit(text):
     """Mask restricted values in audit output. The server itself stays loopback-only."""
-    src = ROOT / "src"
-    if str(src) not in sys.path:
-        sys.path.insert(0, str(src))
+    _src_path()
     from dispute_copilot.evidence.redaction import Redactor
 
     redactor = Redactor()
@@ -56,14 +65,29 @@ def _redact_audit(text):
 
 
 def audit(db, event, case_id="", **detail):
-    db.execute("INSERT INTO audit(at,event,case_id,detail) VALUES(?,?,?,?)",
-               (datetime.now(timezone.utc).isoformat(), event, case_id, canonical(detail)))
+    at = datetime.now(timezone.utc).isoformat()
+    encoded = canonical(detail)
+    db.execute(
+        "INSERT INTO audit(at,event,case_id,detail) VALUES(?,?,?,?)",
+        (at, event, case_id, encoded),
+    )
+    if os.environ.get("AUDIT_BACKEND") == "blob":
+        _src_path()
+        from dispute_copilot.adapters.audit_blob import BlobAuditLog
+
+        BlobAuditLog.from_env().append_record(
+            {"at": at, "event": event, "case_id": case_id, "detail": detail}
+        )
+
+
+def _note(tx, event, case_id="", **detail):
+    tx.append_audit(datetime.now(timezone.utc).isoformat(), event, case_id, canonical(detail), detail)
 
 
 def create_server(data_dir, state, host="127.0.0.1", port=8765):
-    dataset = json.loads((Path(data_dir) / "dataset.json").read_text())
+    dataset = load_dataset(data_dir)
     case_map = {x["case_id"]: x for x in dataset["cases"]}
-    connect(state).close()
+    _ledger(state).ensure()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -89,16 +113,16 @@ def create_server(data_dir, state, host="127.0.0.1", port=8765):
                     for x in dataset["cases"]]})
             parts = path.strip("/").split("/")
             if len(parts) == 3 and parts[:2] == ["v1", "reviews"]:
-                with connect(state) as db:
-                    row = db.execute("SELECT * FROM reviews WHERE id=?", (parts[2],)).fetchone()
-                return self.reply(200, dict(row)) if row else self.reply(404, {"error": "not_found"})
+                with _ledger(state).transaction(immediate=False) as tx:
+                    row = tx.get_review(parts[2])
+                return self.reply(200, row) if row else self.reply(404, {"error": "not_found"})
             if len(parts) == 3 and parts[:2] == ["v1", "records"]:
                 case = case_map.get(parts[2])
                 if not case:
                     return self.reply(404, {"error": "not_found"})
-                with connect(state) as db:
-                    row = db.execute("SELECT * FROM records WHERE id=?", (case["logical_key"],)).fetchone()
-                return self.reply(200, dict(row)) if row else self.reply(404, {"error": "not_found"})
+                with _ledger(state).transaction(immediate=False) as tx:
+                    row = tx.get_record(case["logical_key"])
+                return self.reply(200, row) if row else self.reply(404, {"error": "not_found"})
             if len(parts) != 4 or parts[:2] != ["v1", "cases"]:
                 return self.reply(404, {"error": "not_found"})
             cid, tool = parts[2:]
@@ -106,14 +130,11 @@ def create_server(data_dir, state, host="127.0.0.1", port=8765):
             if not case or tool not in case["tools"]:
                 return self.reply(404, {"error": "not_found"})
             payload = case["tools"][tool]
-            with connect(state) as db:
-                db.execute("BEGIN IMMEDIATE")
-                row = db.execute("SELECT n FROM calls WHERE case_id=? AND tool=?", (cid, tool)).fetchone()
-                n = (row[0] if row else 0) + 1
-                db.execute("INSERT OR REPLACE INTO calls VALUES(?,?,?)", (cid, tool, n))
+            with _ledger(state).transaction() as tx:
+                count = tx.bump_call(cid, tool)
                 fault = case.get("faults", {}).get(tool)
-                fails = fault and (fault["failures"] == "always" or n <= fault["failures"])
-                audit(db, "tool_read", cid, tool=tool, attempt=n, status=503 if fails else 200)
+                fails = fault and (fault["failures"] == "always" or count <= fault["failures"])
+                _note(tx, "tool_read", cid, tool=tool, attempt=count, status=503 if fails else 200)
             if fails:
                 return self.reply(503, {"error": "upstream_timeout", "retryable": True,
                                          "message": "Simulated upstream timeout; never treat as no results."})
@@ -137,18 +158,17 @@ def create_server(data_dir, state, host="127.0.0.1", port=8765):
                 if not isinstance(draft, dict) or draft.get("case_id") != cid:
                     return self.reply(400, {"error": "draft_case_id_required"})
                 rid = "rev_" + uuid.uuid4().hex[:12]
-                with connect(state) as db:
-                    db.execute("INSERT INTO reviews VALUES(?,?,?,?,?,?)",
-                               (rid, cid, canonical(draft), digest(draft), "pending", None))
-                    audit(db, "review_requested", cid, review_id=rid, draft_hash=digest(draft))
+                with _ledger(state).transaction() as tx:
+                    tx.insert_review(rid, cid, canonical(draft), digest(draft), "pending", None)
+                    _note(tx, "review_requested", cid, review_id=rid, draft_hash=digest(draft))
                 return self.reply(201, {"review_id": rid, "status": "pending", "draft_hash": digest(draft)})
             if self.path != "/v1/records":
-                with connect(state) as db:
-                    audit(db, "unsupported_write_attempt", cid, path=self.path)
+                with _ledger(state).transaction() as tx:
+                    _note(tx, "unsupported_write_attempt", cid, path=self.path)
                 return self.reply(404, {"error": "unsupported_operation"})
             if not dataset["allow_write"]:
-                with connect(state) as db:
-                    audit(db, "forbidden_write_attempt", cid)
+                with _ledger(state).transaction() as tx:
+                    _note(tx, "forbidden_write_attempt", cid)
                 return self.reply(403, {"error": "read_only_mission"})
             draft, rid = body.get("draft"), body.get("review_id")
             key = self.headers.get("Idempotency-Key", "")
@@ -157,29 +177,28 @@ def create_server(data_dir, state, host="127.0.0.1", port=8765):
             if draft.get("case_id") != cid:
                 return self.reply(400, {"error": "draft_case_mismatch"})
             fingerprint = digest({"case_id": cid, "draft": draft, "review_id": rid})
-            with connect(state) as db:
-                db.execute("BEGIN IMMEDIATE")
-                previous = db.execute("SELECT * FROM keys WHERE key=?", (key,)).fetchone()
+            with _ledger(state).transaction() as tx:
+                previous = tx.get_key(key)
                 if previous:
                     if previous["hash"] != fingerprint:
-                        audit(db, "idempotency_conflict", cid)
+                        _note(tx, "idempotency_conflict", cid)
                         return self.reply(409, {"error": "idempotency_conflict"})
-                    audit(db, "write_replayed", cid)
+                    _note(tx, "write_replayed", cid)
                     return self.reply(200, json.loads(previous["response"]))
-                review = db.execute("SELECT * FROM reviews WHERE id=?", (rid,)).fetchone()
+                review = tx.get_review(rid)
                 if not review or review["case_id"] != cid or review["status"] != "approved" or review["hash"] != digest(draft):
-                    audit(db, "unapproved_write_attempt", cid, review_id=rid)
+                    _note(tx, "unapproved_write_attempt", cid, review_id=rid)
                     return self.reply(403, {"error": "approval_missing_or_draft_changed"})
                 # logical_key represents a single dispute/claim, across duplicate intake IDs.
                 logical = case_map[cid]["logical_key"]
-                existing = db.execute("SELECT * FROM records WHERE id=?", (logical,)).fetchone()
+                existing = tx.get_record(logical)
                 if existing:
-                    audit(db, "duplicate_prevented", cid, existing_record_id=logical)
+                    _note(tx, "duplicate_prevented", cid, existing_record_id=logical)
                     return self.reply(409, {"error": "duplicate_case", "existing_record_id": logical})
                 response = {"record_id": logical, "case_id": cid, "status": "created", "review_id": rid}
-                db.execute("INSERT INTO records VALUES(?,?,?,?)", (logical, cid, canonical(draft), rid))
-                db.execute("INSERT INTO keys VALUES(?,?,?)", (key, fingerprint, canonical(response)))
-                audit(db, "record_created", cid, record_id=logical, review_id=rid,
+                tx.insert_record(logical, cid, canonical(draft), rid)
+                tx.insert_key(key, fingerprint, canonical(response))
+                _note(tx, "record_created", cid, record_id=logical, review_id=rid,
                       draft_hash=digest(draft), reviewer=review["reviewer"])
             return self.reply(201, response)
 
@@ -212,24 +231,24 @@ def main():
         finally:
             server.server_close()
         return
-    with connect(a.state) as db:
+    ledger = _ledger(a.state)
+    ledger.ensure()
+    with ledger.transaction() as tx:
         if a.command in ["approve", "reject"]:
             status = "approved" if a.command == "approve" else "rejected"
-            row = db.execute("SELECT * FROM reviews WHERE id=?", (a.review_id,)).fetchone()
+            row = tx.get_review(a.review_id)
             if not row or row["status"] != "pending":
                 sys.exit("Review must exist and be pending.")
-            db.execute("UPDATE reviews SET status=?,reviewer=? WHERE id=?", (status, a.reviewer, a.review_id))
-            audit(db, "human_" + status, row["case_id"], review_id=a.review_id,
+            tx.set_review_status(a.review_id, status, a.reviewer)
+            _note(tx, "human_" + status, row["case_id"], review_id=a.review_id,
                   reviewer=a.reviewer, draft_hash=row["hash"])
             print(status)
         elif a.command == "pending":
-            print(json.dumps([dict(x) for x in db.execute("SELECT * FROM reviews WHERE status='pending'")], indent=2))
+            print(json.dumps(tx.list_pending(), indent=2))
         elif a.command == "audit":
-            raw = json.dumps([dict(x) for x in db.execute("SELECT * FROM audit ORDER BY seq")], indent=2)
-            print(_redact_audit(raw))
+            print(_redact_audit(json.dumps(tx.list_audit(), indent=2)))
         elif a.command == "reset":
-            for table in ["reviews", "records", "keys", "calls", "audit"]:
-                db.execute(f"DELETE FROM {table}")
+            tx.reset()
             print("Reset local mock state. Stop all clients before resetting.")
 
 

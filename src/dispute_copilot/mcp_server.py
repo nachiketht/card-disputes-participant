@@ -18,7 +18,7 @@ from pathlib import Path
 import httpx
 
 from dispute_copilot.adapters.case_system import HttpCaseSystem
-from dispute_copilot.adapters.corpus import FileCorpus
+from dispute_copilot.adapters.corpus import open_corpus
 from dispute_copilot.adapters.tools import HttpToolClient
 from dispute_copilot.cli import _load_env_file, _safe_case, _summary, _traced_case, run_all_report
 from dispute_copilot.config import Settings
@@ -186,7 +186,7 @@ def _resource_call(name: str, fn: Callable[[], str]) -> str:
 def _clients():
     settings = Settings.from_sources(None, None, None)
     policy = load_policy()
-    corpus = FileCorpus(settings.data_dir)
+    corpus = open_corpus(settings.data_dir)
     drafter = build_drafter()
     with httpx.Client(base_url=settings.mock_base_url, timeout=policy.http_timeout_s, trust_env=False) as http:
         remote = HttpToolClient(http, policy=policy)

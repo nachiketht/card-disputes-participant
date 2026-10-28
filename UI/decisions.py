@@ -6,9 +6,13 @@ status and the reviewer name only. The stored draft and its hash stay put.
 
 import importlib.util
 import json
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 
+from dispute_copilot.adapters import ledger as ledger_api
 from dispute_copilot.evidence.redaction import Redactor
+from dispute_copilot.serialization import hash_canonical
 
 _RUNTIME = None
 _CUSTOMER_MARK = "Customer message draft:"
@@ -27,12 +31,10 @@ def open_ledger(state: Path):
 
 def list_reviews(state: Path | None) -> list[dict]:
     """Pending reviews first. A missing file is an empty list."""
-    if state is None or not Path(state).is_file():
+    if not _postgres_backend() and (state is None or not Path(state).is_file()):
         return []
-    with open_ledger(state) as db:
-        rows = db.execute(
-            "SELECT id, case_id, draft, hash, status, reviewer FROM reviews"
-        ).fetchall()
+    with ledger_api.open_ledger(state).transaction(immediate=False) as tx:
+        rows = tx.list_reviews()
     listed = [_row(row) for row in rows]
     listed.sort(key=lambda item: (item["status"] != "pending", item["case_id"], item["id"]))
     return listed
@@ -51,27 +53,23 @@ def record_decision(state: Path, review_id: str, reviewer: str, *, accepted: boo
     if not name:
         raise DecisionRefused("name")
     status = "approved" if accepted else "rejected"
-    runtime = _runtime()
-    with runtime.connect(state) as db:
-        row = db.execute("SELECT * FROM reviews WHERE id=?", (review_id,)).fetchone()
+    with ledger_api.open_ledger(state).transaction() as tx:
+        row = tx.get_review(review_id)
         if not row or row["status"] != "pending":
             raise DecisionRefused("pending")
         before_draft = row["draft"]
         before_hash = row["hash"]
-        db.execute(
-            "UPDATE reviews SET status=?, reviewer=? WHERE id=?",
-            (status, name, review_id),
-        )
-        runtime.audit(
-            db,
+        tx.set_review_status(review_id, status, name)
+        payload = {"review_id": review_id, "reviewer": name, "draft_hash": before_hash}
+        tx.append_audit(
+            datetime.now(timezone.utc).isoformat(),
             "human_" + status,
             row["case_id"],
-            review_id=review_id,
-            reviewer=name,
-            draft_hash=row["hash"],
+            hash_canonical(payload),
+            payload,
         )
-        saved = db.execute("SELECT draft, hash FROM reviews WHERE id=?", (review_id,)).fetchone()
-        if saved["draft"] != before_draft or saved["hash"] != before_hash:
+        saved = tx.get_review(review_id)
+        if saved is None or saved["draft"] != before_draft or saved["hash"] != before_hash:
             raise DecisionRefused("unavailable")
     return status
 
@@ -120,6 +118,10 @@ def _message(draft: object) -> tuple[str, bool]:
     if not text or redactor.contains_restricted(text):
         return "", True
     return text, False
+
+
+def _postgres_backend() -> bool:
+    return os.environ.get("LEDGER_BACKEND") == "postgres"
 
 
 def _safe_id(review_id: str) -> bool:

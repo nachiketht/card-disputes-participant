@@ -41,7 +41,19 @@ def _version_number(path: Path) -> int | None:
     return int(path.stem[1:])
 
 
+def _postgres_reviews():
+    if os.environ.get("REVIEW_BACKEND") != "postgres":
+        return None
+    from dispute_copilot.adapters.review_state import PostgresReviewStore
+
+    return PostgresReviewStore.from_env()
+
+
 def latest_draft(submissions: Path, case_id: str) -> tuple[Path, dict, int]:
+    store = _postgres_reviews()
+    if store is not None:
+        draft, version = store.latest(case_id)
+        return submissions / "drafts" / case_id / f"v{version}.json", draft, version
     case_dir = submissions / "drafts" / case_id
     numbers = []
     if case_dir.is_dir():
@@ -60,6 +72,10 @@ def latest_draft(submissions: Path, case_id: str) -> tuple[Path, dict, int]:
 
 
 def write_draft(submissions: Path, case_id: str, draft: dict) -> Path:
+    store = _postgres_reviews()
+    if store is not None:
+        version = store.write_draft(case_id, draft)
+        return submissions / "drafts" / case_id / f"v{version}.json"
     text = json.dumps(draft, indent=2, ensure_ascii=False) + "\n"
     with submission_lock(submissions):
         case_dir = submissions / "drafts" / case_id

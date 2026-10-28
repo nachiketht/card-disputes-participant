@@ -4,7 +4,17 @@ The data root is configurable. Only the policies and documents trees are read,
 and only markdown. The mock fixture file is never opened.
 """
 
+import os
 from pathlib import Path
+
+
+def open_corpus(data_dir: Path):
+    """Files under data_dir unless CASES_BACKEND=blob."""
+    if os.environ.get("CASES_BACKEND") == "blob":
+        from dispute_copilot.adapters.cases_blob import BlobCorpus
+
+        return BlobCorpus.from_env()
+    return FileCorpus(data_dir)
 
 
 def source_id_of(text: str) -> str:

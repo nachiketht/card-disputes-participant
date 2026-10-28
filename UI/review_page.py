@@ -19,7 +19,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
-from dispute_copilot.adapters.corpus import FileCorpus
+from dispute_copilot.adapters.cases_blob import BlobCorpus
+from dispute_copilot.adapters.corpus import FileCorpus, open_corpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable
 from dispute_copilot.evidence.redaction import Redactor
@@ -54,7 +55,11 @@ from dispute_copilot.review_flow.handles import handle_path, read_handle
 from dispute_copilot.storage import latest_draft, write_draft
 from dispute_copilot.workflow import prepare
 
-from UI.decisions import DecisionRefused, list_reviews, open_ledger, record_decision
+from dispute_copilot.adapters.ledger import open_ledger
+
+from UI.decisions import DecisionRefused, list_reviews, record_decision
+
+Corpus = FileCorpus | BlobCorpus
 
 PACKAGE = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(PACKAGE / "templates"))
@@ -118,7 +123,7 @@ _DECISION_WARNINGS = {"name", "pending", "unavailable", "approval_gate", "refuse
 def create_app(
     submissions: Path,
     case_system: Ledger,
-    corpus: FileCorpus | None = None,
+    corpus: Corpus | None = None,
     tools: HttpToolClient | FakeToolClient | None = None,
     state_path: Path | None = None,
     reports_dir: Path | None = None,
@@ -129,6 +134,10 @@ def create_app(
     no saved draft is drafted on the next page load. Existing drafts are left
     as they are.
     """
+    if corpus is None and os.environ.get("CASES_BACKEND") == "blob":
+        from dispute_copilot.config import Settings
+
+        corpus = open_corpus(Settings.from_sources(None, None, None).data_dir)
     app = FastAPI(title="Dispute review", docs_url=None, redoc_url=None, openapi_url=None)
     app.mount("/static", StaticFiles(directory=str(PACKAGE / "static")), name="assets")
 
@@ -316,7 +325,7 @@ def _render_decisions(
 def sync_missing_drafts(
     submissions: Path,
     case_system: Ledger,
-    corpus: FileCorpus | None,
+    corpus: Corpus | None,
     tools: HttpToolClient | FakeToolClient | None,
 ) -> None:
     """Write a draft for each mock case that does not have one yet."""
@@ -352,6 +361,15 @@ def _has_draft(submissions: Path, case_id: str) -> bool:
 
 def list_cases(submissions: Path, case_system: Ledger | None = None, state_path: Path | None = None) -> list[dict]:
     """Open drafts only. A created or declined case stays on disk and leaves this list."""
+    if os.environ.get("REVIEW_BACKEND") == "postgres":
+        from dispute_copilot.adapters.review_state import PostgresReviewStore
+
+        return _list_case_ids(
+            PostgresReviewStore.from_env().draft_case_ids(),
+            submissions,
+            case_system,
+            state_path,
+        )
     root = submissions / "drafts"
     if not root.is_dir():
         return []
@@ -368,6 +386,23 @@ def list_cases(submissions: Path, case_system: Ledger | None = None, state_path:
             continue
         type_value = draft.get(CLASSIFICATION)
         rows.append({"id": path.name, "type_value": type_value if isinstance(type_value, str) else ""})
+    return rows
+
+
+def _list_case_ids(case_ids: list[str], submissions: Path, case_system: Ledger | None, state_path: Path | None) -> list[dict]:
+    rows = []
+    for case_id in case_ids:
+        if not _safe_case(case_id):
+            continue
+        if case_outcome(submissions, case_system, state_path, case_id):
+            continue
+        try:
+            _draft_path, draft, _version = latest_draft(submissions, case_id)
+        except (OSError, ValueError):
+            rows.append({"id": case_id, "type_value": "unreadable"})
+            continue
+        type_value = draft.get(CLASSIFICATION)
+        rows.append({"id": case_id, "type_value": type_value if isinstance(type_value, str) else ""})
     return rows
 
 
@@ -392,7 +427,7 @@ def _render(
     case_system: Ledger,
     case_id: str | None,
     notice: str | None,
-    corpus: FileCorpus | None = None,
+    corpus: Corpus | None = None,
     tools: HttpToolClient | FakeToolClient | None = None,
     state_path: Path | None = None,
 ) -> HTMLResponse:
@@ -752,11 +787,11 @@ def _decision_notice(code: str, case_id: str | None) -> str:
 
 
 def _case_id_for_review(state_path: Path | None, review_id: str) -> str:
-    if state_path is None or not Path(state_path).is_file():
+    if os.environ.get("LEDGER_BACKEND") != "postgres" and (state_path is None or not Path(state_path).is_file()):
         return ""
     try:
-        with open_ledger(state_path) as db:
-            row = db.execute("SELECT case_id FROM reviews WHERE id=?", (review_id,)).fetchone()
+        with open_ledger(state_path).transaction(immediate=False) as tx:
+            row = tx.get_review(review_id)
     except (OSError, sqlite3.Error, DecisionRefused):
         return ""
     if row is None or not isinstance(row["case_id"], str):
@@ -782,11 +817,11 @@ def _review_status(submissions: Path, case_system: Ledger | None, case_id: str) 
 
 
 def _sqlite_status(state_path: Path | None, case_id: str) -> str:
-    if state_path is None or not Path(state_path).is_file():
+    if os.environ.get("LEDGER_BACKEND") != "postgres" and (state_path is None or not Path(state_path).is_file()):
         return ""
     try:
-        with open_ledger(state_path) as db:
-            rows = db.execute("SELECT status FROM reviews WHERE case_id=?", (case_id,)).fetchall()
+        with open_ledger(state_path).transaction(immediate=False) as tx:
+            rows = [row for row in tx.list_reviews() if row.get("case_id") == case_id]
     except (OSError, sqlite3.Error, DecisionRefused):
         return ""
     statuses = [row["status"] for row in rows]
@@ -815,7 +850,7 @@ def _with_outcomes(reviews: list[dict], case_system: Ledger) -> list[dict]:
 
 
 def _complaint_text(
-    corpus: FileCorpus | None,
+    corpus: Corpus | None,
     tools: HttpToolClient | FakeToolClient | None,
     case_id: str | None,
 ) -> str:

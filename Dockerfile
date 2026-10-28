@@ -11,7 +11,8 @@ COPY tools ./tools
 COPY config ./config
 COPY prompts ./prompts
 
-RUN pip install --no-cache-dir .
+# The cloud extra stays idle until a backend env var selects Postgres or Blob.
+RUN pip install --no-cache-dir ".[cloud]"
 RUN ln -s /app/config /usr/local/lib/python3.12/config \
  && ln -s /app/prompts /usr/local/lib/python3.12/prompts
 

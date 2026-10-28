@@ -8,6 +8,7 @@ every version is reported as out of range; the caller decides the branch.
 from dataclasses import dataclass
 from datetime import date
 
+from dispute_copilot.adapters.cases_blob import BlobCorpus
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.fields import Classification
 from dispute_copilot.rules.documents import labeled_lines
@@ -41,7 +42,7 @@ class PolicySelection:
 
 
 class PolicyResolver:
-    def __init__(self, corpus: FileCorpus | MemoryCorpus) -> None:
+    def __init__(self, corpus: FileCorpus | MemoryCorpus | BlobCorpus) -> None:
         self.procedure_text = corpus.get(PROCEDURE_ID)
         self.procedure_id = PROCEDURE_ID
         self._versions: list[PolicyVersion] = []

@@ -16,7 +16,7 @@ from pathlib import Path
 import httpx
 
 from dispute_copilot.adapters.case_system import HttpCaseSystem
-from dispute_copilot.adapters.corpus import FileCorpus
+from dispute_copilot.adapters.corpus import FileCorpus, open_corpus
 from dispute_copilot.adapters.tools import HttpToolClient
 from dispute_copilot.config import Settings
 from dispute_copilot.errors import CopilotError, CreateRejected, MockUnavailable, OutsideCheckpoint, ToolFailed
@@ -64,7 +64,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "evals":
         return _evals(args, settings)
     try:
-        corpus = FileCorpus(settings.data_dir)
+        corpus = open_corpus(settings.data_dir)
     except (OSError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1

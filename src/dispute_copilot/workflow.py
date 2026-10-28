@@ -11,6 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem, HttpCaseSystem
+from dispute_copilot.adapters.cases_blob import BlobCorpus
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient
 from dispute_copilot.contract import validate_draft
@@ -57,7 +58,7 @@ from dispute_copilot.guardrails import record
 from dispute_copilot.observability.tracing import current
 from dispute_copilot.serialization import citation_source_text
 
-Corpus = FileCorpus | MemoryCorpus
+Corpus = FileCorpus | MemoryCorpus | BlobCorpus
 Tools = HttpToolClient | FakeToolClient
 Ledger = HttpCaseSystem | FakeCaseSystem
 
