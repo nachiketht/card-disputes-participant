@@ -40,10 +40,12 @@
             <p class="ids-line"><span>Review</span> <code>{{ item.id }}</code></p>
             <p class="ids-line hash-line"><span>Hash</span> <code>{{ item.hash_short }}</code></p>
           </header>
+          {% if item.pending or item.status == "approved" and not item.created %}
           {% if item.withheld %}
           <p class="muted">This draft cannot be shown.</p>
           {% elif item.message %}
           <p class="message">{{ item.message }}</p>
+          {% endif %}
           {% endif %}
           {% if item.pending %}
           <form class="decision-form" method="post" action="/decisions/{{ item.id }}/accept">
@@ -51,10 +53,14 @@
             <button class="primary" type="submit">Accept</button>
             <button class="danger" type="submit" formaction="/decisions/{{ item.id }}/decline">Decline</button>
           </form>
+          {% elif item.created %}
+          <p class="outcome">{{ item.case_id }} was created.{% if item.record_id %} Record <code>{{ item.record_id }}</code>.{% endif %}</p>
           {% elif item.status == "approved" %}
           <form class="decision-form" method="post" action="/decisions/{{ item.case_id }}/record">
             <button class="primary" type="submit">Create record</button>
           </form>
+          {% elif item.status == "rejected" %}
+          <p class="outcome">{{ item.case_id }} was declined.</p>
           {% endif %}
         </article>
         {% endfor %}

@@ -252,6 +252,7 @@ Calls: `run_case`, `run_all`, `get_draft`, `agent_review`, `submit_review`, `rev
 | `mcp` | stdio server, with `--extra mcp` |
 | `metrics` | `dispute-copilot metrics` |
 | `dashboard` | `dispute-copilot dashboard` |
+| `review-page` | `uv run --locked dispute-copilot review-page` |
 | `secrets` | `python3 tools/scan_secrets.py` |
 | `evals` | `uv run --locked python tools/run_evals.py` |
 | `week10` | `scripts/week10_evidence.sh` |
@@ -716,7 +717,7 @@ uv run --locked dispute-copilot \
 ```text
 usage: dispute-copilot [-h] [--mock-url MOCK_URL] [--data-dir DATA_DIR]
                        [--submissions SUBMISSIONS]
-                       {run,run-all,compare,agent-review,submit-review,create-record,metrics,evals,dashboard}
+                       {run,run-all,compare,review-page,agent-review,submit-review,create-record,metrics,evals,dashboard}
                        ...
 ```
 
@@ -732,6 +733,7 @@ Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--
 | `create-record CASE` | one case id | yes | created, or existing row reported | 2 gate or missing handle |
 | `metrics` | none | no | report printed | |
 | `evals` | `--submission PATH`, `--report PATH` | no, when a submission file is already written | scorecard printed and `passed` | 1 when a minimum is missed |
+| `review-page` | `--state PATH` (default `.state/run.sqlite`). No port flag. | yes | serves `127.0.0.1:8080` until interrupted | 1 health |
 | `dashboard` | `--export PATH`, `--port` (default 8754) | no | file written, or page served until interrupted | 1 if the port will not bind |
 
 Missing command or missing `CASE` is argparse exit 2. An unknown command (`bakeoff`, for example) is exit 2: `invalid choice`.
@@ -813,7 +815,7 @@ uv run --locked dispute-copilot compare --case CARD-D01
 make compare
 ```
 
-On the review page, the narrative is first, then the original complaint. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review.
+On the review page, the narrative is first, then the original complaint. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review. `make review-page` serves that page. A created or declined case leaves Drafts and is listed under Decisions. See [Review page](#review-page).
 
 The comparison page is served at `/compare` and written as `compare.html` beside a dashboard export. Under the five metrics, a table titled When each approach wins is labelled `Proposed thresholds, to be confirmed by the A/B test. Not measured results.` The cut-offs come from `config/rules/classifier.yaml` (`comparison.false_negative_ceiling`, default 0.02, plus `false_positive_low` 0.10 and `false_positive_high` 0.40). The table does not score the saved runs. For each approach the five figures are the wrong-label rate, the auto-routed-but-wrong rate, the manual-review rate, Haiku cost per case, and latency p95. Wrong-label rate compares each saved approach, including a shadow run, with the reviewer category. Auto-routed but wrong counts only cases whose route is `ready_for_review`. Cost per case divides Haiku list-price USD by cases run. A case with no priced call adds zero. Jev is unpriced. A wrong-label sample or an auto-routed sample under `comparison.min_sample` (default 30) is marked too small to conclude. The agreement matrix counts shared cases. Disagreeing rows list case ids only. Technical details stay closed. The page does not include complaint text.
 
@@ -862,6 +864,23 @@ uv run --locked dispute-copilot dashboard
 ```
 
 `make dashboard` is the serve form. Open the HTML file in a browser when you used `--export`.
+
+### Review page
+
+`make review-page` is `uv run --locked dispute-copilot review-page`. It serves the review screen on `127.0.0.1` port `8080`. There is no port flag and no host flag. `--state` selects the mock state file. The default is `.state/run.sqlite`, the same file `make mock` uses. `--mock-url`, or `MOCK_BASE_URL`, selects the mock. The default is `http://127.0.0.1:8765`.
+
+The page needs the mock running (`make mock`) and saved drafts (`dispute-copilot run-all`). An example case is `http://127.0.0.1:8080/cases/CARD-D04`.
+
+The page does not approve. Approval stays `tools/runtime.py approve` on that same state file. `reject` is the same command with `reject`. Accept and decline on the decisions view write the review status in that file. Create record posts only after that approval.
+
+A created case, or a declined case, leaves the Drafts list. That includes the left-hand list and the drafts view. The case is shown under Decisions with the outcome, created or declined. The page after that action is a confirmation that names the case id. Check draft, Submit for review, and Create record are not offered again. The saved draft and the audit stay as they were.
+
+```sh
+make mock
+uv run --locked dispute-copilot run-all
+make review-page
+# http://127.0.0.1:8080/cases/CARD-D04
+```
 
 ### Scorecard
 
@@ -1016,7 +1035,7 @@ uv run --locked pytest tests/integration
 refusing: hidden-style gold is not in this checkpoint, and feedback/dev_gold.json is never rewritten
 ```
 
-Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `secrets`, `evals`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
+Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `review-page`, `compare`, `secrets`, `evals`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
 
 `make metrics` is `uv run --locked dispute-copilot metrics`.
 

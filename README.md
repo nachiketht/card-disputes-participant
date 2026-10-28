@@ -19,6 +19,8 @@ uv run --locked python tools/runtime.py serve --port 8765 --state .state/run.sql
 
 `make mock` is that same `serve` command: port `8765` and state `.state/run.sqlite`. A bare `serve` with no `--state` uses `.state/mock.sqlite` instead. `pending`, `approve`, `reject`, `audit`, and `reset` must get the same `--state` the server was started with.
 
+`make review-page` is `uv run --locked dispute-copilot review-page`. It serves the review screen on `127.0.0.1:8080`. There is no port flag. `--state` selects the mock state file and defaults to `.state/run.sqlite`. Start `make mock`, then write drafts with `dispute-copilot run-all`, then open `http://127.0.0.1:8080/cases/CARD-D04`. The page does not approve. Approval stays `tools/runtime.py approve` on that state file. A created or declined case leaves the Drafts list and is shown under Decisions with that outcome. The page after the action names the case id and does not offer Check draft, Submit for review, or Create record again.
+
 The local service is at `http://127.0.0.1:8765`. It binds only to loopback. Keep it local. Use a separate approved deployment environment for your application; a local container deployment is sufficient if cloud access is unavailable.
 Python 3.12 alternative with no installation of packages: `python3.12 tools/runtime.py serve --port 8765 --state .state/run.sqlite`.
 Select this project's `.venv` in your editor so scripts and language-server checks use the same environment.

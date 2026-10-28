@@ -17,7 +17,17 @@
       {% if notice_text %}
       <p class="banner{% if notice_warn %} warn{% endif %}" role="status">{{ notice_text }}</p>
       {% endif %}
-      {% if not has_draft %}
+      {% if decided %}
+      <section class="empty" id="confirmation">
+        <p class="eyebrow">Decision</p>
+        <h2>{{ selected }}</h2>
+        <p>{{ confirmation }}</p>
+        {% if record_id %}
+        <p class="ids-line"><span>Record id</span> <code>{{ record_id }}</code></p>
+        {% endif %}
+        <p><a class="button primary" href="/decisions">Decisions</a></p>
+      </section>
+      {% elif not has_draft %}
       <section class="empty">
         <h2>Nothing open</h2>
         <p>{{ empty_reason }}</p>
@@ -196,8 +206,8 @@
           return response.json();
         }).then(function (body) {
           var ids = body.ids || [];
-          var grew = ids.some(function (id) { return !known.has(id); });
-          if (grew) {
+          var same = ids.length === known.size && ids.every(function (id) { return known.has(id); });
+          if (!same) {
             window.location.reload();
           }
         }).catch(function () {});

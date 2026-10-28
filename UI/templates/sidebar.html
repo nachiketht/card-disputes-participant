@@ -8,7 +8,7 @@
     <a class="{% if section == 'decisions' %}current{% endif %}" href="/decisions"><span>Decisions</span></a>
   </nav>
   <div class="rail-cases">
-    <p class="rail-label">Cases <span>{{ cases | length }}</span></p>
+    <p class="rail-label">Drafts <span>{{ cases | length }}</span></p>
     <nav aria-label="Cases">
       {% for item in cases %}
       <a class="{% if item.id == selected %}current{% endif %}" href="/cases/{{ item.id }}">
@@ -16,7 +16,7 @@
         {% if item.type_value %}<small>{{ item.type_value }}</small>{% endif %}
       </a>
       {% else %}
-      <p class="aside-empty">No drafts yet.</p>
+      <p class="aside-empty">No open drafts.</p>
       {% endfor %}
     </nav>
   </div>

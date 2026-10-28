@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem, ReviewRecord
+from UI.decisions import open_ledger
 from dispute_copilot.adapters.corpus import FileCorpus
 from dispute_copilot.adapters.tools import FakeToolClient
 from dispute_copilot.llm.base import Completion, LLMError
@@ -400,3 +401,148 @@ def test_a_model_failure_skips_the_judge_and_keeps_the_checklist(tmp_path: Path,
     assert "llm_critic" not in saved["checks"]
     assert saved["llm_review"]["reason"] == "The judge step was skipped because the model call failed."
     assert "secret.example" not in json.dumps(saved)
+
+
+def _keep(case_id: str = "CARD-KEEP") -> dict:
+    saved = _draft()
+    saved["case_id"] = case_id
+    return saved
+
+
+def _seed_review(state: Path, case_id: str, *, status: str) -> tuple[str, str]:
+    draft = {"case_id": case_id, "narrative": "Customer message draft: Ready for a person."}
+    stored = hash_canonical(draft)
+    hashed = digest(draft)
+    with open_ledger(state) as db:
+        db.execute(
+            "INSERT INTO reviews VALUES(?,?,?,?,?,?)",
+            (f"rev-{case_id}", case_id, stored, hashed, status, "Ada" if status != "pending" else None),
+        )
+    return stored, hashed
+
+
+def test_a_created_case_leaves_drafts_and_confirms(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    saved = _draft(amount=117)
+    write_draft(tmp_path, "CARD-D01", saved)
+    write_draft(tmp_path, "CARD-KEEP", _keep())
+    raw = hash_canonical(saved)
+    hashed = digest(saved)
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(
+        json.dumps(
+            {
+                "review_id": "rev_1",
+                "draft_hash": hashed,
+                "agent_approval": _approval(hashed),
+            }
+        ),
+        encoding="utf-8",
+    )
+    state = tmp_path / "run.sqlite"
+    stored, review_hash = _seed_review(state, "CARD-D01", status="approved")
+    draft_file = tmp_path / "drafts" / "CARD-D01" / "v1.json"
+    before_draft = draft_file.read_bytes()
+    ledger = FakeCaseSystem()
+    ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "approved", hashed, raw, "Ada")
+    client = TestClient(create_app(tmp_path, ledger, state_path=state))
+    assert client.get("/draft-ids").json()["ids"] == ["CARD-D01", "CARD-KEEP"]
+    open_page = client.get("/cases/CARD-D01")
+    assert "Check draft" in open_page.text
+    assert "Submit for review" in open_page.text
+    waiting = client.get("/decisions")
+    assert "Create record" in waiting.text
+    assert "Ready for a person." in waiting.text
+    response = client.post("/decisions/CARD-D01/record", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/decisions?notice=created")
+    assert "case=CARD-D01" in response.headers["location"]
+    decided = client.get(response.headers["location"])
+    assert "CARD-D01 was created." in decided.text
+    assert "Created" in decided.text
+    assert "Create record" not in decided.text
+    assert "Ready for a person." not in decided.text
+    rail = decided.text.split('class="rail-cases"', 1)[1].split("</aside>", 1)[0]
+    assert "CARD-D01" not in rail
+    assert "CARD-KEEP" in rail
+    assert 'href="/cases/CARD-D01"' in decided.text
+    assert client.get("/draft-ids").json()["ids"] == ["CARD-KEEP"]
+    case = client.get("/cases/CARD-D01")
+    assert 'id="confirmation"' in case.text
+    assert "CARD-D01 was created." in case.text
+    assert "record-CARD-D01" in case.text
+    assert "Check draft" not in case.text
+    assert "Submit for review" not in case.text
+    assert "Create record" not in case.text
+    case_rail = case.text.split('class="rail-cases"', 1)[1].split("</aside>", 1)[0]
+    assert "CARD-D01" not in case_rail
+    assert draft_file.read_bytes() == before_draft
+    assert len(ledger.posts) == 1
+    again = client.post("/cases/CARD-D01/create", follow_redirects=False)
+    assert again.status_code == 303
+    assert "notice=created" in again.headers["location"]
+    assert len(ledger.posts) == 1
+    checked = client.post("/cases/CARD-D01/check", follow_redirects=False)
+    assert checked.status_code == 303
+    assert checked.headers["location"].startswith("/decisions?notice=created")
+    with open_ledger(state) as db:
+        row = db.execute("SELECT draft, hash, status FROM reviews").fetchone()
+        audits = db.execute("SELECT COUNT(*) AS n FROM audit").fetchone()["n"]
+    assert row["draft"] == stored
+    assert row["hash"] == review_hash
+    assert row["status"] == "approved"
+    assert audits == 0
+
+
+def test_a_declined_case_leaves_drafts_and_confirms(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    write_draft(tmp_path, "CARD-KEEP", _keep())
+    state = tmp_path / "run.sqlite"
+    stored, hashed = _seed_review(state, "CARD-D01", status="pending")
+    draft_file = tmp_path / "drafts" / "CARD-D01" / "v1.json"
+    before_draft = draft_file.read_bytes()
+    client = TestClient(create_app(tmp_path, FakeCaseSystem(), state_path=state))
+    assert "CARD-D01" in client.get("/draft-ids").json()["ids"]
+    assert "Check draft" in client.get("/cases/CARD-D01").text
+    declined = client.post(
+        "/decisions/rev-CARD-D01/decline",
+        data={"reviewer": "Ada"},
+        follow_redirects=True,
+    )
+    assert declined.status_code == 200
+    assert "CARD-D01 was declined." in declined.text
+    assert "Create record" not in declined.text
+    assert "Ready for a person." not in declined.text
+    assert ">Accept<" not in declined.text
+    assert client.get("/draft-ids").json()["ids"] == ["CARD-KEEP"]
+    declined_rail = declined.text.split('class="rail-cases"', 1)[1].split("</aside>", 1)[0]
+    assert "CARD-D01" not in declined_rail
+    assert "CARD-KEEP" in declined_rail
+    case = client.get("/cases/CARD-D01")
+    assert 'id="confirmation"' in case.text
+    assert "CARD-D01 was declined." in case.text
+    assert "Check draft" not in case.text
+    assert "Submit for review" not in case.text
+    assert "Create record" not in case.text
+    assert draft_file.read_bytes() == before_draft
+    submitted = client.post("/cases/CARD-D01/submit", follow_redirects=False)
+    assert submitted.status_code == 303
+    assert "notice=declined" in submitted.headers["location"]
+    with open_ledger(state) as db:
+        row = db.execute("SELECT draft, hash, status, reviewer FROM reviews").fetchone()
+    assert row["status"] == "rejected"
+    assert row["reviewer"] == "Ada"
+    assert row["draft"] == stored
+    assert row["hash"] == hashed
+
+
+def test_an_approved_case_stays_in_drafts_until_the_record_exists(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    state = tmp_path / "run.sqlite"
+    _seed_review(state, "CARD-D01", status="approved")
+    client = TestClient(create_app(tmp_path, FakeCaseSystem(), state_path=state))
+    assert client.get("/draft-ids").json()["ids"] == ["CARD-D01"]
+    assert "Check draft" in client.get("/cases/CARD-D01").text
+    assert "Create record" in client.get("/decisions").text

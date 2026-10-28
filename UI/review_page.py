@@ -54,7 +54,7 @@ from dispute_copilot.review_flow.handles import handle_path, read_handle
 from dispute_copilot.storage import latest_draft, write_draft
 from dispute_copilot.workflow import prepare
 
-from UI.decisions import DecisionRefused, list_reviews, record_decision
+from UI.decisions import DecisionRefused, list_reviews, open_ledger, record_decision
 
 PACKAGE = Path(__file__).resolve().parent
 TEMPLATES = Jinja2Templates(directory=str(PACKAGE / "templates"))
@@ -138,22 +138,22 @@ def create_app(
     @app.get("/", response_model=None)
     def home() -> RedirectResponse | HTMLResponse:
         _sync()
-        cases = list_cases(submissions)
+        cases = list_cases(submissions, case_system, state_path)
         if not cases:
-            return _render(submissions, case_system, None, None, corpus, tools)
+            return _render(submissions, case_system, None, None, corpus, tools, state_path)
         return RedirectResponse(f"/cases/{quote(str(cases[0]['id']))}", status_code=303)
 
     @app.get("/draft-ids", response_model=None)
     def draft_ids() -> JSONResponse:
         _sync()
-        return JSONResponse({"ids": [row["id"] for row in list_cases(submissions)]})
+        return JSONResponse({"ids": [row["id"] for row in list_cases(submissions, case_system, state_path)]})
 
     @app.get("/cases/{case_id}", response_model=None)
     def show_case(case_id: str, notice: str | None = None) -> HTMLResponse:
         if not _safe_case(case_id):
             return HTMLResponse("This case cannot be opened.", status_code=404)
         _sync()
-        return _render(submissions, case_system, case_id, notice, corpus, tools)
+        return _render(submissions, case_system, case_id, notice, corpus, tools, state_path)
 
     @app.get("/cases/{case_id}/model-note", response_model=None)
     def model_note(case_id: str) -> JSONResponse:
@@ -176,6 +176,9 @@ def create_app(
         refused = _refuse_case(case_id)
         if refused is not None:
             return refused
+        closed = _closed_redirect(submissions, case_system, state_path, case_id)
+        if closed is not None:
+            return closed
         try:
             _path, draft, version = latest_draft(submissions, case_id)
         except FileNotFoundError:
@@ -199,6 +202,9 @@ def create_app(
         refused = _refuse_case(case_id)
         if refused is not None:
             return refused
+        closed = _closed_redirect(submissions, case_system, state_path, case_id)
+        if closed is not None:
+            return closed
         try:
             submit_review(case_id, submissions, case_system)
         except FileNotFoundError:
@@ -209,16 +215,16 @@ def create_app(
 
     @app.post("/cases/{case_id}/create", response_model=None)
     def create_case(case_id: str) -> HTMLResponse | RedirectResponse:
-        return _create_case(submissions, case_system, case_id, on_decisions=False)
+        return _create_case(submissions, case_system, state_path, case_id, on_decisions=False)
 
     @app.post("/decisions/{case_id}/record", response_model=None)
     def create_from_decisions(case_id: str) -> HTMLResponse | RedirectResponse:
-        return _create_case(submissions, case_system, case_id, on_decisions=True)
+        return _create_case(submissions, case_system, state_path, case_id, on_decisions=True)
 
     @app.get("/decisions", response_model=None)
-    def show_decisions(notice: str | None = None) -> HTMLResponse:
+    def show_decisions(notice: str | None = None, case: str | None = None) -> HTMLResponse:
         _sync()
-        return _render_decisions(submissions, state_path, notice)
+        return _render_decisions(submissions, case_system, state_path, notice, case)
 
     @app.post("/decisions/{review_id}/accept", response_model=None)
     async def accept_review(review_id: str, request: Request) -> RedirectResponse:
@@ -231,21 +237,33 @@ def create_app(
     return app
 
 
-def _create_case(submissions: Path, case_system: Ledger, case_id: str, *, on_decisions: bool) -> HTMLResponse | RedirectResponse:
+def _create_case(
+    submissions: Path,
+    case_system: Ledger,
+    state_path: Path | None,
+    case_id: str,
+    *,
+    on_decisions: bool,
+) -> HTMLResponse | RedirectResponse:
     refused = _refuse_case(case_id)
     if refused is not None:
         return refused
+    already = case_outcome(submissions, case_system, state_path, case_id)
+    if already:
+        return _decision_redirect(already, case_id)
     try:
         outcome = create_record(case_id, submissions, case_system)
     except FileNotFoundError:
         return HTMLResponse("No draft has been written for this case.", status_code=404)
     except CreateRejected as exc:
         notice = _notice_code(exc)
-    else:
-        notice = "created" if outcome.get("posted") is True else "existing"
-    if on_decisions:
-        return RedirectResponse(f"/decisions?notice={quote(notice)}", status_code=303)
-    return _redirect(case_id, notice)
+        if notice in {"created", "existing"}:
+            return _decision_redirect(notice, case_id)
+        if on_decisions:
+            return _decision_redirect(notice, case_id)
+        return _redirect(case_id, notice)
+    notice = "created" if outcome.get("posted") is True else "existing"
+    return _decision_redirect(notice, case_id)
 
 
 async def _decide(state_path: Path | None, review_id: str, request: Request, *, accepted: bool) -> RedirectResponse:
@@ -258,7 +276,7 @@ async def _decide(state_path: Path | None, review_id: str, request: Request, *, 
         code = exc.code if isinstance(exc, DecisionRefused) else "unavailable"
         return RedirectResponse(f"/decisions?notice={quote(code)}", status_code=303)
     notice = "accepted" if status == "approved" else "declined"
-    return RedirectResponse(f"/decisions?notice={notice}", status_code=303)
+    return _decision_redirect(notice, _case_id_for_review(state_path, review_id))
 
 
 async def _posted_name(request: Request) -> str:
@@ -268,19 +286,25 @@ async def _posted_name(request: Request) -> str:
     return values[0] if values else ""
 
 
-def _render_decisions(submissions: Path, state_path: Path | None, notice: str | None) -> HTMLResponse:
+def _render_decisions(
+    submissions: Path,
+    case_system: Ledger,
+    state_path: Path | None,
+    notice: str | None,
+    case_id: str | None,
+) -> HTMLResponse:
     code = notice if notice in _DECISION_NOTICES else ""
     try:
-        reviews = list_reviews(state_path)
+        reviews = _with_outcomes(list_reviews(state_path), case_system)
     except (OSError, sqlite3.Error, DecisionRefused):
         reviews = []
         code = "unavailable"
     html = TEMPLATES.get_template("decisions.html").render(
         {
-            "cases": list_cases(submissions),
+            "cases": list_cases(submissions, case_system, state_path),
             "reviews": reviews,
             "state_ready": state_path is not None,
-            "notice_text": _DECISION_NOTICES.get(code, ""),
+            "notice_text": _decision_notice(code, case_id),
             "notice_warn": code in _DECISION_WARNINGS,
         }
     )
@@ -326,14 +350,16 @@ def _has_draft(submissions: Path, case_id: str) -> bool:
     return True
 
 
-def list_cases(submissions: Path) -> list[dict]:
-    """Case ids that already have a draft, with the saved type beside each id."""
+def list_cases(submissions: Path, case_system: Ledger | None = None, state_path: Path | None = None) -> list[dict]:
+    """Open drafts only. A created or declined case stays on disk and leaves this list."""
     root = submissions / "drafts"
     if not root.is_dir():
         return []
     rows = []
     for path in sorted(root.iterdir()):
         if not path.is_dir() or not _safe_case(path.name):
+            continue
+        if case_outcome(submissions, case_system, state_path, path.name):
             continue
         try:
             _draft_path, draft, _version = latest_draft(submissions, path.name)
@@ -345,6 +371,22 @@ def list_cases(submissions: Path) -> list[dict]:
     return rows
 
 
+def case_outcome(
+    submissions: Path,
+    case_system: Ledger | None,
+    state_path: Path | None,
+    case_id: str,
+) -> str:
+    """`created` or `declined` when the case is finished. Empty while it is still a draft."""
+    if case_system is not None and _remote_record(case_system, case_id)[0]:
+        return "created"
+    if _review_status(submissions, case_system, case_id) == "rejected":
+        return "declined"
+    if _sqlite_status(state_path, case_id) == "rejected":
+        return "declined"
+    return ""
+
+
 def _render(
     submissions: Path,
     case_system: Ledger,
@@ -352,8 +394,9 @@ def _render(
     notice: str | None,
     corpus: FileCorpus | None = None,
     tools: HttpToolClient | FakeToolClient | None = None,
+    state_path: Path | None = None,
 ) -> HTMLResponse:
-    context = _context(submissions, case_system, case_id, notice)
+    context = _context(submissions, case_system, case_id, notice, state_path)
     complaint = _complaint_text(corpus, tools, case_id)
     slot = "<!-- complaint-slot -->"
     context["complaint_slot"] = slot
@@ -367,10 +410,18 @@ def _render(
     return HTMLResponse(page)
 
 
-def _context(submissions: Path, case_system: Ledger, case_id: str | None, notice: str | None) -> dict:
+def _context(
+    submissions: Path,
+    case_system: Ledger,
+    case_id: str | None,
+    notice: str | None,
+    state_path: Path | None = None,
+) -> dict:
     notice_code = notice if notice in _NOTICES else ""
     base = {
-        "cases": list_cases(submissions),
+        "cases": list_cases(submissions, case_system, state_path),
+        "decided": False,
+        "confirmation": "",
         "selected": case_id or "",
         "has_draft": False,
         "notice_text": _NOTICES.get(notice_code, ""),
@@ -402,7 +453,7 @@ def _context(submissions: Path, case_system: Ledger, case_id: str | None, notice
         "empty_reason": "",
     }
     if not case_id:
-        base["empty_reason"] = "Choose a draft from the list."
+        base["empty_reason"] = "No open drafts. Created and declined cases are under Decisions."
         return base
     try:
         _path, draft, version = latest_draft(submissions, case_id)
@@ -420,6 +471,13 @@ def _context(submissions: Path, case_system: Ledger, case_id: str | None, notice
     base.update(_draft_view(draft, version))
     base.update(_check_view(handle))
     base.update(_ledger_view(case_system, case_id, handle))
+    outcome = case_outcome(submissions, case_system, state_path, case_id)
+    if outcome == "created":
+        base["decided"] = True
+        base["confirmation"] = f"{case_id} was created."
+    elif outcome == "declined":
+        base["decided"] = True
+        base["confirmation"] = f"{case_id} was declined."
     base["has_draft"] = True
     return base
 
@@ -663,6 +721,97 @@ def _notice_code(exc: CreateRejected) -> str:
 
 def _redirect(case_id: str, notice: str) -> RedirectResponse:
     return RedirectResponse(url=f"/cases/{quote(case_id)}?notice={quote(notice)}", status_code=303)
+
+
+def _decision_redirect(notice: str, case_id: str) -> RedirectResponse:
+    target = f"/decisions?notice={quote(notice)}"
+    if case_id and _safe_case(case_id):
+        target += f"&case={quote(case_id)}"
+    return RedirectResponse(target, status_code=303)
+
+
+def _closed_redirect(
+    submissions: Path,
+    case_system: Ledger,
+    state_path: Path | None,
+    case_id: str,
+) -> RedirectResponse | None:
+    outcome = case_outcome(submissions, case_system, state_path, case_id)
+    if not outcome:
+        return None
+    return _decision_redirect(outcome, case_id)
+
+
+def _decision_notice(code: str, case_id: str | None) -> str:
+    label = case_id if isinstance(case_id, str) and _safe_case(case_id) else ""
+    if label and code in {"created", "existing"}:
+        return f"{label} was created."
+    if label and code == "declined":
+        return f"{label} was declined."
+    return _DECISION_NOTICES.get(code, "")
+
+
+def _case_id_for_review(state_path: Path | None, review_id: str) -> str:
+    if state_path is None or not Path(state_path).is_file():
+        return ""
+    try:
+        with open_ledger(state_path) as db:
+            row = db.execute("SELECT case_id FROM reviews WHERE id=?", (review_id,)).fetchone()
+    except (OSError, sqlite3.Error, DecisionRefused):
+        return ""
+    if row is None or not isinstance(row["case_id"], str):
+        return ""
+    return row["case_id"]
+
+
+def _review_status(submissions: Path, case_system: Ledger | None, case_id: str) -> str:
+    if case_system is None:
+        return ""
+    try:
+        handle = read_handle(handle_path(submissions, case_id))
+    except (OSError, ValueError):
+        return ""
+    review_id = handle.get("review_id")
+    if not isinstance(review_id, str) or not review_id:
+        return ""
+    try:
+        review = case_system.get_review(review_id)
+    except (CreateRejected, MockUnavailable, OSError):
+        return ""
+    return review.status if isinstance(review.status, str) else ""
+
+
+def _sqlite_status(state_path: Path | None, case_id: str) -> str:
+    if state_path is None or not Path(state_path).is_file():
+        return ""
+    try:
+        with open_ledger(state_path) as db:
+            rows = db.execute("SELECT status FROM reviews WHERE case_id=?", (case_id,)).fetchall()
+    except (OSError, sqlite3.Error, DecisionRefused):
+        return ""
+    statuses = [row["status"] for row in rows]
+    if statuses and all(status == "rejected" for status in statuses):
+        return "rejected"
+    return ""
+
+
+def _with_outcomes(reviews: list[dict], case_system: Ledger) -> list[dict]:
+    listed = []
+    for item in reviews:
+        row = dict(item)
+        row["created"] = False
+        row["record_id"] = ""
+        case_id = row.get("case_id")
+        if isinstance(case_id, str):
+            found, record_id = _remote_record(case_system, case_id)
+            if found:
+                row["created"] = True
+                row["record_id"] = record_id
+                row["status_label"] = "Created"
+                row["tone"] = "ready"
+                row["pending"] = False
+        listed.append(row)
+    return listed
 
 
 def _complaint_text(
