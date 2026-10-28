@@ -1,0 +1,1459 @@
+[
+  {
+    "case_id": "CARD-S001",
+    "classification": "service_not_received",
+    "routing": "request_information",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S001",
+      "amount": 726,
+      "currency": "XCR",
+      "reported_date": "2026-09-07"
+    },
+    "missing_information": [
+      "authorization_confirmation",
+      "promised_service_date",
+      "purchase_receipt"
+    ],
+    "deadline": "2026-11-06",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Service deadline days: 60"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S001-INTAKE",
+        "quote": "Paid Tarnwell Home Repair 726 crowns up front for work they said would be finished by now. Nobody has come out and nobody answers the phone."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S001-INTAKE",
+        "quote": "Reported date: 2026-09-07"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S001-INTAKE",
+        "quote": "Transaction ID: TX-S001"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S001-INTAKE",
+        "quote": "Authorization: not supplied"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If no promised date is supplied, request promised_service_date. If no purchase receipt is supplied,"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S001-INTAKE",
+        "quote": "Promised service date: not supplied"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "request purchase_receipt. Required fields absent for the chosen type must all be requested."
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S001-INTAKE",
+        "quote": "Purchase receipt: not supplied"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S001-TRANSACTIONS",
+        "quote": "\"amount\": 726"
+      }
+    ],
+    "follow_up_questions": [
+      {
+        "field": "authorization_confirmation",
+        "question": "Please confirm whether you authorized this card purchase."
+      },
+      {
+        "field": "promised_service_date",
+        "question": "What date was this service promised to you?"
+      },
+      {
+        "field": "purchase_receipt",
+        "question": "Please provide the purchase receipt for this service."
+      }
+    ],
+    "narrative": "Case summary: service_not_received complaint for TX-S001, reported 2026-09-07. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Tarnwell Home Repair. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation, promised_service_date, purchase_receipt. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-11-06. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-22 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S002",
+    "classification": "unauthorized",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S002",
+      "amount": 69,
+      "currency": "XCR",
+      "reported_date": "2026-09-18"
+    },
+    "missing_information": [],
+    "deadline": "2026-10-18",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Unauthorized deadline days: 30"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S002-INTAKE",
+        "quote": "the booking at Pinecrest Window Cleaning was cancled and they kept my XCR 69. no refund offerd"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S002-INTAKE",
+        "quote": "Reported date: 2026-09-18"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S002-INTAKE",
+        "quote": "Transaction ID: TX-S002"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S002-TRANSACTIONS",
+        "quote": "\"amount\": 69"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unauthorized complaint for TX-S002, reported 2026-09-18. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Pinecrest Window Cleaning. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-10-18. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-10 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S003",
+    "classification": "duplicate_charge",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S003",
+      "amount": null,
+      "currency": null,
+      "reported_date": "2026-09-26"
+    },
+    "missing_information": [],
+    "deadline": "2026-11-10",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Duplicate deadline days: 45"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use duplicate_charge for a report of two charges for one purchase; retrieve both transaction records."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "service_outage",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Never treat service failure as an empty transaction history. Retry a transient failure at most twice"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S003-INTAKE",
+        "quote": "paid for one order at Thistledown Books and when i checked this morning there were two of the same amount 580 crowns sitting there and i only got one confirmation so one of them has to be a mistake"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S003-INTAKE",
+        "quote": "Reported date: 2026-09-26"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S003-INTAKE",
+        "quote": "Transaction ID: TX-S003"
+      },
+      {
+        "claim": "duplicate_delivery",
+        "source_id": "CARD-S003-INTAKE",
+        "quote": "Delivery note: repeat submission: the customer already reported this and is resending it."
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: duplicate_charge complaint for TX-S003, reported 2026-09-26. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 3; merchant tool attempts 1. The named purchase was not returned. Amount and currency stay empty. That is unknown evidence, not an empty history, and no other purchase was substituted. Merchant display name from the tool: Thistledown Books. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline is 2026-11-10. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S004",
+    "classification": "ambiguous",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S004",
+      "amount": 910,
+      "currency": "XCR",
+      "reported_date": "2026-10-12"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S004-INTAKE",
+        "quote": "Marrowby Tutoring charged 910cr two times for one tutoring session. I only booked once."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S004-INTAKE",
+        "quote": "Reported date: 2026-10-12"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S004-INTAKE",
+        "quote": "Transaction ID: TX-S004"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S004-TRANSACTIONS",
+        "quote": "\"amount\": 910"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: ambiguous complaint for TX-S004, reported 2026-10-12. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Marrowby Tutoring. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S005",
+    "classification": "duplicate_charge",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S005",
+      "amount": null,
+      "currency": null,
+      "reported_date": "2026-09-17"
+    },
+    "missing_information": [],
+    "deadline": "2026-11-01",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Duplicate deadline days: 45"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use duplicate_charge for a report of two charges for one purchase; retrieve both transaction records."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "service_outage",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Never treat service failure as an empty transaction history. Retry a transient failure at most twice"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S005-INTAKE",
+        "quote": "CHARGED TWICE!!! Harrowgate Movers 311 credits X2!!! I ONLY CLICKED PAY ONE TIME"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S005-INTAKE",
+        "quote": "Reported date: 2026-09-17"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S005-INTAKE",
+        "quote": "Transaction ID: TX-S005"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: duplicate_charge complaint for TX-S005, reported 2026-09-17. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 3; merchant tool attempts 1. The named purchase was not returned. Amount and currency stay empty. That is unknown evidence, not an empty history, and no other purchase was substituted. Merchant display name from the tool: Harrowgate Movers. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline is 2026-11-01. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S006",
+    "classification": "unauthorized",
+    "routing": "request_information",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S006",
+      "amount": 613,
+      "currency": "XCR",
+      "reported_date": "2026-10-25"
+    },
+    "missing_information": [
+      "authorization_confirmation"
+    ],
+    "deadline": "2026-11-24",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Unauthorized deadline days: 30"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S006-INTAKE",
+        "quote": "Why is there a 613 crowns payment to Quillon Moss Bakery???? I didnt do that!!!! Fix this!!!!"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S006-INTAKE",
+        "quote": "Reported date: 2026-10-25"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S006-INTAKE",
+        "quote": "Transaction ID: TX-S006"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S006-INTAKE",
+        "quote": "Authorization: not supplied"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S006-TRANSACTIONS",
+        "quote": "\"amount\": 613"
+      }
+    ],
+    "follow_up_questions": [
+      {
+        "field": "authorization_confirmation",
+        "question": "Please confirm whether you authorized this card purchase."
+      }
+    ],
+    "narrative": "Case summary: unauthorized complaint for TX-S006, reported 2026-10-25. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Quillon Moss Bakery. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-11-24. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S007",
+    "classification": "service_not_received",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S007",
+      "amount": 152,
+      "currency": "XCR",
+      "reported_date": "2026-09-24"
+    },
+    "missing_information": [],
+    "deadline": "2026-11-23",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Service deadline days: 60"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S007-INTAKE",
+        "quote": "Ordered a custom item from Kittering Auto Parts, XCR 152, they gave me a ready-by date and nothing came."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S007-INTAKE",
+        "quote": "Reported date: 2026-09-24"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S007-INTAKE",
+        "quote": "Transaction ID: TX-S007"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S007-TRANSACTIONS",
+        "quote": "\"amount\": 152"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: service_not_received complaint for TX-S007, reported 2026-09-24. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Kittering Auto Parts. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-23. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S008",
+    "classification": "unsupported",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S008",
+      "amount": 263,
+      "currency": "XCR",
+      "reported_date": "2026-09-15"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Cash withdrawal disputes are unsupported; classification is unsupported and deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S008-INTAKE",
+        "quote": "Cash withdrawal of 263 crowns failed at the machine. The screen showed an error after I entered my PIN, but my account shows the amount as taken."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S008-INTAKE",
+        "quote": "Reported date: 2026-09-15"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S008-INTAKE",
+        "quote": "Transaction ID: TX-S008"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S008-TRANSACTIONS",
+        "quote": "\"amount\": 263"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unsupported complaint for TX-S008, reported 2026-09-15. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Larkspur Teller Machines. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-18 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S009",
+    "classification": "unauthorized",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S009",
+      "amount": 364,
+      "currency": "XCR",
+      "reported_date": "2026-09-16"
+    },
+    "missing_information": [],
+    "deadline": "2026-10-16",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Unauthorized deadline days: 30"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S009-INTAKE",
+        "quote": "There is a charge from Cinderfall Pottery for 364 XCR on my card that I never made. Nobody else has the card. Can you look into it."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S009-INTAKE",
+        "quote": "Reported date: 2026-09-16"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S009-INTAKE",
+        "quote": "Transaction ID: TX-S009"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S009-TRANSACTIONS",
+        "quote": "\"amount\": 364"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unauthorized complaint for TX-S009, reported 2026-09-16. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Cinderfall Pottery. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-10-16. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-14 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S010",
+    "classification": "duplicate_charge",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S010",
+      "amount": 437,
+      "currency": "XCR",
+      "reported_date": "2026-10-16"
+    },
+    "missing_information": [],
+    "deadline": "2026-11-30",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Duplicate deadline days: 45"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use duplicate_charge for a report of two charges for one purchase; retrieve both transaction records."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S010-INTAKE",
+        "quote": "Two things. First, Bramblewick Hardware charged me 437 credits and then charged it again, I can see both rows. Second, I never even wanted what they sold me, my cousin used my phone to order something and I have no idea if that was allowed. Either way I am not paying twice, and I also want to know if the original is something I should be paying at all."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S010-INTAKE",
+        "quote": "Reported date: 2026-10-16"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S010-INTAKE",
+        "quote": "Transaction ID: TX-S010"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S010-TRANSACTIONS",
+        "quote": "\"amount\": 437"
+      },
+      {
+        "claim": "duplicate_transaction",
+        "source_id": "CARD-S010-TRANSACTIONS",
+        "quote": "\"transaction_id\": \"TX-S010-B\""
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: duplicate_charge complaint for TX-S010, reported 2026-10-16. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Bramblewick Hardware. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-30. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S011",
+    "classification": "ambiguous",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S011",
+      "amount": 556,
+      "currency": "XCR",
+      "reported_date": "2026-09-15"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S011-INTAKE",
+        "quote": "I DID NOT MAKE THIS!!! 556 credits TAKEN BY Verdance Plant Studio!!! GIVE IT BACK NOW"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S011-INTAKE",
+        "quote": "Reported date: 2026-09-15"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S011-INTAKE",
+        "quote": "Transaction ID: TX-S011"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S011-TRANSACTIONS",
+        "quote": "\"amount\": 556"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: ambiguous complaint for TX-S011, reported 2026-09-15. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Verdance Plant Studio. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-09 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S012",
+    "classification": "unsupported",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S012",
+      "amount": 847,
+      "currency": "XCR",
+      "reported_date": "2026-10-21"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Cash withdrawal disputes are unsupported; classification is unsupported and deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S012-INTAKE",
+        "quote": "no cash from atm"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S012-INTAKE",
+        "quote": "Reported date: 2026-10-21"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S012-INTAKE",
+        "quote": "Transaction ID: TX-S012"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S012-TRANSACTIONS",
+        "quote": "\"amount\": 847"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unsupported complaint for TX-S012, reported 2026-10-21. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Larkspur Teller Machines. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S013",
+    "classification": "ambiguous",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S013",
+      "amount": 141,
+      "currency": "XCR",
+      "reported_date": "2026-09-08"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S013-INTAKE",
+        "quote": "Card used at Verdance Plant Studio. I was at home that day. I want this reviewed as fraud."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S013-INTAKE",
+        "quote": "Reported date: 2026-09-08"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S013-INTAKE",
+        "quote": "Transaction ID: TX-S013"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S013-TRANSACTIONS",
+        "quote": "\"amount\": 141"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: ambiguous complaint for TX-S013, reported 2026-09-08. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Verdance Plant Studio. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-27 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S014",
+    "classification": "service_not_received",
+    "routing": "request_information",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S014",
+      "amount": 418,
+      "currency": "XCR",
+      "reported_date": "2026-10-10"
+    },
+    "missing_information": [
+      "authorization_confirmation"
+    ],
+    "deadline": "2026-12-09",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Service deadline days: 60"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S014-INTAKE",
+        "quote": "Pay Copperleaf Dental Supplies 418 crowns. Service not come. Many call, no answer. Need refund."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S014-INTAKE",
+        "quote": "Reported date: 2026-10-10"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S014-INTAKE",
+        "quote": "Transaction ID: TX-S014"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S014-INTAKE",
+        "quote": "Authorization: not supplied"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S014-TRANSACTIONS",
+        "quote": "\"amount\": 418"
+      }
+    ],
+    "follow_up_questions": [
+      {
+        "field": "authorization_confirmation",
+        "question": "Please confirm whether you authorized this card purchase."
+      }
+    ],
+    "narrative": "Case summary: service_not_received complaint for TX-S014, reported 2026-10-10. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Copperleaf Dental Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-12-09. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S015",
+    "classification": "ambiguous",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S015",
+      "amount": 179,
+      "currency": "XCR",
+      "reported_date": "2026-09-23"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S015-INTAKE",
+        "quote": "Thistledown Books sent something, but it is not what I ordered, wrong size and wrong colour, and they refuse to take it back. 179 credits."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S015-INTAKE",
+        "quote": "Reported date: 2026-09-23"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S015-INTAKE",
+        "quote": "Transaction ID: TX-S015"
+      },
+      {
+        "claim": "duplicate_delivery",
+        "source_id": "CARD-S015-INTAKE",
+        "quote": "Delivery note: repeat submission: the customer already reported this and is resending it."
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S015-TRANSACTIONS",
+        "quote": "\"amount\": 179"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: ambiguous complaint for TX-S015, reported 2026-09-23. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Thistledown Books. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S016",
+    "classification": "ambiguous",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S016",
+      "amount": 456,
+      "currency": "XCR",
+      "reported_date": "2026-10-20"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S016-INTAKE",
+        "quote": "Tamsin Brook Florist is very late with what I bought, 456 credits."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S016-INTAKE",
+        "quote": "Reported date: 2026-10-20"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S016-INTAKE",
+        "quote": "Transaction ID: TX-S016"
+      },
+      {
+        "claim": "conflicting_evidence",
+        "source_id": "CARD-S016-INTAKE",
+        "quote": "Authorization: not supplied"
+      },
+      {
+        "claim": "conflicting_evidence",
+        "source_id": "CARD-S016-FOLLOWUP",
+        "quote": "Authorization: confirmed"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S016-TRANSACTIONS",
+        "quote": "\"amount\": 456"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: ambiguous complaint for TX-S016, reported 2026-10-20. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Tamsin Brook Florist. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S017",
+    "classification": "unauthorized",
+    "routing": "request_information",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S017",
+      "amount": 296,
+      "currency": "XCR",
+      "reported_date": "2026-09-17"
+    },
+    "missing_information": [
+      "authorization_confirmation"
+    ],
+    "deadline": "2026-10-17",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Unauthorized deadline days: 30"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S017-INTAKE",
+        "quote": "I think my card number was copied. The 296 charge by Tamsin Brook Florist is one of several things I do not recognise, though it is the only one that has posted so far."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S017-INTAKE",
+        "quote": "Reported date: 2026-09-17"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S017-INTAKE",
+        "quote": "Transaction ID: TX-S017"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S017-INTAKE",
+        "quote": "Authorization: not supplied"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S017-TRANSACTIONS",
+        "quote": "\"amount\": 296"
+      }
+    ],
+    "follow_up_questions": [
+      {
+        "field": "authorization_confirmation",
+        "question": "Please confirm whether you authorized this card purchase."
+      }
+    ],
+    "narrative": "Case summary: unauthorized complaint for TX-S017, reported 2026-09-17. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Tamsin Brook Florist. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-10-17. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S018",
+    "classification": "unauthorized",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S018",
+      "amount": 562,
+      "currency": "XCR",
+      "reported_date": "2026-10-20"
+    },
+    "missing_information": [],
+    "deadline": "2026-11-19",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Unauthorized deadline days: 30"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S018-INTAKE",
+        "quote": "bruh my card got hit for 562 crowns at Glimmerton Jewellers. nah. that aint me. sort it out"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S018-INTAKE",
+        "quote": "Reported date: 2026-10-20"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S018-INTAKE",
+        "quote": "Transaction ID: TX-S018"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S018-TRANSACTIONS",
+        "quote": "\"amount\": 562"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unauthorized complaint for TX-S018, reported 2026-10-20. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Glimmerton Jewellers. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-19. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S019",
+    "classification": "service_not_received",
+    "routing": "request_information",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S019",
+      "amount": 713,
+      "currency": "XCR",
+      "reported_date": "2026-10-16"
+    },
+    "missing_information": [
+      "promised_service_date",
+      "purchase_receipt"
+    ],
+    "deadline": "2026-12-15",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Service deadline days: 60"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S019-INTAKE",
+        "quote": "ngl Lanternwood Music School ghosted me after taking 713 credits. no reply to emails, nothing"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S019-INTAKE",
+        "quote": "Reported date: 2026-10-16"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S019-INTAKE",
+        "quote": "Transaction ID: TX-S019"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If no promised date is supplied, request promised_service_date. If no purchase receipt is supplied,"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S019-INTAKE",
+        "quote": "Promised service date: not supplied"
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "request purchase_receipt. Required fields absent for the chosen type must all be requested."
+      },
+      {
+        "claim": "missing_information",
+        "source_id": "CARD-S019-INTAKE",
+        "quote": "Purchase receipt: not supplied"
+      },
+      {
+        "claim": "duplicate_delivery",
+        "source_id": "CARD-S019-INTAKE",
+        "quote": "Delivery note: this form was sent in once before under another message, same problem, nothing new."
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S019-TRANSACTIONS",
+        "quote": "\"amount\": 713"
+      }
+    ],
+    "follow_up_questions": [
+      {
+        "field": "promised_service_date",
+        "question": "What date was this service promised to you?"
+      },
+      {
+        "field": "purchase_receipt",
+        "question": "Please provide the purchase receipt for this service."
+      }
+    ],
+    "narrative": "Case summary: service_not_received complaint for TX-S019, reported 2026-10-16. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Lanternwood Music School. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: promised_service_date, purchase_receipt. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-12-15. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S020",
+    "classification": "ambiguous",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S020",
+      "amount": 247,
+      "currency": "XCR",
+      "reported_date": "2026-09-08"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S020-INTAKE",
+        "quote": "I havent ever been to Bramblewick Hardware or ordred from there but theres 247 on my statment, can u reverse"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S020-INTAKE",
+        "quote": "Reported date: 2026-09-08"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S020-INTAKE",
+        "quote": "Transaction ID: TX-S020"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S020-TRANSACTIONS",
+        "quote": "\"amount\": 247"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: ambiguous complaint for TX-S020, reported 2026-09-08. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Bramblewick Hardware. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-15 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S021",
+    "classification": "service_not_received",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S021",
+      "amount": null,
+      "currency": null,
+      "reported_date": "2026-10-23"
+    },
+    "missing_information": [],
+    "deadline": "2026-12-22",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Service deadline days: 60"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "service_outage",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Never treat service failure as an empty transaction history. Retry a transient failure at most twice"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S021-INTAKE",
+        "quote": "paid, nothing came"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S021-INTAKE",
+        "quote": "Reported date: 2026-10-23"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S021-INTAKE",
+        "quote": "Transaction ID: TX-S021"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: service_not_received complaint for TX-S021, reported 2026-10-23. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 3; merchant tool attempts 1. The named purchase was not returned. Amount and currency stay empty. That is unknown evidence, not an empty history, and no other purchase was substituted. Merchant display name from the tool: Moonbeam Toy Emporium. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline is 2026-12-22. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-S022",
+    "classification": "unsupported",
+    "routing": "manual_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-S022",
+      "amount": 917,
+      "currency": "XCR",
+      "reported_date": "2026-10-07"
+    },
+    "missing_information": [],
+    "deadline": null,
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Cash withdrawal disputes are unsupported; classification is unsupported and deadline is null."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S022-INTAKE",
+        "quote": "The machine gave me no cash but took 917 XCR."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S022-INTAKE",
+        "quote": "Reported date: 2026-10-07"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-S022-INTAKE",
+        "quote": "Transaction ID: TX-S022"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-S022-TRANSACTIONS",
+        "quote": "\"amount\": 917"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unsupported complaint for TX-S022, reported 2026-10-07. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 2; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Northvale Cash Terminals. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  }
+]
