@@ -16,9 +16,6 @@
 # The stored id is not rewritten. A space in the id is matched to this row only for the price.
 # Source: Azure Global Standard list, checked 2026-10-27.
 models:
-  claude-haiku-4-5:
-    input_per_million: 1.00
-    output_per_million: 5.00
   claude-haiku-5-5:
     input_per_million: 0.10
     output_per_million: 0.50
@@ -28,6 +25,10 @@ models:
   # Clef models do not charge for output tokens.
   clef-flash:
     input_per_million: 0.038
+    output_per_million: 0.00
+  # Jev models do not charge for output tokens.
+  jev-latest:
+    input_per_million: 0.042
     output_per_million: 0.00
 compute:
   status: "estimate, unmeasured"
