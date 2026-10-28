@@ -9,6 +9,7 @@ from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
 from dispute_copilot.classifiers.haiku import category_text, known_class
 from dispute_copilot.fields import Classification
 from dispute_copilot.llm.base import LLMError
+from dispute_copilot.observability.cost import price_call
 from dispute_copilot.observability.tracing import current
 
 AMBIGUOUS_OPTION = "ambiguous_or_unclear"
@@ -104,11 +105,20 @@ def read_answer(body: dict, threshold: float) -> dict:
 
 def call_jev(client, complaint: str, threshold: float) -> dict:
     started = time.perf_counter()
+    tokens_in = None
+    tokens_out = None
+    priced: dict = {"status": "unpriced", "usd": None}
+    model_name = str(getattr(client, "model", "") or "")
     try:
         with current().span("model.call") as span:
             body = client.ask(complaint)
             model_name = str(getattr(client, "model", "") or "")
-            span.set(model=model_name, cost_status="unpriced")
+            tokens_in, tokens_out = _usage(body)
+            if tokens_in is not None:
+                priced = price_call(model_name, tokens_in, tokens_out or 0)
+            span.set(model=model_name, cost_status=priced["status"])
+            if priced.get("usd") is not None:
+                span.set(cost_usd=priced["usd"])
         parsed = read_answer(body, threshold)
     except (LLMError, TypeError, ValueError, AttributeError):
         return {
@@ -126,10 +136,27 @@ def call_jev(client, complaint: str, threshold: float) -> dict:
         }
     parsed["failed"] = False
     parsed["latency_ms"] = round((time.perf_counter() - started) * 1000, 3)
-    parsed["tokens_in"] = None
-    parsed["tokens_out"] = None
-    parsed["cost"] = {"status": "unpriced", "usd": None}
+    parsed["tokens_in"] = tokens_in
+    parsed["tokens_out"] = tokens_out
+    parsed["cost"] = priced
     return parsed
+
+
+def _usage(body: object) -> tuple[int | None, int | None]:
+    if not isinstance(body, dict):
+        return None, None
+    usage = body.get("usage")
+    if not isinstance(usage, dict):
+        return None, None
+    incoming = usage.get("prompt_tokens", usage.get("input_tokens"))
+    outgoing = usage.get("completion_tokens", usage.get("output_tokens"))
+    return _token(incoming), _token(outgoing)
+
+
+def _token(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
 
 
 def _option(name: str) -> Classification | None:

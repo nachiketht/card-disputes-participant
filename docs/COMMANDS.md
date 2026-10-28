@@ -50,12 +50,14 @@ export LLM_PROVIDER=null
 export FEATURE_LLM_REVIEW=off
 ```
 
-The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. Prices come from `config/rules/cost.yaml`. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. Prompts over 100K tokens are not modelled. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. Cached input, long-context rates, and Data Zone premiums are not modelled. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
+The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env` and keep it exactly as written. `.env.example` sets `gpt-6-luna` with `LLM_API_STYLE=openai`, and `LLM_FALLBACK_MODEL=claude-haiku-5-5` with `LLM_FALLBACK_API_STYLE=anthropic`. An empty `LLM_MODEL` uses `claude-haiku-4-5`. An empty `LLM_API_STYLE` uses `anthropic`. Prices come from `config/rules/cost.yaml`. `claude-haiku-5-5` and `gpt-6-luna` are priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. Prompts over 100K tokens are not modelled for Haiku. `claude-haiku-4-5` is not listed, so that id is `no price configured for claude-haiku-4-5`. `gpt-6-luna` is the Azure Global Standard short-context list. Cached input, long-context rates, and Data Zone premiums are not modelled. Jev (`jev-latest`) is priced from the vendor list in that file at 0.042 USD per million input tokens, and output tokens are free. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
 
 ```sh
 export FEATURE_LLM_REVIEW=block
-export LLM_MODEL=claude-haiku-5-5
-export LLM_API_STYLE=anthropic
+export LLM_MODEL=gpt-6-luna
+export LLM_API_STYLE=openai
+export LLM_FALLBACK_MODEL=claude-haiku-5-5
+export LLM_FALLBACK_API_STYLE=anthropic
 export LLM_API_KEY=<key>
 unset LLM_PROVIDER
 ```
@@ -248,11 +250,13 @@ Calls: `run_case`, `run_all`, `get_draft`, `agent_review`, `submit_review`, `rev
 | `lint` | `uv run --locked python tools/lint_gates.py` |
 | `test` | `uv run --locked pytest` |
 | `check` | `lint` then `test` |
+| `cov` | `uv run --locked --extra mcp --with pytest-cov pytest --cov=dispute_copilot --cov=UI --cov-report=term-missing` |
 | `mock` | serve on port 8765, state `.state/run.sqlite` |
 | `mcp` | stdio server, with `--extra mcp` |
 | `metrics` | `dispute-copilot metrics` |
 | `dashboard` | `dispute-copilot dashboard` |
 | `review-page` | `uv run --locked dispute-copilot review-page` |
+| `compare` | `uv run --locked dispute-copilot compare` |
 | `secrets` | `python3 tools/scan_secrets.py` |
 | `evals` | `uv run --locked python tools/run_evals.py` |
 | `week10` | `scripts/week10_evidence.sh` |
@@ -373,16 +377,17 @@ export FEATURE_LLM_REVIEW=off
 | `LOG_STDERR` | `dispute-copilot` | `1` also prints JSON log lines on stderr. |
 | `RUN_ID` | `dispute-copilot` | Trace run id. Default `run-` plus 10 hex characters. |
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
-| `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
+| `FEATURE_LLM_REVIEW` | checklist | Unset stays `off` and skips the critic. `.env.example` sets `block`. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `LLM_API_KEY` | model client | Key for the configured model. Empty means no model call. |
-| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. `claude-haiku-5-5` and `gpt-6-luna` are priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `gpt-6-luna` uses the Azure Global Standard short-context list. An id missing from `config/rules/cost.yaml` is recorded as `no price configured for <model>` with no USD figure. |
+| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `.env.example` sets `LLM_MODEL=gpt-6-luna` and `LLM_API_STYLE=openai`. An empty `LLM_MODEL` uses `claude-haiku-4-5`. An empty `LLM_API_STYLE` uses `anthropic`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. `claude-haiku-5-5` and `gpt-6-luna` are priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `gpt-6-luna` uses the Azure Global Standard short-context list. `claude-haiku-4-5` is not listed. An id missing from `config/rules/cost.yaml` is recorded as `no price configured for <model>` with no USD figure. |
 | `LLM_FALLBACK_API_KEY` | fallback model | Optional. Empty means the configured model has no fallback. |
 | `LLM_FALLBACK_BASE_URL` | fallback model | Optional host for that fallback. Empty means no fallback. Leave it empty in git. |
 | `LLM_FALLBACK_MODEL` | fallback model | Optional. Empty uses `claude-haiku-5-5` only when the fallback key and host are set. |
 | `LLM_FALLBACK_API_STYLE` | fallback model | `anthropic` or `openai`. Empty uses `anthropic`. |
 | `JEV_BASE_URL` | ranker | Ranker host. Empty means the ranker is not built. Leave it empty in git. |
 | `JEV_API_KEY` | ranker | Ranker key. Empty means the ranker is not built. |
-| `JEV_MODEL` | ranker | Optional. Empty uses `jev-latest`. |
+| `JEV_MODEL` | ranker | Optional. `.env.example` sets `jev-latest`. Empty uses `jev-latest`. Jev is priced from the vendor list in `config/rules/cost.yaml` at 0.042 USD per million input tokens, and output tokens are free. |
+| `CLASSIFIER_APPROACH` | classifier | `1`, `2`, `3`, or `ab`. Empty stays on approach 1. `.env.example` leaves it commented. `--approach` on `run` and `run-all` overrides it. |
 | `CLEF_API_KEY` | ranker fallback | Cloudflare Clef key. Empty means Clef is not built. Leave it empty in git. |
 | `CLEF_ACCOUNT_ID` | ranker fallback | Cloudflare account id. Empty means Clef is not built. Leave it empty in git. |
 | `CLEF_MODEL` | ranker fallback | Optional. Empty uses `clef-flash`. |
@@ -817,7 +822,7 @@ make compare
 
 On the review page, the narrative is first, then the original complaint. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review. `make review-page` serves that page. A created or declined case leaves Drafts and is listed under Decisions. See [Review page](#review-page).
 
-The comparison page is served at `/compare` and written as `compare.html` beside a dashboard export. Under the five metrics, a table titled When each approach wins is labelled `Proposed thresholds, to be confirmed by the A/B test. Not measured results.` The cut-offs come from `config/rules/classifier.yaml` (`comparison.false_negative_ceiling`, default 0.02, plus `false_positive_low` 0.10 and `false_positive_high` 0.40). The table does not score the saved runs. For each approach the five figures are the wrong-label rate, the auto-routed-but-wrong rate, the manual-review rate, Haiku cost per case, and latency p95. Wrong-label rate compares each saved approach, including a shadow run, with the reviewer category. Auto-routed but wrong counts only cases whose route is `ready_for_review`. Cost per case divides Haiku list-price USD by cases run. A case with no priced call adds zero. Jev is unpriced. A wrong-label sample or an auto-routed sample under `comparison.min_sample` (default 30) is marked too small to conclude. The agreement matrix counts shared cases. Disagreeing rows list case ids only. Technical details stay closed. The page does not include complaint text.
+The comparison page is served at `/compare` and written as `compare.html` beside a dashboard export. Under the five metrics, a table titled When each approach wins is labelled `Proposed thresholds, to be confirmed by the A/B test. Not measured results.` The cut-offs come from `config/rules/classifier.yaml` (`comparison.false_negative_ceiling`, default 0.02, plus `false_positive_low` 0.10 and `false_positive_high` 0.40). The table does not score the saved runs. For each approach the five figures are the wrong-label rate, the auto-routed-but-wrong rate, the manual-review rate, configured-model cost per case, and latency p95. Wrong-label rate compares each saved approach, including a shadow run, with the reviewer category. Auto-routed but wrong counts only cases whose route is `ready_for_review`. Cost per case divides configured-model list-price USD by cases run. A case with no priced call adds zero. Jev is priced from the vendor list in `config/rules/cost.yaml` (0.042 USD per million input tokens, output free). A wrong-label sample or an auto-routed sample under `comparison.min_sample` (default 30) is marked too small to conclude. The agreement matrix counts shared cases. Disagreeing rows list case ids only. Technical details stay closed. The page does not include complaint text.
 
 ## Evaluate
 
@@ -1015,7 +1020,7 @@ git config core.hooksPath .githooks
 
 `.githooks/pre-commit` runs the staged gate. `git config` writes this clone only.
 
-`make test` is `uv run --locked pytest` (`testpaths` is `tests`, `pythonpath` is `src`). `make check` is lint, then pytest. `make daily` is `make check`, then this line:
+`make test` is `uv run --locked pytest` (`testpaths` is `tests`, `pythonpath` is `src`). `make check` is lint, then pytest. `make cov` is pytest with `pytest-cov`, coverage of `dispute_copilot` and `UI`, and a `term-missing` report. It installs the `mcp` extra and `pytest-cov` for that run. `make secrets` is `python3 tools/scan_secrets.py`. It uses the system Python, scans tracked files for credential patterns, and does not install the package. `make daily` is `make check`, then this line:
 
 ```text
 The rules engine drafts every development case. Score the written results with tools/evaluate.py.
@@ -1035,7 +1040,7 @@ uv run --locked pytest tests/integration
 refusing: hidden-style gold is not in this checkpoint, and feedback/dev_gold.json is never rewritten
 ```
 
-Make targets that exist: `sync`, `lint`, `test`, `check`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `review-page`, `compare`, `secrets`, `evals`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
+Make targets that exist: `sync`, `lint`, `test`, `check`, `cov`, `daily`, `mock`, `regen-gold`, `metrics`, `dashboard`, `review-page`, `compare`, `secrets`, `evals`, `mcp`, `week10`, `week10-duplicate`. The GitHub workflow and the six job names used for branch protection are in `docs/CI.md`.
 
 `make metrics` is `uv run --locked dispute-copilot metrics`.
 

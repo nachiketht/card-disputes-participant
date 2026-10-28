@@ -154,7 +154,12 @@ def test_saved_records_drop_complaint_text_and_keep_jev_unpriced(tmp_path: Path)
     page = render_comparison(view)
     assert COMPLAINT not in page
     assert "9.99" not in page
-    assert "unpriced" in page
+    assert "0.042" in page
+    raw["jev"]["cost"] = {"status": "estimate from list price", "usd": 0.000042}
+    raw_path.write_text(json.dumps(raw), encoding="utf-8")
+    priced = render_comparison(load_comparison(tmp_path))
+    assert "0.000042" in priced
+    assert "9.99" not in priced
     row = next(item for item in view["approaches"] if item["name"] == "2")
     assert row["cases"] == 1
     assert row["wrong"] == 1
@@ -202,7 +207,7 @@ def test_export_writes_a_sibling_comparison_page(tmp_path: Path):
     assert "Latency p95" in text
     assert "Cost per case" in text
     assert "p50" not in text
-    assert "unpriced" in text
+    assert "0.042" in text
     assert 'href="out.html"' in text
     assert '<details id="technical" open' not in text
     assert "http://" not in text.lower()

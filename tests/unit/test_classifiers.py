@@ -449,6 +449,31 @@ def test_a_failed_ranker_call_is_ambiguous():
     assert parsed["failed"] is True
     assert parsed["class"] is None
     assert parsed["ambiguous"] is True
+    assert parsed["cost"] == {"status": "unpriced", "usd": None}
+
+
+def test_a_jev_reply_with_usage_uses_the_cost_table():
+    class Client:
+        model = "jev-latest"
+
+        def ask(self, state: str) -> dict:
+            del state
+            return {
+                "answers": {
+                    "class": {
+                        "probabilities": {"unauthorized": 0.91, "ambiguous_or_unclear": 0.09},
+                        "choice": "unauthorized",
+                    }
+                },
+                "usage": {"prompt_tokens": 1_000_000, "completion_tokens": 12},
+            }
+
+    parsed = call_jev(Client(), "I do not recognize this purchase.", 0.7)
+    assert parsed["failed"] is False
+    assert parsed["tokens_in"] == 1_000_000
+    assert parsed["tokens_out"] == 12
+    assert parsed["cost"]["status"] == "estimate from list price"
+    assert parsed["cost"]["usd"] == 0.042
 
 
 def test_an_unclear_haiku_reply_does_not_reassign():

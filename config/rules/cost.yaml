@@ -26,10 +26,15 @@ models:
     input_per_million: 0.10
     output_per_million: 0.50
   # Ranker fallback. Input 0.038. Output tokens are not charged.
+  # The 0.038 input price has no verified public source found yet and is unverified.
   clef-flash:
     input_per_million: 0.038
     output_per_million: 0.00
-  # Ranker. Input 0.042. Output tokens are not charged.
+  # Ranker. Input 0.042 per million tokens. Output tokens are free (not metered).
+  # Source: TypeSafe blog "Introducing System One Models & Jev",
+  # https://typesafe.ai/blog/introducing-system-one-models-and-jev
+  # (published 2026-09-15; early access). Checked 2026-10-27.
+  # Vendor list price, may change; invoice may differ.
   jev-latest:
     input_per_million: 0.042
     output_per_million: 0.00

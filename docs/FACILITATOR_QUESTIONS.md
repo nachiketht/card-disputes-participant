@@ -2,7 +2,7 @@
 
 Sent 2026-10-21. Please reply by 2026-10-23.
 
-The mock stays on loopback. CI and the default classification approach do not call a model. The checklist judge, when `FEATURE_LLM_REVIEW=block`, and the classifier on approach 2 and approach 3 use `LLM_MODEL` from `.env` (currently `claude-haiku-5-5`). The host is not written in this file. Q1 is still open for which host a cohort run may use.
+The mock stays on loopback. CI and the default classification approach do not call a model. The checklist judge, when `FEATURE_LLM_REVIEW=block`, and the classifier on approach 2 and approach 3 use `LLM_MODEL` from `.env` (`gpt-6-luna` in `.env.example`). The host is not written in this file. Q1 is still open for which host a cohort run may use.
 
 1. Which model endpoint and credentials are cohort-approved, is a local model allowed in the assessed demo, and is usage logging required? Default: no model.
 2. Is local Docker acceptable as the deployment environment if cloud access is limited? May the mock run inside a cloud task, loopback only, with no ingress? Default: the mock stays local.
