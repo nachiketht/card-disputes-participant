@@ -1,0 +1,18 @@
+{
+  "approach": "2",
+  "called_model": false,
+  "case_id": "CARD-S058",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": null,
+  "jev": null,
+  "latency_ms": 0.008,
+  "missing": [],
+  "path": "rules_only",
+  "route": "manual_review",
+  "rules": {
+    "class": "unsupported",
+    "conflict": false,
+    "missing": []
+  }
+}

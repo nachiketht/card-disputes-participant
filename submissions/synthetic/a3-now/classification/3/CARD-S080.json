@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S080",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.7e-05
+    },
+    "evidence_end": 86,
+    "evidence_ok": true,
+    "evidence_sha256": "aa98a047d20634406c43e9c6e23c2576bb55f0f943f5dfc1396e4b8d74fe780e",
+    "evidence_start": 71,
+    "fallback_used": false,
+    "latency_ms": 1031.72,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the same order was billed twice.",
+    "tokens_in": 463,
+    "tokens_out": 61,
+    "unusable": false
+  },
+  "jev": {
+    "class": "duplicate_charge",
+    "confidence": 0.99,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 3.2e-05
+    },
+    "latency_ms": 74.799,
+    "model": "jev-latest",
+    "probabilities": {
+      "ambiguous": 0.01,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.99,
+      "service_not_received": 0.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": 752,
+    "tokens_out": 73
+  },
+  "latency_ms": 1108.895,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

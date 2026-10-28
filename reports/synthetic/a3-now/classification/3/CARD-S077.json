@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S077",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 9.2e-05
+    },
+    "evidence_end": 103,
+    "evidence_ok": true,
+    "evidence_sha256": "c732c01447e0a1b4445ee2a55ebb7eb49780bfee8e47589883afc8da98ffd86d",
+    "evidence_start": 77,
+    "fallback_used": false,
+    "latency_ms": 1156.78,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the cardholder has never shopped at or heard of the merchant, indicating an unrecognized purchase.",
+    "tokens_in": 498,
+    "tokens_out": 85,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unauthorized",
+    "confidence": 1.0,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 3.3e-05
+    },
+    "latency_ms": 98.636,
+    "model": "jev-latest",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 1.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": 789,
+    "tokens_out": 75
+  },
+  "latency_ms": 1257.855,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

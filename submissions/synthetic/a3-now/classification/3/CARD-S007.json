@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S007",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.8e-05
+    },
+    "evidence_end": 103,
+    "evidence_ok": true,
+    "evidence_sha256": "3db6bc339f2b65d68db352b4b69992be27446c3a1993449eed7117f1c8614af3",
+    "evidence_start": 91,
+    "fallback_used": false,
+    "latency_ms": 1287.166,
+    "model": "gpt-6-luna",
+    "reason": "The custom item did not arrive by the ready-by date.",
+    "tokens_in": 461,
+    "tokens_out": 63,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 3.1e-05
+    },
+    "latency_ms": 92.08,
+    "model": "jev-latest",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": 750,
+    "tokens_out": 74
+  },
+  "latency_ms": 1381.196,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

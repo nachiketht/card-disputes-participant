@@ -1,0 +1,37 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S051",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.9e-05
+    },
+    "evidence_end": 49,
+    "evidence_ok": true,
+    "evidence_sha256": "a1161e2af92a68470aac281bd07f5ef1dea54bd45bd54e6c7e055bfff822554d",
+    "evidence_start": 36,
+    "fallback_used": false,
+    "latency_ms": 1055.632,
+    "model": "gpt-6-luna",
+    "reason": "The order was never shipped.",
+    "tokens_in": 460,
+    "tokens_out": 66,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1057.739,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S061",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.9e-05
+    },
+    "evidence_end": 62,
+    "evidence_ok": true,
+    "evidence_sha256": "3f8dd861962af5cbb99b1203a2897f5f5523f5bdea126e8dbe4dabdc0504800c",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1305.959,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the same purchase was paid for twice.",
+    "tokens_in": 453,
+    "tokens_out": 88,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1307.935,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}
