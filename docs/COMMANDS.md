@@ -50,11 +50,11 @@ export LLM_PROVIDER=null
 export FEATURE_LLM_REVIEW=off
 ```
 
-Checklist judge, Claude Haiku 4.5. The id is `claude-haiku-4-5`. Prices for that id are in `config/rules/cost.yaml`. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
+The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. Prices come from `config/rules/cost.yaml`. That file prices `claude-haiku-4-5` and has no row for `claude-haiku-5-5`, so a call with `claude-haiku-5-5` is recorded as `no price configured for claude-haiku-5-5` with no USD figure. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
 
 ```sh
 export FEATURE_LLM_REVIEW=block
-export LLM_MODEL=claude-haiku-4-5
+export LLM_MODEL=claude-haiku-5-5
 export LLM_API_STYLE=anthropic
 export LLM_API_KEY=<key>
 unset LLM_PROVIDER
@@ -348,6 +348,14 @@ A second optional extra, `mcp`, installs the Model Context Protocol library used
 
 The process reads `.env` from the working directory and from the repository root. A non-empty value already set in the process wins. An empty process value is filled from the file. A line may start with `export`. A later line in the file replaces an earlier one for the same name. Matching quotes are removed. An unquoted ` #` comment is not part of the value. `$NAME` and `${NAME}` expand from names already read in the file, then from the process. A single-quoted value is left as written. Blank lines and `#` comments are skipped.
 
+### Environment precedence
+
+A non-empty value already exported in the shell wins over the same key in `.env`. An empty process value is filled from the file. After editing `.env`, unset the names you changed, or open a new shell:
+
+```sh
+unset LLM_MODEL LLM_API_KEY AZURE_BASE_URL JEV_API_KEY JEV_BASE_URL JEV_MODEL CLEF_API_KEY CLEF_ACCOUNT_ID CLEF_MODEL
+```
+
 Copy `.env.example` to `.env` for a local run. That example sets `FEATURE_LLM_REVIEW=block` and leaves `LLM_API_KEY` empty. Check draft still saves the checklist. When the judge cannot run, the page shows a notice that names the missing setting (`LLM_API_KEY` when the key is empty). Submit stays allowed. The notice does not approve. To skip the judge entirely, use:
 
 ```sh
@@ -365,8 +373,8 @@ export FEATURE_LLM_REVIEW=off
 | `RUN_ID` | `dispute-copilot` | Trace run id. Default `run-` plus 10 hex characters. |
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
-| `LLM_API_KEY` | model client | Haiku 4.5 key. Empty means no Haiku call. |
-| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. The model id is `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. |
+| `LLM_API_KEY` | model client | Key for the configured model. Empty means no model call. |
+| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. An id missing from `config/rules/cost.yaml`, including `claude-haiku-5-5`, is recorded as `no price configured for <model>` with no USD figure. |
 | `JEV_BASE_URL` | ranker | Ranker host. Empty means the ranker is not built. Leave it empty in git. |
 | `JEV_API_KEY` | ranker | Ranker key. Empty means the ranker is not built. |
 | `JEV_MODEL` | ranker | Optional. Empty uses `jev-latest`. |
@@ -753,9 +761,35 @@ uv run --locked dispute-copilot run-all --approach 2
 uv run --locked dispute-copilot run-all --approach ab --shadow
 ```
 
-`--approach 2` asks the configured model after the rules, only on a case the rules leave open. With no model client, approach 2 keeps the rules class and records path `rules_only`. `--approach 3` asks the ranker first. A matching ranker class is kept. When the ranker is not configured, or its call fails, the rules class stays and Haiku 4.5 may still be asked. Manual review remains when the ranker says ambiguous, or when Haiku's class is rejected. `--approach ab` assigns the case from a seeded hash (`config/rules/classifier.yaml`, `ab.seed` and `ab.weights`). The draft uses the assigned approach.
+`--approach 2` asks the configured model after the rules, only on a case the rules leave open. With no model client, or an empty `LLM_API_KEY`, approach 2 keeps the rules class and records path `rules_only`. A rejected reply keeps the rules class and records `haiku_rejected`. An unclear reply goes to manual review and records `haiku_unclear`. An accepted class records `haiku_assigned`.
 
-`--shadow` also runs the approaches that were not selected. Each one is written under `submissions/classification/<approach>/CASE.json` and, when reports are configured, `reports/classification/<approach>/CASE.json`. Those directories are generated and ignored. The draft stays on the selected approach. The saved record does not include the complaint.
+`--approach 3` asks Jev first, then Clef when Jev is missing or its call fails, then the configured model. An ambiguous Jev answer records `jev_ambiguous` and goes to manual review, with no Clef call and no configured-model call. An ambiguous Clef answer records `clef_ambiguous` and goes to manual review, with no configured-model call. A ranker class that matches the rules is accepted (`jev_agreed` or `clef_agreed`). A disagreement asks the configured model. That class stands only when it matches the rules or the ranker (`haiku_assigned`). Any other reply goes to manual review (`haiku_rejected`). When no ranker returns a class, the configured model is asked. If that client is missing, the rules class stays: `rules_only` when no ranker call failed, and `model_failed` when a ranker call failed. A disagreement with no configured-model client also records `model_failed` and goes to manual review.
+
+`--approach ab` assigns the case from a seeded hash (`config/rules/classifier.yaml`, `ab.seed` and `ab.weights`). The draft uses the assigned approach.
+
+| Path | What is saved |
+|---|---|
+| `rules_only` | Rules class kept. No configured-model call, and no failed ranker call. |
+| `haiku_assigned` | Configured-model class kept. |
+| `haiku_rejected` | Approach 2 keeps the rules class. Approach 3 goes to manual review. |
+| `haiku_unclear` | Manual review. The configured model did not choose one class. |
+| `jev_agreed` | Jev class matches the rules and is kept. |
+| `jev_ambiguous` | Manual review. Clef and the configured model are not called. |
+| `clef_agreed` | Clef class matches the rules and is kept. |
+| `clef_ambiguous` | Manual review. The configured model is not called. |
+| `model_failed` | A ranker call failed and there is no configured-model client, so the rules class stays. A ranker disagreement with no configured-model client is manual review under this same path. |
+
+A class the labeled authorization does not allow is rewritten to manual review with path `authorization_conflict`. The duplicate guard can rewrite the path to `duplicate_unmatched`.
+
+`--shadow` also runs the approaches that were not selected. Each one is written under `submissions/classification/<approach>/CASE.json` and, when reports are configured, `reports/classification/<approach>/CASE.json`. Those directories are generated and ignored. The draft stays on the selected approach. The saved record does not include the complaint. A failed Clef call stores a short `failure` label on the Clef block (an HTTP status number, `timeout`, `connection failed`, or `non-json`). The response body, key, and account id are not stored. A failed configured-model call stores the same kind of label on its block.
+
+### Check a model connection
+
+```sh
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); h=d.get("haiku") or {}; print(d.get("called_model"), h.get("model") or "")' reports/classification/2/CARD-D01.json
+```
+
+The line prints `called_model` and the model id on the saved model block. It does not print a key or a host.
 
 The model step returns one JSON object with `class`, `reason`, and `evidence`. `evidence` must be exact text copied from the complaint. Whitespace may be collapsed. A paraphrase is rejected and the rules result is kept. The saved record stores the quote check (`evidence_ok`, `evidence_sha256`, `evidence_start`, `evidence_end`) and does not store the quote text. A complaint sentence is removed from the saved reason.
 

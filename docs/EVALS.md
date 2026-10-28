@@ -1,6 +1,6 @@
 # Evals
 
-`dispute-copilot evals` and `make evals` print one scorecard and write `reports/evals.json`. The judge stays off (`LLM_PROVIDER=null`, `FEATURE_LLM_REVIEW=off`). Classification stays on approach 1 unless `CLASSIFIER_APPROACH` is set. The eval commands do not set it, so the scorecard is the rules draft and does not call Haiku 4.5 or the ranker. It does not score approach 2, approach 3, shadow audits, or the comparison page. Development duplicate cases already contain a matching merchant, amount, and currency pair, so those gold classes stay `duplicate_charge` under the duplicate guard. A category under its minimum exits 1. The command does not approve a case and does not post a record. Reviewer login is phase 2. The wrong-label rate and the auto-routed-but-wrong rate from saved feedback are on the comparison page, not in this scorecard.
+`dispute-copilot evals` and `make evals` print one scorecard and write `reports/evals.json`. The judge stays off (`LLM_PROVIDER=null`, `FEATURE_LLM_REVIEW=off`). Classification stays on approach 1 unless `CLASSIFIER_APPROACH` is set. The eval commands do not set it, so the scorecard is the rules draft and does not call the configured model or the ranker. It does not score approach 2, approach 3, shadow audits, or the comparison page. Development duplicate cases already contain a matching merchant, amount, and currency pair, so those gold classes stay `duplicate_charge` under the duplicate guard. A category under its minimum exits 1. The command does not approve a case and does not post a record. Reviewer login is phase 2. The wrong-label rate and the auto-routed-but-wrong rate from saved feedback are on the comparison page, not in this scorecard.
 
 `make evals` starts the mock on `127.0.0.1` with a temporary state file, drafts the development cases, then runs the scorecard. The written report is generated. It is not committed.
 
@@ -32,7 +32,7 @@ A case listed in more than one synthetic set is counted once per category. Each 
 | no-commitment language | share of development cases whose narrative is non-empty and is not rejected by the phrase list | a promise phrased outside that list |
 | idempotency and approval gating | synthetic case where a draft changed after approval is not created | a live reviewer session |
 | latency | good-case rate from the traces of this run (`duration_ms` at or under the latency target) | a hosted metrics product; a missing trace fails the row |
-| cost | no model calls, or calls with no price, pass while `maximum_usd` is unset; a priced total fails only when it exceeds a configured cap. A default eval does not call Haiku 4.5. Jev is unpriced and is not treated as 0 USD | a measured token or compute bill; list prices in `config/rules/cost.yaml` are USD per million tokens (Haiku 4.5 is 1.00 in and 5.00 out) |
+| cost | no model calls, or calls with no price, pass while `maximum_usd` is unset; a priced total fails only when it exceeds a configured cap. A default eval does not call the configured model. Jev is unpriced and is not treated as 0 USD | a measured token or compute bill; list prices in `config/rules/cost.yaml` are USD per million tokens (`claude-haiku-4-5` is 1.00 in and 5.00 out; `claude-haiku-5-5` has no row) |
 
 ## Citation support
 

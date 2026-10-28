@@ -9,6 +9,7 @@ from dispute_copilot.classifiers.guard import apply_duplicate_guard
 from dispute_copilot.classifiers.haiku import call_model, known_class, redact_complaint
 from dispute_copilot.classifiers.jev import call_jev
 from dispute_copilot.fields import Classification
+from dispute_copilot.llm.base import LLMError, failure_kind
 from dispute_copilot.rules.classify import Decision, missing_for
 from dispute_copilot.rules.routing import choose_routing
 
@@ -268,7 +269,7 @@ def _close(decision, path, rules, jev, haiku, called, started, transactions, una
 def _public_ranker(answer: dict | None) -> dict | None:
     if not isinstance(answer, dict):
         return None
-    return {
+    public = {
         "class": answer.get("class"),
         "probabilities": answer.get("probabilities") or {},
         "confidence": answer.get("confidence"),
@@ -278,6 +279,9 @@ def _public_ranker(answer: dict | None) -> dict | None:
         "cost": answer.get("cost") or {"status": "unpriced", "usd": None},
         "model": answer.get("model") or "",
     }
+    if answer.get("failed"):
+        public["failure"] = failure_kind(LLMError(str(answer.get("failure") or "")))
+    return public
 
 
 def _public_haiku(reply: dict | None) -> dict | None:
@@ -289,7 +293,7 @@ def _public_haiku(reply: dict | None) -> dict | None:
     start = reply.get("evidence_start")
     end = reply.get("evidence_end")
     digest = reply.get("evidence_sha256") if isinstance(reply.get("evidence_sha256"), str) else ""
-    return {
+    public = {
         "class": reply.get("class"),
         "reason": reason,
         "evidence_ok": bool(reply.get("evidence_ok")) and not bool(reply.get("unusable")),
@@ -303,3 +307,6 @@ def _public_haiku(reply: dict | None) -> dict | None:
         "cost": reply.get("cost") or {"status": "unpriced", "usd": None},
         "model": reply.get("model") or "",
     }
+    if reply.get("failure"):
+        public["failure"] = failure_kind(LLMError(str(reply.get("failure"))))
+    return public

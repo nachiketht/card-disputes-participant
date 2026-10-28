@@ -14,6 +14,28 @@ class LLMError(CopilotError):
     """The provider timed out, returned an error, or returned nothing usable."""
 
 
+def failure_kind(exc: BaseException) -> str:
+    """A short audit label. The response body, key, and account id are not included."""
+    if not isinstance(exc, LLMError):
+        return "unusable"
+    text = str(exc).strip()
+    folded = text.casefold()
+    if folded in {"timeout", "provider timeout"}:
+        return "timeout"
+    if folded in {"connection failed", "provider connection failed"}:
+        return "connection failed"
+    if len(text) == 3 and text.isdigit() and text[0] in "12345":
+        return text
+    head = text.split(":", 1)[0].strip()
+    if head.casefold().startswith("provider status "):
+        code = head.rsplit(" ", 1)[-1]
+        if len(code) == 3 and code.isdigit() and code[0] in "12345":
+            return code
+    if "non-json" in folded:
+        return "non-json"
+    return "unusable"
+
+
 @dataclass(frozen=True)
 class Completion:
     text: str

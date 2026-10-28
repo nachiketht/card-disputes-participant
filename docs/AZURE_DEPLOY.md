@@ -14,7 +14,7 @@ This session could not sign in to `<subscription>`, so it did not query these re
 | Shares | `mock-data` (only `dataset.json`) and `app-data` (`documents/` and `policies/`) |
 | Environment | `card-disputes-env` |
 | App | `card-disputes`, one replica, no public ingress |
-| Model | Azure-hosted Claude Haiku 4.5 (`claude-haiku-4-5`), secret `llm-api-key` (not in git). The host is Container App secret `azure-base-url`, read as `AZURE_BASE_URL` from `.env`. The template does not store the value. The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. |
+| Model | Model id from `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`), secret `llm-api-key` (not in git). The host is Container App secret `azure-base-url`, read as `AZURE_BASE_URL` from `.env`. The template does not store the host. The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. `claude-haiku-5-5` has no price row in `config/rules/cost.yaml`. |
 | Ranker | Optional. `JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL`. An empty url or key skips it. The container template does not set these. Cost is unpriced. The threshold placeholder `0.70` is in `config/rules/classifier.yaml`, not a secret. |
 
 ## What was checked from this workspace
@@ -56,7 +56,7 @@ flowchart LR
   app -->|read| corpus[documents and policies]
   mock -->|read| fixture[dataset.json]
   mock -->|write| ledger[SQLite ledger]
-  app -->|model call| judge["claude-haiku-4-5"]
+  app -->|model call| judge["LLM_MODEL"]
 ```
 
 ## Step 1. Use the repository copy
@@ -247,7 +247,7 @@ az containerapp secret set \
 
 If the YAML create fails because a placeholder secret is invalid, delete the `secrets:` block from the YAML, create the app, then run `az containerapp secret set` and add the `LLM_API_KEY` and `AZURE_BASE_URL` secret refs in a second update. Do not paste the key or the host into the YAML. The image does not contain the host. Compose reads it from `.env` via `env_file`.
 
-The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The checklist judge is Azure-hosted Claude Haiku 4.5. Its key is the Container App secret `llm-api-key`. The host is the Container App secret `azure-base-url`, exposed as `AZURE_BASE_URL`. That call checks a finished draft. It does not approve. The same model id is what approaches 2 and 3 call on an eligible case. The replica template does not set the ranker variables. A run with no model call does not need `AZURE_BASE_URL`.
+The app in use is `card-disputes` in environment `card-disputes-env`: one replica, no public ingress. The mock listens on `127.0.0.1:8765` inside the replica. The app container calls `http://127.0.0.1:8765`. The checklist judge model id is `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`). Its key is the Container App secret `llm-api-key`. The host is the Container App secret `azure-base-url`, exposed as `AZURE_BASE_URL`. That call checks a finished draft. It does not approve. The same model id is what approaches 2 and 3 call on an eligible case. The replica template does not set the ranker variables. A run with no model call does not need `AZURE_BASE_URL`.
 
 ## Step 9. Check the cloud pair
 
@@ -283,7 +283,7 @@ az containerapp exec \
   --command "dispute-copilot run CARD-D04"
 ```
 
-`FEATURE_LLM_REVIEW=block` is set on the app container in the template, so a later check calls Claude Haiku 4.5:
+`FEATURE_LLM_REVIEW=block` is set on the app container in the template, so a later check calls the model named by `LLM_MODEL`:
 
 ```sh
 az containerapp exec \
@@ -339,16 +339,16 @@ That export also writes `/submissions/reports/compare.html` beside the status fi
 
 Approach 1 is the default and does not call a model. It does not read `AZURE_BASE_URL`. `CLASSIFIER_APPROACH` may be `1`, `2`, `3`, or `ab`. `--shadow` on `run` and `run-all` writes an audit for every approach and leaves the draft on the selected approach. `dispute-copilot compare` runs approaches 1, 2, and 3 on one fetched transaction list. A model call with an empty `AZURE_BASE_URL` fails with `AZURE_BASE_URL is empty`.
 
-`JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL` are optional. Leave the url and the key empty to skip Jev. An empty `JEV_MODEL` uses `jev-latest`. `CLEF_API_KEY`, `CLEF_ACCOUNT_ID`, and `CLEF_MODEL` are optional. Leave the key and the account id empty to skip Clef. An empty `CLEF_MODEL` uses `clef-flash`. When Jev is not configured, or its call fails, Clef-flash is asked. When both are missing or fail, the rules class stays, and Haiku 4.5 may still be asked on an eligible case. An ambiguous Jev answer does not call Clef. Manual review remains when the ranker says ambiguous, or when Haiku's class is rejected. The ranker threshold is the placeholder `0.70` in `config/rules/classifier.yaml`. Jev cost is unpriced. Clef-flash list price is 0.038 USD per million input tokens. `deploy/azure/containerapp.yaml` does not set `JEV_*` or `CLEF_*`, and this workspace did not add those secrets on the replica.
+`JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL` are optional. Leave the url and the key empty to skip Jev. An empty `JEV_MODEL` uses `jev-latest`. `CLEF_API_KEY`, `CLEF_ACCOUNT_ID`, and `CLEF_MODEL` are optional. Leave the key and the account id empty to skip Clef. An empty `CLEF_MODEL` uses `clef-flash`. Approach 3 asks Jev first, then Clef when Jev is missing or the call fails, then the configured model. An ambiguous Jev or Clef answer goes to manual review and does not call the configured model. A ranker class that matches the rules is kept. A disagreement asks the configured model, and that class stands only when it matches the rules or the ranker. When no ranker returns a class, the configured model is asked, or the rules class stays when that client is missing (`rules_only`, or `model_failed` when a ranker call failed). The ranker threshold is the placeholder `0.70` in `config/rules/classifier.yaml`. Jev cost is unpriced. Clef-flash list price is 0.038 USD per million input tokens. `deploy/azure/containerapp.yaml` does not set `JEV_*` or `CLEF_*`, and this workspace did not add those secrets on the replica.
 
 A duplicate stands only when the fetched transactions contain two charges with the same merchant id, amount, and currency. Without that pair the class does not stand. Classification audits do not store the complaint. The review page is the only page that shows it. Reviewer login is phase 2.
 
-Haiku 4.5 list price is 1.00 USD per million input tokens and 5.00 USD per million output tokens.
+`config/rules/cost.yaml` prices `claude-haiku-4-5` at 1.00 USD per million input tokens and 5.00 USD per million output tokens. `claude-haiku-5-5` has no row, so that id is recorded as `no price configured for claude-haiku-5-5` with no USD figure.
 
 ## What was left out on purpose
 
 - No public ingress and no load balancer. The mock stays on loopback inside the replica.
-- Haiku 4.5 checks a finished draft when the checklist judge is on, and approaches 2 and 3 may call the same model on an eligible case. It does not approve. The app never approves. The key is `LLM_API_KEY` in `.env`. The host is `AZURE_BASE_URL` in `.env`, stored on the app as secret `azure-base-url`. Jev stays off until `JEV_BASE_URL` and `JEV_API_KEY` are set. Clef stays off until `CLEF_API_KEY` and `CLEF_ACCOUNT_ID` are set. Jev cost is unpriced. The value of the Haiku host is not written in this file.
+- The model named by `LLM_MODEL` checks a finished draft when the checklist judge is on, and approaches 2 and 3 may call the same model on an eligible case. It does not approve. The app never approves. The key is `LLM_API_KEY` in `.env`. The host is `AZURE_BASE_URL` in `.env`, stored on the app as secret `azure-base-url`. Jev stays off until `JEV_BASE_URL` and `JEV_API_KEY` are set. Clef stays off until `CLEF_API_KEY` and `CLEF_ACCOUNT_ID` are set. Jev cost is unpriced. The value of the host is not written in this file.
 - Restarting the replica clears the ledger at `/state` and the drafts at `/submissions`. Files on `mock-data` and `app-data` stay. Run `reset` only when you mean to:
 
 ```sh

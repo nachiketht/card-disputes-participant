@@ -59,7 +59,7 @@ properties:
           - name: LLM_API_STYLE
             value: anthropic
           - name: LLM_MODEL
-            value: claude-haiku-4-5
+            value: claude-haiku-5-5
           - name: AZURE_BASE_URL
             secretRef: azure-base-url
           - name: LLM_API_KEY

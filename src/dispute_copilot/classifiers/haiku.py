@@ -6,7 +6,7 @@ import time
 
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import Classification
-from dispute_copilot.llm.base import LLMError
+from dispute_copilot.llm.base import LLMError, failure_kind
 from dispute_copilot.llm.guard import rejects
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.llm.schema import ClassifierReply, complete_json, parse_model
@@ -98,8 +98,8 @@ def call_model(model, complaint: str, registry: PromptRegistry | None = None) ->
             system=rendered.system,
             user="Return the JSON object now.",
         )
-    except (LLMError, ValueError, TypeError):
-        return _failed(started, "")
+    except (LLMError, ValueError, TypeError) as exc:
+        return _failed(started, failure_kind(exc))
     latency = round((time.perf_counter() - started) * 1000, 3)
     priced = price_call(result.last.model, result.tokens_in, result.tokens_out)
     parsed = None
@@ -159,7 +159,7 @@ def _trace_evidence(base: dict) -> None:
     )
 
 
-def _failed(started: float, _detail: str) -> dict:
+def _failed(started: float, detail: str) -> dict:
     return {
         "latency_ms": round((time.perf_counter() - started) * 1000, 3),
         "tokens_in": None,
@@ -175,6 +175,7 @@ def _failed(started: float, _detail: str) -> dict:
         "evidence_start": None,
         "evidence_end": None,
         "unclear": False,
+        "failure": detail or "unusable",
     }
 
 

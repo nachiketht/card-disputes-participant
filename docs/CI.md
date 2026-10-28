@@ -1,6 +1,6 @@
 # CI
 
-Workflow file: `.github/workflows/ci.yml`. It runs on every push and every pull request. The six local jobs use no repository secrets. `LLM_PROVIDER=null` and `FEATURE_LLM_REVIEW=off`, so the checklist judge does not run. Classification stays on approach 1 unless `CLASSIFIER_APPROACH` is set. The workflow does not set it, and a null provider does not build a Haiku client, so these jobs do not call Haiku 4.5 or the ranker. Package install is the only network use on those jobs. A push does not build a new revision and does not alter the running container app.
+Workflow file: `.github/workflows/ci.yml`. It runs on every push and every pull request. The six local jobs use no repository secrets. `LLM_PROVIDER=null` and `FEATURE_LLM_REVIEW=off`, so the checklist judge does not run. Classification stays on approach 1 unless `CLASSIFIER_APPROACH` is set. The workflow does not set it, and a null provider does not build a Haiku client, so these jobs do not call the configured model or the ranker. Package install is the only network use on those jobs. A push does not build a new revision and does not alter the running container app.
 
 Job `azure` is the one exception. It runs only on `push`, after the six local jobs pass, and it signs in with GitHub OIDC when the repository secrets below are set. It does not run on `pull_request`. A fork, and a repository that has not set the sign-in, skips that job with a notice and exit 0.
 

@@ -696,6 +696,66 @@ def test_clef_posts_to_workers_ai_and_unwraps_the_envelope():
     assert body["answers"]["class"]["choice"] == "unauthorized"
 
 
+def test_clef_choice_includes_instructions_and_parses():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"success": True, "result": _clef_choice()})
+
+    client = ClefClient(
+        account_id=_CLEF_ACCOUNT,
+        api_key="k",
+        model="clef-flash",
+        timeout_s=5,
+        transport=httpx.MockTransport(handler),
+    )
+    body = client.ask("Please review the posted amount.")
+    question = captured["body"]["questions"]["class"]
+    assert question["type"] == "choice"
+    assert isinstance(question["instructions"], str) and question["instructions"].strip()
+    criteria = question["criteria"]
+    assert isinstance(criteria, dict) and len(criteria) >= 2
+    parsed = read_answer(body, 0.7)
+    assert parsed["class"] == "unauthorized"
+    assert parsed["ambiguous"] is False
+
+
+def test_a_failed_clef_records_a_status_and_not_the_body(tmp_path: Path):
+    leak = "RESPONSE-BODY-SHOULD-NOT-BE-STORED"
+    complaint = "I do not recognize this purchase."
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(400, json={"success": False, "errors": [{"message": leak}]})
+
+    client = ClefClient(
+        account_id=_CLEF_ACCOUNT,
+        api_key="k",
+        model="clef-flash",
+        timeout_s=1,
+        transport=httpx.MockTransport(handler),
+    )
+    rules = _rules(complaint, AUTH_NOT_SUPPLIED)
+    outcome = _run("3", rules, complaint, AUTH_NOT_SUPPLIED, jev=None, clef=client)
+    assert outcome.path == "model_failed"
+    assert outcome.clef is not None
+    assert outcome.clef["failure"] == "400"
+    saved = write_audit(
+        case_id="CARD-D04",
+        approach="3",
+        outcome=outcome,
+        submissions_dir=tmp_path,
+        reports_dir=None,
+        complaint=complaint,
+    )
+    text = json.dumps(saved)
+    assert saved["clef"]["failure"] == "400"
+    assert leak not in text
+    assert complaint not in text
+    assert _CLEF_ACCOUNT not in text
+
+
 def test_clef_setup_and_bad_replies_fail_closed(monkeypatch):
     try:
         ClefClient(account_id=" ", api_key="k", model="clef-flash", timeout_s=1)

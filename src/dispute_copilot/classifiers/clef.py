@@ -9,7 +9,7 @@ import httpx
 from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
 from dispute_copilot.classifiers.jev import _QUESTION, _criteria, read_answer
 from dispute_copilot.fields import Classification
-from dispute_copilot.llm.base import LLMError
+from dispute_copilot.llm.base import LLMError, failure_kind
 from dispute_copilot.observability.cost import price_call
 from dispute_copilot.observability.tracing import current
 
@@ -49,6 +49,7 @@ class ClefClient:
             "questions": {
                 _QUESTION: {
                     "type": "choice",
+                    "instructions": _QUESTION,
                     "criteria": _criteria(),
                 }
             },
@@ -61,15 +62,15 @@ class ClefClient:
                     headers={"content-type": "application/json", "Authorization": f"Bearer {self.api_key}"},
                 )
         except httpx.TimeoutException as exc:
-            raise LLMError("provider timeout") from exc
+            raise LLMError("timeout") from exc
         except httpx.HTTPError as exc:
-            raise LLMError("provider connection failed") from exc
+            raise LLMError("connection failed") from exc
         if response.status_code >= 400:
-            raise LLMError("provider status was not usable")
+            raise LLMError(str(response.status_code))
         try:
             body = response.json()
         except ValueError as exc:
-            raise LLMError("provider returned non-json") from exc
+            raise LLMError("non-json") from exc
         return _unwrap(body)
 
 
@@ -105,7 +106,7 @@ def call_clef(client, complaint: str, threshold: float) -> dict:
             if priced.get("usd") is not None:
                 span.set(cost_usd=priced["usd"])
         parsed = read_answer(body, threshold)
-    except (LLMError, TypeError, ValueError, AttributeError):
+    except (LLMError, TypeError, ValueError, AttributeError) as exc:
         return {
             "class": None,
             Classification.AMBIGUOUS.value: True,
@@ -114,6 +115,7 @@ def call_clef(client, complaint: str, threshold: float) -> dict:
             "top_probability": None,
             "choice": None,
             "failed": True,
+            "failure": failure_kind(exc),
             "latency_ms": round((time.perf_counter() - started) * 1000, 3),
             "tokens_in": None,
             "tokens_out": None,

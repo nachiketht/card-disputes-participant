@@ -215,6 +215,22 @@ def test_a_provider_error_marks_the_classifier_unusable():
     assert reply["unusable"] is True
     assert reply["tokens_in"] is None
     assert reply["model"] == ""
+    assert reply["failure"] == "timeout"
+
+
+def test_a_failed_model_call_keeps_only_the_status_number():
+    complaint = "I do not recognize this purchase."
+
+    class Status:
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system, user
+            raise LLMError(f"provider status 400: {complaint} secret-body")
+
+    reply = call_model(Status(), complaint)
+    assert reply["failure"] == "400"
+    dumped = json.dumps(reply)
+    assert complaint not in dumped
+    assert "secret-body" not in dumped
 
 
 def test_a_blocked_reason_is_unusable_and_is_traced():
