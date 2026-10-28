@@ -61,7 +61,7 @@ def test_step_latency_uses_that_rank():
 
 def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     table = load_cost()
-    assert set(table["models"]) == {"claude-haiku-4-5", "claude-haiku-5-5", "clef-flash", "gpt-6-luna"}
+    assert set(table["models"]) == {"claude-haiku-5-5", "clef-flash", "gpt-6-luna", "jev-latest"}
     assert price_call("gpt-6-luna", 1_000_000, 2_000_000, table) == {
         "status": "estimate from list price",
         "usd": 1.1,
@@ -71,15 +71,20 @@ def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
         "status": "estimate from list price",
         "usd": 1.1,
     }
-    assert price_call("claude-haiku-4-5", 1000, 500, table) == {
+    assert price_call("claude-haiku-5-5", 1000, 500, table) == {
         "status": "estimate from list price",
-        "usd": 0.0035,
+        "usd": 0.00035,
     }
-    assert price_call("Claude-Haiku-4-5", 1_000_000, 0, table)["usd"] == 1.0
-    assert price_call("anthropic.claude-haiku-4-5", 1_000_000, 0, table)["usd"] == 1.0
-    assert price_call("claude-haiku-4-5-20261026", 1_000_000, 0, table)["usd"] == 1.0
-    assert price_call("claude-haiku-4-5-2026-10-26", 1_000_000, 0, table)["usd"] == 1.0
+    assert price_call("Claude-Haiku-5-5", 1_000_000, 0, table)["usd"] == 0.1
+    assert price_call("anthropic.claude-haiku-5-5", 1_000_000, 0, table)["usd"] == 0.1
+    assert price_call("claude-haiku-5-5-20261026", 1_000_000, 0, table)["usd"] == 0.1
+    assert price_call("claude-haiku-5-5-2026-10-26", 1_000_000, 0, table)["usd"] == 0.1
     assert price_call("clef-flash", 1_000_000, 0, table)["usd"] == 0.038
+    assert price_call("jev-latest", 1_000_000, 0, table)["usd"] == 0.042
+    assert price_call("claude-haiku-4-5", 1_000_000, 0, table) == {
+        "status": "no price configured for claude-haiku-4-5",
+        "usd": None,
+    }
     missing = price_call("other-model", 1000, 1000, table)
     assert missing == {"status": "no price configured for other-model", "usd": None}
     assert compute_cost() == {"status": "estimate, unmeasured", "usd": None}
@@ -94,14 +99,14 @@ def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
             CASE_ID: "C",
             "run_id": "r",
             "duration_ms": 3,
-            "attrs": {"model": "claude-haiku-4-5", "tokens_in": 1000, "tokens_out": 500, "where": "azure"},
+            "attrs": {"model": "claude-haiku-5-5", "tokens_in": 1000, "tokens_out": 500, "where": "azure"},
         }
     ]
     view = build_view(records, [], cost_table=table)
     assert view["cost"]["calls"][0]["status"] == "estimate from list price"
-    assert view["cost"]["calls"][0]["usd"] == 0.0035
+    assert view["cost"]["calls"][0]["usd"] == 0.00035
     assert view["cost"]["run"]["status"] == "estimate from list price"
-    assert view["cost"]["run"]["usd"] == 0.0035
+    assert view["cost"]["run"]["usd"] == 0.00035
     assert view["cost"]["compute"]["status"] == "estimate, unmeasured"
     page = render(view)
     assert "estimate from list price" in page
@@ -588,27 +593,27 @@ def _where_row(view: dict, where: str, model: str) -> dict:
 def test_where_table_prices_an_azure_haiku_run():
     records = [
         _case_row("C", "r", 20, "azure", "azure"),
-        _model_row("C", "r", "azure", "claude-haiku-4-5", 1_000_000, 0),
+        _model_row("C", "r", "azure", "claude-haiku-5-5", 1_000_000, 0),
     ]
     view = build_view(records, [])
-    row = _where_row(view, "azure", "claude-haiku-4-5")
+    row = _where_row(view, "azure", "claude-haiku-5-5")
     assert row["cases"] == 1
     assert row["passed"] == 1
     assert row["p50"] == 20
     assert row["p95"] == 20
     assert row["tokens_in"] == 1_000_000
     assert row["tokens_out"] == 0
-    assert row["cost_usd"] == 1.0
+    assert row["cost_usd"] == 0.1
     assert row["cost_status"] == "estimate from list price"
     assert all(item["where"] != "aws" for item in view["deployment"])
     page = render(view)
-    assert "claude-haiku-4-5" in page
-    assert "1.000000 estimate from list price" in page
+    assert "claude-haiku-5-5" in page
+    assert "0.100000 estimate from list price" in page
     assert "No azure run loaded" not in page
     assert "<td>aws</td>" not in page
     card = page.split('id="card-cost"', 1)[1].split("</article>", 1)[0]
-    assert "1.000000 estimate from list price" in card
-    assert "Per case: C 1.000000 estimate from list price" in card
+    assert "0.100000 estimate from list price" in card
+    assert "Per case: C 0.100000 estimate from list price" in card
 
 
 def test_where_table_shows_local_templates_without_empty_places():
@@ -680,7 +685,7 @@ def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monke
         with tracer.span("case"):
             pass
         with tracer.span("model.call") as span:
-            note_model_span(span, Completion("ok", 10, 2, "claude-haiku-4-5"))
+            note_model_span(span, Completion("ok", 10, 2, "claude-haiku-5-5"))
     text = json.dumps(tracer.records)
     assert "https://" not in text
     assert "http://" not in text
@@ -692,7 +697,7 @@ def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monke
     assert case["attrs"]["where"] == "local"
     assert "model" not in case["attrs"]
     assert call["attrs"]["where"] == "local"
-    assert call["attrs"]["model"] == "claude-haiku-4-5"
+    assert call["attrs"]["model"] == "claude-haiku-5-5"
     assert call["attrs"]["cost_status"] == "estimate from list price"
     monkeypatch.delenv("RUN_LABEL", raising=False)
     with case_trace("D", "run-2", tmp_path) as tracer:
