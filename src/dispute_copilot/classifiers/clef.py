@@ -8,7 +8,7 @@ import httpx
 
 from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
 from dispute_copilot.classifiers.guide import ranker_instructions, ranker_state
-from dispute_copilot.classifiers.jev import _QUESTION, _criteria, read_answer
+from dispute_copilot.classifiers.jev import _QUESTION, _criteria, read_answer, usage_tokens
 from dispute_copilot.fields import Classification
 from dispute_copilot.llm.base import LLMError, failure_kind
 from dispute_copilot.observability.cost import price_call
@@ -100,7 +100,7 @@ def call_clef(client, complaint: str, threshold: float) -> dict:
     try:
         with current().span("model.call") as span:
             body = client.ask(complaint)
-            tokens_in, tokens_out = _usage(body)
+            tokens_in, tokens_out = usage_tokens(body)
             if tokens_in is not None:
                 priced = price_call(model_name, tokens_in, tokens_out or 0)
             span.set(model=model_name, cost_status=priced["status"])
@@ -145,16 +145,3 @@ def _unwrap(body: object) -> dict:
     raise LLMError("provider response has no choice")
 
 
-def _usage(body: dict) -> tuple[int | None, int | None]:
-    usage = body.get("usage")
-    if not isinstance(usage, dict):
-        return None, None
-    incoming = usage.get("prompt_tokens", usage.get("input_tokens"))
-    outgoing = usage.get("completion_tokens", usage.get("output_tokens"))
-    return _token(incoming), _token(outgoing)
-
-
-def _token(value: object) -> int | None:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
-        return None
-    return value

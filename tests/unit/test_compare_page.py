@@ -13,7 +13,15 @@ from dispute_copilot.rules.classify import Decision
 COMPLAINT = "I found a card purchase that should never be copied onto the page."
 
 
-def _row(case_id: str, label: Classification, route: str, called: bool, latency: float, usd: float | None) -> dict:
+def _row(
+    case_id: str,
+    label: Classification,
+    route: str,
+    called: bool,
+    latency: float,
+    usd: float | None,
+    jev_usd: float | None = None,
+) -> dict:
     return {
         CASE_ID: case_id,
         "final_class": label.value,
@@ -21,6 +29,7 @@ def _row(case_id: str, label: Classification, route: str, called: bool, latency:
         "called_model": called,
         "latency_ms": latency,
         "haiku_usd": usd,
+        "jev_usd": jev_usd,
     }
 
 
@@ -165,6 +174,59 @@ def test_saved_records_drop_complaint_text_and_keep_jev_unpriced(tmp_path: Path)
     assert row["too_small"] is True
 
 
+def test_saved_jev_list_price_is_added_from_audit(tmp_path: Path):
+    rules = Decision(Classification.UNAUTHORIZED, (), False)
+    haiku = {
+        "class": Classification.UNAUTHORIZED.value,
+        "reason": "ok",
+        "evidence": "ok",
+        "cost": {"status": "estimate from list price", "usd": 0.001},
+    }
+    jev = {
+        "class": Classification.UNAUTHORIZED.value,
+        "probabilities": {},
+        "cost": {"status": "estimate from list price", "usd": 0.000042},
+    }
+    outcome = Outcome(rules, "haiku_assigned", rules, jev, haiku, True, 12.5, Routing.READY_FOR_REVIEW.value)
+    write_audit(
+        case_id="CARD-A",
+        approach="3",
+        outcome=outcome,
+        submissions_dir=tmp_path,
+        reports_dir=None,
+        complaint=COMPLAINT,
+    )
+    (tmp_path / "feedback").mkdir()
+    (tmp_path / "feedback" / "CARD-A.json").write_text(
+        json.dumps({"category": Classification.UNAUTHORIZED.value, "note": ""}),
+        encoding="utf-8",
+    )
+    view = load_comparison(tmp_path)
+    row = next(item for item in view["approaches"] if item["name"] == "3")
+    assert row["cost_per_case"] == 0.001042
+    page = render_comparison(view)
+    assert "0.000042" in page
+    assert "Jev unpriced" not in page
+
+
+def test_jev_list_price_adds_to_cost_per_case_and_ignores_an_unpriced_figure():
+    ready = Routing.READY_FOR_REVIEW.value
+    runs = {
+        "1": {},
+        "2": {},
+        "3": {
+            "CARD-A": _row("CARD-A", Classification.UNAUTHORIZED, ready, True, 10, 0.002, 0.001),
+            "CARD-B": _row("CARD-B", Classification.AMBIGUOUS, Routing.MANUAL_REVIEW.value, False, 20, None, 0.001),
+        },
+    }
+    row = next(item for item in build_comparison(runs, {}, min_sample=30)["approaches"] if item["name"] == "3")
+    assert row["cost_per_case"] == 0.002
+    page = render_comparison(build_comparison(runs, {}, min_sample=30))
+    assert "0.001000" in page
+    assert "Jev unpriced" not in page
+    assert "Jev is unpriced" not in page
+
+
 def test_auto_routed_wrong_ignores_a_held_case_and_spreads_cost_over_every_case():
     ready = Routing.READY_FOR_REVIEW.value
     ask = Routing.REQUEST_INFORMATION.value
@@ -202,7 +264,7 @@ def test_export_writes_a_sibling_comparison_page(tmp_path: Path):
     assert "Latency p95" in text
     assert "Cost per case" in text
     assert "p50" not in text
-    assert "unpriced" in text
+    assert "list-price USD for the configured model and Jev" in text
     assert 'href="out.html"' in text
     assert '<details id="technical" open' not in text
     assert "http://" not in text.lower()

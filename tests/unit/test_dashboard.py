@@ -61,7 +61,13 @@ def test_step_latency_uses_that_rank():
 
 def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     table = load_cost()
-    assert set(table["models"]) == {"claude-haiku-4-5", "claude-haiku-5-5", "clef-flash", "gpt-6-luna"}
+    assert set(table["models"]) == {
+        "claude-haiku-4-5",
+        "claude-haiku-5-5",
+        "clef-flash",
+        "gpt-6-luna",
+        "jev-latest",
+    }
     assert price_call("gpt-6-luna", 1_000_000, 2_000_000, table) == {
         "status": "estimate from list price",
         "usd": 1.1,
@@ -80,6 +86,8 @@ def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     assert price_call("claude-haiku-4-5-20261026", 1_000_000, 0, table)["usd"] == 1.0
     assert price_call("claude-haiku-4-5-2026-10-26", 1_000_000, 0, table)["usd"] == 1.0
     assert price_call("clef-flash", 1_000_000, 0, table)["usd"] == 0.038
+    assert price_call("jev-latest", 1_000_000, 0, table)["usd"] == 0.042
+    assert price_call("jev-latest", 1_000_000, 1_000_000, table)["usd"] == 0.042
     missing = price_call("other-model", 1000, 1000, table)
     assert missing == {"status": "no price configured for other-model", "usd": None}
     assert compute_cost() == {"status": "estimate, unmeasured", "usd": None}

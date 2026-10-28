@@ -1019,6 +1019,38 @@ def test_a_failed_jev_and_failed_clef_still_ask_haiku():
     assert outcome.path == "haiku_assigned"
 
 
+def test_call_jev_prices_input_tokens():
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(
+            200,
+            json={
+                "answers": {
+                    "class": {
+                        "type": "choice",
+                        "choice": "unauthorized",
+                        "probabilities": {"unauthorized": 0.91, "ambiguous_or_unclear": 0.09},
+                        "confidence": 0.91,
+                    }
+                },
+                "usage": {"prompt_tokens": 40, "completion_tokens": 0},
+            },
+        )
+
+    client = JevClient(
+        base_url="https://ranker.example/v1/systemone",
+        api_key="k",
+        model="jev-latest",
+        timeout_s=5,
+        transport=httpx.MockTransport(handler),
+    )
+    parsed = call_jev(client, "I do not recognize this purchase.", 0.7)
+    assert parsed["failed"] is False
+    assert parsed["tokens_in"] == 40
+    assert parsed["tokens_out"] == 0
+    assert parsed["cost"] == {"status": "estimate from list price", "usd": 0.000002}
+
+
 def test_call_clef_prices_input_tokens():
     def handler(request: httpx.Request) -> httpx.Response:
         del request
