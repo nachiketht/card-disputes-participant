@@ -379,7 +379,8 @@ def test_path_escapes_untrusted_text_and_replay_stays_offline(tmp_path: Path):
     assert "fetch(" not in page.lower()
     assert "xmlhttprequest" not in page.lower()
     assert "websocket" not in page.lower()
-    assert "http://" not in page.lower()
+    for link in re.findall(r"https?://[^\"'\s>]+", page):
+        assert "127.0.0.1" in link
     assert "https://" not in page.lower()
     assert 'data-speed="0.5"' in page and "0.5x" in page
     assert "1x" in page and "2x" in page and "5x" in page
@@ -398,7 +399,8 @@ def test_path_escapes_untrusted_text_and_replay_stays_offline(tmp_path: Path):
     write_html(DEV_REPORTS, dest)
     exported = dest.read_text(encoding="utf-8")
     lowered = exported.lower()
-    assert "http://" not in lowered
+    for link in re.findall(r"https?://[^\"'\s>]+", exported):
+        assert "127.0.0.1" in link
     assert "https://" not in lowered
     assert "ws://" not in lowered
     assert "fetch(" not in lowered
@@ -411,8 +413,8 @@ def test_path_escapes_untrusted_text_and_replay_stays_offline(tmp_path: Path):
     assert "<th></th>" not in exported
     assert exported.count("<th>Status</th>") >= 3
     assert 'id="log-count"' in exported
-    assert "<details id=\"technical\" open" not in exported
-    assert 'id="headline"' in exported
+    assert "<details id=\"technical-path\" open" not in exported
+    assert 'id="client"' in exported
     assert 'id="card-latency"' in exported
 
 
@@ -498,23 +500,35 @@ def test_unknown_step_keeps_a_fallback_column():
 
 def test_default_view_keeps_the_client_page_and_closes_the_rest():
     page = render(build_view(_trace("CARD-D01.jsonl"), [], cost_table={"models": {}, "compute": {}}))
-    assert "<details id=\"technical\" open" not in page
-    head, technical = page.split('<details id="technical">', 1)
-    assert 'id="headline"' in head
-    assert "Cases run" in head
-    assert "Good-case rate" in head
-    assert "Injections flagged" in head
-    assert "Records created without approval" in head
-    assert 'id="path"' in head
-    assert "Check transactions" in head
-    assert 'aria-label="Fit to width"' in head
-    assert 'id="card-latency"' in head
-    assert 'id="card-cost"' in head
-    assert 'id="card-safety"' in head
-    assert 'id="card-where"' in head
+    assert not re.search(r"<details\b[^>]*\sopen", page)
+    head, technical = page.split('<details id="technical-path">', 1)
+    assert 'id="client"' in head
+    assert "Cases ran" in head
+    assert "Ready for review" in head
+    assert "Manual review" in head
+    assert "More information" in head
+    assert "Approach 1" in head
+    assert 'id="status-line"' in head
+    assert 'href="compare.html"' in head
+    assert 'href="http://127.0.0.1:8080"' in head
+    assert "fonts.googleapis" not in page
+    assert "Instrument Serif" in page
+    assert "Inter" in page
+    for section_id in (
+        "technical-path",
+        "technical-latency",
+        "technical-cost",
+        "technical-logs",
+        "technical-mcp",
+        "technical-audit",
+        "technical-overview",
+    ):
+        assert f'<details id="{section_id}">' in page
     assert "log-table" in technical
     assert "Timeline" in technical
     assert 'id="step-chart"' in technical
+    assert "Good-case rate" in technical
+    assert "Flagged injections" in technical
 
 
 def test_latency_chart_keeps_short_steps_visible():

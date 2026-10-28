@@ -18,3 +18,7 @@ ab:
 comparison:
   # Reviewer-feedback rows below this count are too small to conclude.
   min_sample: 30
+  # Proposed cut-offs for the comparison page. They are not measured results.
+  false_negative_ceiling: 0.02
+  false_positive_low: 0.10
+  false_positive_high: 0.40

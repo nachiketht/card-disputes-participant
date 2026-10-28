@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from dispute_copilot.evidence.redaction import Redactor
-from dispute_copilot.fields import CASE_ID
+from dispute_copilot.fields import CASE_ID, CLASSIFICATION, Routing
 from dispute_copilot.observability.cost import compute_cost, load_cost, price_call
 from dispute_copilot.observability.metrics import compute, evaluate_alerts, load_slo, percentile, read_traces
 from dispute_copilot.observability.path import PAGE_SCRIPT, build_paths, path_markup
@@ -44,7 +45,12 @@ _HOST = "127.0.0.1"
 def load_view(reports_dir: Path) -> dict:
     traces = reports_dir / "traces"
     records = read_traces(traces) if traces.is_dir() else []
-    return build_view(records, _read_logs(reports_dir), audit=_read_audit(reports_dir / "audit.json"))
+    return build_view(
+        records,
+        _read_logs(reports_dir),
+        audit=_read_audit(reports_dir / "audit.json"),
+        approach_label=_approach_in_use(reports_dir),
+    )
 
 
 def build_view(
@@ -54,6 +60,7 @@ def build_view(
     cost_table: dict | None = None,
     slo: dict | None = None,
     audit: list[dict] | None = None,
+    approach_label: str = "Approach 1",
 ) -> dict:
     records = [item for item in records if isinstance(item, dict)]
     log_rows = [item for item in log_rows if isinstance(item, dict)]
@@ -72,11 +79,13 @@ def build_view(
         "waterfall": _waterfall(spans),
         "latency": _latency(spans, target),
         "cost": _cost(spans, table),
-        "logs": _logs(log_rows, records),
+        "logs": _logs([row for row in log_rows if row.get("_log_file") != "mcp.jsonl"], records),
         "security": security,
         "approval": approval,
         "deployment": _deployment(spans, table, target),
         "paths": build_paths(records, log_rows, approval),
+        "approach_label": approach_label,
+        "mcp_logs": _logs([row for row in log_rows if row.get("_log_file") == "mcp.jsonl"], []),
     }
     return Redactor().scrub(view)
 
@@ -407,32 +416,113 @@ def _page(view: dict) -> str:
         "<!DOCTYPE html>",
         "<html lang=\"en\"><head><meta charset=\"utf-8\">",
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
-        "<title>Run status</title>",
+        "<title>Case status</title>",
         f"<style>{_CSS}</style></head><body>",
-        "<header><div class=\"top\"><p class=\"mark\">Read-only</p>"
-        "<a class=\"mark\" href=\"compare.html\">Comparison</a>"
+        "<header><div class=\"top\"><p class=\"mark\">Read-only</p>",
+        "<nav class=\"links\">",
+        "<a class=\"mark\" href=\"compare.html\">Comparison</a>",
+        "<a class=\"mark\" href=\"http://127.0.0.1:8080\">Review</a>",
+        "</nav>",
         "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
-        "<h1>Run status</h1>",
-        "<p class=\"lede\">A read-only view of the runs already saved.</p>",
+        "<h1>Case status</h1>",
+        "<p class=\"lede\">How the saved cases stand. This page does not approve a case.</p>",
         "</header><main>",
-        _headline(view),
-        _section("", "Request path", "path", path_markup(view["paths"])),
-        _summary_cards(view),
-        "<details id=\"technical\"><summary>Technical details</summary><div class=\"tech\">",
-        _section("", "Run overview", "overview", _alert_list(view["overview"]["alerts"]) + _overview_table(view["overview"]["rows"])),
-        _section("", "Timeline", "timeline", _timeline(view["waterfall"])),
-        _section("", "Latency", "latency", _latency_block(view["latency"])),
-        _section("", "Cost", "cost", _cost_block(view["cost"])),
-        _section("", "Logs", "logs", _log_block(view["logs"])),
-        _section("", "Security", "security", _security_block(view["security"])),
-        _section("", "Approval", "approval", _approval_block(view["approval"])),
-        _section("", "Deployment", "deployment", _deployment_block(view["deployment"], view["cost"]["compute"])),
-        "</div></details>",
+        _client_summary(view),
+        _closed("technical-path", "Request path", _section("", "Request path", "path", path_markup(view["paths"]))),
+        _closed(
+            "technical-overview",
+            "Run overview",
+            _section(
+                "",
+                "Run overview",
+                "overview",
+                _stat_row(view["overview"]["counts"], view["overview"]["slo"])
+                + _alert_list(view["overview"]["alerts"])
+                + _overview_table(view["overview"]["rows"]),
+            ),
+        ),
+        _closed("technical-timeline", "Timeline", _section("", "Timeline", "timeline", _timeline(view["waterfall"]))),
+        _closed("technical-latency", "Latency", _section("", "Latency", "latency", _latency_block(view["latency"])) + _summary_cards(view)),
+        _closed("technical-cost", "Cost", _section("", "Cost", "cost", _cost_block(view["cost"]))),
+        _closed("technical-logs", "Logs", _section("", "Logs", "logs", _log_block(view["logs"]))),
+        _closed("technical-mcp", "MCP log", _section("", "MCP log", "mcp", _log_block(view.get("mcp_logs") or {"rows": [], "hidden": 0, "total": 0}, "mcp-table"))),
+        _closed("technical-audit", "Audit", _section("", "Approval", "approval", _approval_block(view["approval"]))),
+        _closed("technical-security", "Security", _section("", "Security", "security", _security_block(view["security"]))),
+        _closed("technical-deployment", "Deployment", _section("", "Deployment", "deployment", _deployment_block(view["deployment"], view["cost"]["compute"]))),
         "</main>",
         PAGE_SCRIPT,
         "</body></html>",
     ]
     return "".join(parts)
+
+
+def _closed(section_id: str, title: str, body: str) -> str:
+    return (
+        f"<details id=\"{section_id}\"><summary>{escape(title)}</summary>"
+        f"<div class=\"tech\">{body}</div></details>"
+    )
+
+
+def _client_summary(view: dict) -> str:
+    rows = view["overview"]["rows"]
+    ready = _route_count(rows, Routing.READY_FOR_REVIEW.value)
+    manual = _route_count(rows, Routing.MANUAL_REVIEW.value)
+    information = _route_count(rows, Routing.REQUEST_INFORMATION.value)
+    approach = str(view.get("approach_label") or "Approach 1")
+    cells = [
+        ("Cases ran", str(len(rows))),
+        ("Ready for review", str(ready)),
+        ("Manual review", str(manual)),
+        ("More information", str(information)),
+        ("Approach", approach),
+    ]
+    stats = "".join(f"<div><p>{escape(label)}</p><strong>{escape(value)}</strong></div>" for label, value in cells)
+    line = _status_line(len(rows), ready, manual, information, approach)
+    return (
+        "<section id=\"client\" class=\"strip\">"
+        f"<div class=\"stats\">{stats}</div>"
+        f"<p id=\"status-line\" class=\"status-line\">{escape(line)}</p>"
+        "</section>"
+    )
+
+
+def _route_count(rows: list[dict], route: str) -> int:
+    return sum(1 for row in rows if row.get("route") == route)
+
+
+def _status_line(ran: int, ready: int, manual: int, information: int, approach: str) -> str:
+    if ran == 0:
+        return f"No cases have been run yet. {_approach_clause(approach)}"
+    ran_text = "1 case ran" if ran == 1 else f"{ran} cases ran"
+    return (
+        f"{ran_text}. {ready} are ready for review, "
+        f"{information} were sent for more information, and {manual} went to manual review. "
+        f"{_approach_clause(approach)}"
+    )
+
+
+def _approach_clause(approach: str) -> str:
+    if "," in approach:
+        return f"Approaches {approach} are in use."
+    return f"Approach {approach} is in use."
+
+
+def _approach_in_use(reports_dir: Path) -> str:
+    root = reports_dir / CLASSIFICATION
+    saved = []
+    if root.is_dir():
+        for name in ("1", "2", "3", "ab"):
+            folder = root / name
+            if folder.is_dir() and any(folder.glob("*.json")):
+                saved.append(name)
+    if len(saved) == 1:
+        return saved[0]
+    if saved:
+        return ", ".join(saved)
+    raw = os.environ.get("CLASSIFIER_APPROACH", "").strip().lower()
+    if raw in {"1", "2", "3", "ab"}:
+        return raw
+    return "1"
 
 
 def _headline(view: dict) -> str:
@@ -654,7 +744,7 @@ def _timeline(blocks: list[dict]) -> str:
         "including review and record steps when those commands ran. Other spans sit under them.</p>"
     ]
     for index, block in enumerate(blocks):
-        open_attr = " open" if index == 0 else ""
+        open_attr = ""
         rows = []
         for item in block["rows"]:
             mark = "core" if item["core"] else "sub"
@@ -767,25 +857,28 @@ def _cost_block(cost: dict) -> str:
     return summary + chart + calls + by_case
 
 
-def _log_block(logs: dict) -> str:
+def _log_block(logs: dict, table_id: str = "log-table") -> str:
+    count_id = "log-count" if table_id == "log-table" else "mcp-count"
     note = (
-        f"<p class=\"note\" id=\"log-count\" data-total=\"{logs['total']}\" "
+        f"<p class=\"note\" id=\"{count_id}\" data-total=\"{logs['total']}\" "
         f"data-hidden=\"{logs['hidden']}\" data-limit=\"{_LOG_LIMIT}\">"
         f"{logs['total']} lines"
     )
     if logs["hidden"]:
         note += f", showing {_LOG_LIMIT}, {logs['hidden']} older lines left out"
     note += ".</p>"
-    controls = (
-        "<div class=\"filters\">"
-        "<input id=\"f-run\" placeholder=\"run\" aria-label=\"run\">"
-        "<input id=\"f-case\" placeholder=\"case\" aria-label=\"case\">"
-        "<input id=\"f-span\" placeholder=\"span\" aria-label=\"span\">"
-        "<input id=\"f-event\" placeholder=\"event\" aria-label=\"event\">"
-        "<select id=\"f-level\" aria-label=\"level\">"
-        "<option value=\"\">level</option><option>info</option><option>warning</option><option>error</option>"
-        "</select></div>"
-    )
+    controls = ""
+    if table_id == "log-table":
+        controls = (
+            "<div class=\"filters\">"
+            "<input id=\"f-run\" placeholder=\"run\" aria-label=\"run\">"
+            "<input id=\"f-case\" placeholder=\"case\" aria-label=\"case\">"
+            "<input id=\"f-span\" placeholder=\"span\" aria-label=\"span\">"
+            "<input id=\"f-event\" placeholder=\"event\" aria-label=\"event\">"
+            "<select id=\"f-level\" aria-label=\"level\">"
+            "<option value=\"\">level</option><option>info</option><option>warning</option><option>error</option>"
+            "</select></div>"
+        )
     body = []
     for item in logs["rows"]:
         body.append(
@@ -803,7 +896,7 @@ def _log_block(logs: dict) -> str:
             f"<td>{escape(item['text'])}</td></tr>"
         )
     table = (
-        "<div class=\"log-scroll\"><table id=\"log-table\"><thead><tr><th>Level</th><th>Run</th><th>Case</th>"
+        f"<div class=\"log-scroll\"><table id=\"{escape(table_id)}\"><thead><tr><th>Level</th><th>Run</th><th>Case</th>"
         f"<th>Span</th><th>Event</th><th>Detail</th></tr></thead><tbody>{''.join(body)}</tbody></table></div>"
     )
     return note + controls + table
@@ -1035,7 +1128,9 @@ def _read_logs(reports_dir: Path) -> list[dict]:
             except json.JSONDecodeError:
                 continue
             if isinstance(item, dict):
-                rows.append(item)
+                copied = dict(item)
+                copied["_log_file"] = name
+                rows.append(copied)
     return rows
 
 
@@ -1221,7 +1316,7 @@ def _num(value: object) -> str:
 _CSS = """
 :root {
   color-scheme: light;
-  --bg: #f4f6f7;
+  --bg: #f7f5f1;
   --bg-soft: #e8eef0;
   --ink: #1a1f22;
   --ink-soft: #5a656c;
@@ -1277,7 +1372,7 @@ _CSS = """
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f4f6f7;
+  --bg: #f7f5f1;
   --bg-soft: #e8eef0;
   --ink: #1a1f22;
   --ink-soft: #5a656c;
@@ -1309,7 +1404,11 @@ h1 { font-size:52px; line-height:1.05; margin:18px 0 12px; }
 .lede { max-width:62ch; color:var(--ink-soft); margin:0 0 28px; }
 main { display:grid; gap:28px; padding-bottom:64px; min-width:0; }
 section { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px 32px 32px; box-shadow:var(--shadow); min-width:0; }
-#headline, #summaries { background:transparent; border:0; box-shadow:none; padding:0; }
+#headline, #summaries, #client { background:transparent; border:0; box-shadow:none; padding:0; }
+.status-line { margin:18px 0 0; max-width:68ch; }
+.links { display:flex; gap:18px; align-items:center; }
+main > details { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px 24px 8px; box-shadow:var(--shadow); }
+main > details > summary { font-family:"Instrument Serif", Georgia, serif; font-size:28px; font-weight:400; cursor:pointer; }
 .safety-line { margin:16px 0 0; }
 .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .summary-grid article { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px 24px 18px; box-shadow:var(--shadow); }
@@ -1323,7 +1422,7 @@ h3 { font-size:22px; margin:28px 0 10px; }
 .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:14px; }
 .stats div { background:var(--bg-soft); border-radius:16px; padding:14px 16px; }
 .stats p { margin:0; color:var(--ink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
-.stats strong { display:block; margin-top:6px; font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; }
+.stats strong { display:block; margin-top:6px; font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; line-height:1.15; }
 .note, .empty { color:var(--ink-soft); }
 .note.muted { font-size:13px; }
 .ok { color:var(--accent); }

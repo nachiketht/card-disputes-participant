@@ -19,11 +19,18 @@ _APPROACHES = ("1", "2", "3")
 
 def load_comparison(reports_dir: Path, submissions_dir: Path | None = None) -> dict:
     roots = _roots(reports_dir, submissions_dir)
-    return build_comparison(
+    settings = load_settings()
+    view = build_comparison(
         _read_runs(roots),
         _read_feedback(roots),
-        min_sample=load_settings().min_sample,
+        min_sample=settings.min_sample,
     )
+    view["thresholds"] = {
+        "false_negative_ceiling": settings.false_negative_ceiling,
+        "false_positive_low": settings.false_positive_low,
+        "false_positive_high": settings.false_positive_high,
+    }
+    return view
 
 
 def build_comparison(runs: dict[str, dict[str, dict]], feedback: dict[str, str], *, min_sample: int) -> dict:
@@ -224,6 +231,7 @@ def _markup(view: dict, back_href: str) -> str:
         "<p class=\"lede\">Saved classification runs. The five rates are wrong-label, auto-routed but wrong, manual review, Haiku cost per case, and latency p95. This page has case ids and counts. It does not include complaint text.</p>",
         "</header><main>",
         _approach_table(view),
+        _wins_table(view),
         _matrix_section(view),
         _disagree_section(view),
         "<details id=\"technical\"><summary>Technical details</summary><div class=\"tech\">",
@@ -282,6 +290,52 @@ def _approach_table(view: dict) -> str:
         f"<table><thead>{head}</thead><tbody>{''.join(body)}</tbody></table>"
         f"{note}</section>"
     )
+
+
+def _wins_table(view: dict) -> str:
+    """Static proposal. The numbers are cut-offs, not a measurement of these runs."""
+    from html import escape
+
+    raw = view.get("thresholds") if isinstance(view.get("thresholds"), dict) else {}
+    ceiling = _cut(raw.get("false_negative_ceiling"), 0.02)
+    low = _cut(raw.get("false_positive_low"), 0.10)
+    high = _cut(raw.get("false_positive_high"), 0.40)
+    rows = (
+        (
+            f"False positives under {_pct(low)} and false negatives under the ceiling ({_pct(ceiling)})",
+            "Approach 1: cheapest and fastest; a model adds little.",
+        ),
+        (
+            f"False positives {_pct(low)} to {_pct(high)} and false negatives under the ceiling",
+            "Approach 3: most flagged cases are truly ambiguous; Jev saves Haiku calls.",
+        ),
+        (
+            f"False positives over {_pct(high)} and false negatives under the ceiling",
+            "Approach 2: most flagged cases are really clear; Haiku helps nearly every time; Jev only adds cost and delay.",
+        ),
+    )
+    body = "".join(
+        f"<tr><td>{escape(condition)}</td><td>{escape(choice)}</td></tr>" for condition, choice in rows
+    )
+    return (
+        "<section id=\"when-wins\"><h2>When each approach wins</h2>"
+        "<p class=\"note\" id=\"threshold-label\">Proposed thresholds, to be confirmed by the A/B test. Not measured results.</p>"
+        "<table><thead><tr><th>False positives and false negatives</th><th>What to use</th></tr></thead>"
+        f"<tbody>{body}</tbody></table>"
+        "<p class=\"note\">Above the false-negative ceiling, an approach is out, whatever its other numbers.</p>"
+        "</section>"
+    )
+
+
+def _cut(value: object, default: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return default
+    return float(value)
+
+
+def _pct(value: float) -> str:
+    text = f"{value * 100:.2f}".rstrip("0").rstrip(".")
+    return f"{text}%"
 
 
 def _matrix_section(view: dict) -> str:

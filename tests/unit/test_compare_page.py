@@ -24,6 +24,45 @@ def _row(case_id: str, label: Classification, route: str, called: bool, latency:
     }
 
 
+def test_when_each_approach_wins_is_only_a_proposal():
+    from dispute_copilot.classifiers.config import load_settings
+
+    settings = load_settings()
+    assert settings.false_negative_ceiling == 0.02
+    assert settings.false_positive_low == 0.10
+    assert settings.false_positive_high == 0.40
+    view = build_comparison({}, {}, min_sample=30)
+    view["thresholds"] = {
+        "false_negative_ceiling": settings.false_negative_ceiling,
+        "false_positive_low": settings.false_positive_low,
+        "false_positive_high": settings.false_positive_high,
+    }
+    page = render_comparison(view)
+    assert "When each approach wins" in page
+    assert "Proposed thresholds, to be confirmed by the A/B test. Not measured results." in page
+    assert "False positives under 10%" in page
+    assert "false negatives under the ceiling (2%)" in page
+    assert "cheapest and fastest" in page
+    assert "False positives 10% to 40%" in page
+    assert "Jev saves Haiku calls." in page
+    assert "False positives over 40%" in page
+    assert "Haiku helps nearly every time" in page
+    assert "Above the false-negative ceiling, an approach is out, whatever its other numbers." in page
+    assert COMPLAINT not in page
+    custom = dict(view)
+    custom["thresholds"] = {
+        "false_negative_ceiling": 0.05,
+        "false_positive_low": 0.15,
+        "false_positive_high": 0.55,
+    }
+    shifted = render_comparison(custom)
+    assert "under 15%" in shifted
+    assert "15% to 55%" in shifted
+    assert "over 55%" in shifted
+    assert "(5%)" in shifted
+    assert COMPLAINT not in shifted
+
+
 def test_comparison_rates_matrix_and_the_small_sample_note():
     manual = Routing.MANUAL_REVIEW.value
     ready = Routing.READY_FOR_REVIEW.value

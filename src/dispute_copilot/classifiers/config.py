@@ -22,6 +22,9 @@ class ClassifierSettings:
     min_sample: int
     clef_model: str = "clef-flash"
     clef_timeout_s: float = 30.0
+    false_negative_ceiling: float = 0.02
+    false_positive_low: float = 0.10
+    false_positive_high: float = 0.40
 
 
 def load_settings(path: Path | None = None) -> ClassifierSettings:
@@ -48,6 +51,9 @@ def load_settings(path: Path | None = None) -> ClassifierSettings:
         min_sample=int(comparison.get("min_sample") or 30),
         clef_model=str(clef.get("model") or "clef-flash"),
         clef_timeout_s=_float(clef.get("timeout_s"), 30.0),
+        false_negative_ceiling=_float(comparison.get("false_negative_ceiling"), 0.02),
+        false_positive_low=_float(comparison.get("false_positive_low"), 0.10),
+        false_positive_high=_float(comparison.get("false_positive_high"), 0.40),
     )
 
 
