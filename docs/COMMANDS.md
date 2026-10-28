@@ -50,7 +50,7 @@ export LLM_PROVIDER=null
 export FEATURE_LLM_REVIEW=off
 ```
 
-The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. Prices come from `config/rules/cost.yaml`. That file prices `claude-haiku-4-5` and has no row for `claude-haiku-5-5`, so a call with `claude-haiku-5-5` is recorded as `no price configured for claude-haiku-5-5` with no USD figure. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
+The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. Prices come from `config/rules/cost.yaml`. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. Prompts over 100K tokens are not modelled. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
 
 ```sh
 export FEATURE_LLM_REVIEW=block
@@ -374,7 +374,7 @@ export FEATURE_LLM_REVIEW=off
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `LLM_API_KEY` | model client | Key for the configured model. Empty means no model call. |
-| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. An id missing from `config/rules/cost.yaml`, including `claude-haiku-5-5`, is recorded as `no price configured for <model>` with no USD figure. |
+| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. An id missing from `config/rules/cost.yaml` is recorded as `no price configured for <model>` with no USD figure. |
 | `JEV_BASE_URL` | ranker | Ranker host. Empty means the ranker is not built. Leave it empty in git. |
 | `JEV_API_KEY` | ranker | Ranker key. Empty means the ranker is not built. |
 | `JEV_MODEL` | ranker | Optional. Empty uses `jev-latest`. |
@@ -763,7 +763,7 @@ uv run --locked dispute-copilot run-all --approach ab --shadow
 
 `--approach 2` asks the configured model after the rules, only on a case the rules leave open. With no model client, or an empty `LLM_API_KEY`, approach 2 keeps the rules class and records path `rules_only`. A rejected reply keeps the rules class and records `haiku_rejected`. An unclear reply goes to manual review and records `haiku_unclear`. An accepted class records `haiku_assigned`.
 
-`--approach 3` asks Jev first, then Clef when Jev is missing or its call fails, then the configured model. An ambiguous Jev answer records `jev_ambiguous` and goes to manual review, with no Clef call and no configured-model call. An ambiguous Clef answer records `clef_ambiguous` and goes to manual review, with no configured-model call. A ranker class that matches the rules is accepted (`jev_agreed` or `clef_agreed`). A disagreement asks the configured model. That class stands only when it matches the rules or the ranker (`haiku_assigned`). Any other reply goes to manual review (`haiku_rejected`). When no ranker returns a class, the configured model is asked. If that client is missing, the rules class stays: `rules_only` when no ranker call failed, and `model_failed` when a ranker call failed. A disagreement with no configured-model client also records `model_failed` and goes to manual review.
+`--approach 3` asks Jev first, then Clef when Jev is missing or its call fails, then the configured model. An ambiguous Jev answer records `jev_ambiguous` and goes to manual review, with no Clef call and no configured-model call. An ambiguous Clef answer records `clef_ambiguous` and goes to manual review, with no configured-model call. A ranker class that matches the rules is accepted (`jev_agreed` or `clef_agreed`). A disagreement asks the configured model. That class stands only when it matches the rules or the ranker (`haiku_assigned`). A rejected reply still goes to manual review (`haiku_rejected`). If there is no configured-model client, or that call cannot run, the rules class stays and the path is `ranker_disagreed_no_model`. When no ranker returns a class, the configured model is asked. If that client is missing, the rules class stays: `rules_only` when no ranker call failed, and `model_failed` when a ranker call failed.
 
 `--approach ab` assigns the case from a seeded hash (`config/rules/classifier.yaml`, `ab.seed` and `ab.weights`). The draft uses the assigned approach.
 
@@ -777,7 +777,8 @@ uv run --locked dispute-copilot run-all --approach ab --shadow
 | `jev_ambiguous` | Manual review. Clef and the configured model are not called. |
 | `clef_agreed` | Clef class matches the rules and is kept. |
 | `clef_ambiguous` | Manual review. The configured model is not called. |
-| `model_failed` | A ranker call failed and there is no configured-model client, so the rules class stays. A ranker disagreement with no configured-model client is manual review under this same path. |
+| `model_failed` | A ranker call failed and there is no configured-model client, so the rules class stays. |
+| `ranker_disagreed_no_model` | The ranker class differs from the rules, and the configured model is missing or the call cannot run. The rules class stays. |
 
 A class the labeled authorization does not allow is rewritten to manual review with path `authorization_conflict`. The duplicate guard can rewrite the path to `duplicate_unmatched`.
 

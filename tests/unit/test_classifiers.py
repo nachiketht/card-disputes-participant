@@ -518,6 +518,55 @@ def test_approach_three_without_a_ranker_can_still_ask_haiku():
     assert WORDING not in json.dumps(outcome.haiku)
 
 
+def test_a_ranker_disagreement_without_a_model_keeps_the_rules_class():
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    outcome = _run(
+        "3",
+        rules,
+        WORDING,
+        AUTH_NOT_SUPPLIED,
+        model=None,
+        jev=ScriptedJev("service_not_received"),
+    )
+    assert outcome.path == "ranker_disagreed_no_model"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert outcome.route == Routing.REQUEST_INFORMATION.value
+    assert MissingId.AUTHORIZATION_CONFIRMATION in outcome.decision.missing
+
+
+def test_a_clef_disagreement_without_a_model_keeps_the_rules_class():
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    clef = ScriptedJev("duplicate_charge")
+    clef.model = "clef-flash"
+    outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, model=None, jev=None, clef=clef)
+    assert clef.calls == 1
+    assert outcome.path == "ranker_disagreed_no_model"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert outcome.route == Routing.REQUEST_INFORMATION.value
+
+
+def test_a_ranker_disagreement_keeps_the_rules_class_when_the_model_call_cannot_run():
+    class Down:
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system, user
+            raise LLMError("provider timeout")
+
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    outcome = _run(
+        "3",
+        rules,
+        WORDING,
+        AUTH_NOT_SUPPLIED,
+        model=Down(),
+        jev=ScriptedJev("service_not_received"),
+    )
+    assert outcome.path == "ranker_disagreed_no_model"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert outcome.route == Routing.REQUEST_INFORMATION.value
+    assert outcome.haiku is not None
+    assert outcome.haiku["failure"] == "timeout"
+
+
 def test_a_rejected_haiku_class_on_approach_three_goes_to_manual_review():
     rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
     outcome = _run(
@@ -713,7 +762,10 @@ def test_clef_choice_includes_instructions_and_parses():
     body = client.ask("Please review the posted amount.")
     question = captured["body"]["questions"]["class"]
     assert question["type"] == "choice"
-    assert isinstance(question["instructions"], str) and question["instructions"].strip()
+    instructions = question["instructions"]
+    assert isinstance(instructions, str) and len(instructions.split()) >= 8
+    assert instructions != "class"
+    assert list(captured["body"]["questions"]) == ["class"]
     criteria = question["criteria"]
     assert isinstance(criteria, dict) and len(criteria) >= 2
     parsed = read_answer(body, 0.7)

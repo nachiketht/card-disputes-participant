@@ -1,14 +1,20 @@
-# Public list price, USD per million tokens. Checked 2026-10-26.
+# Public list price, USD per million tokens.
 # A listed model is "estimate from list price".
 # A model that is not listed is "no price configured for <model>".
 # Do not guess a number.
 # claude-haiku-4-5: input 1.00, output 5.00. Public list price. Checked 2026-10-26.
-# On Azure this is billed through Foundry consumption units at the standard
-# per-model token rates, so the figure is an estimate of the invoice.
+# claude-haiku-5-5: input 0.10, output 0.50 for prompts up to 100,000 tokens.
+# Public list price, checked 2026-10-27 (list prices effective 2026-10-07).
+# Prompts over 100K tokens are 0.50 / 2.50 and are not modelled; our prompts are far below 100K.
+# On Azure this is billed through Foundry consumption units, so the invoice may differ from list.
+# Source: https://platform.claude.com/docs/en/about-claude/pricing.md
 models:
   claude-haiku-4-5:
     input_per_million: 1.00
     output_per_million: 5.00
+  claude-haiku-5-5:
+    input_per_million: 0.10
+    output_per_million: 0.50
   # Clef models do not charge for output tokens.
   clef-flash:
     input_per_million: 0.038

@@ -61,7 +61,11 @@ def test_step_latency_uses_that_rank():
 
 def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     table = load_cost()
-    assert set(table["models"]) == {"claude-haiku-4-5", "clef-flash"}
+    assert set(table["models"]) == {"claude-haiku-4-5", "claude-haiku-5-5", "clef-flash"}
+    assert price_call("claude-haiku-5-5", 1_000_000, 2_000_000, table) == {
+        "status": "estimate from list price",
+        "usd": 1.1,
+    }
     assert price_call("claude-haiku-4-5", 1000, 500, table) == {
         "status": "estimate from list price",
         "usd": 0.0035,

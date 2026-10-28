@@ -21,7 +21,7 @@ The mock binds `127.0.0.1` inside the app. There is no public ingress and no pub
 | App | `card-disputes`, one replica, no public ingress |
 | Mock container | `mock`, port 8765, share `mock-data`, ledger in temporary storage at `/state` |
 | App container | `app`, share `app-data`, drafts in temporary storage at `/submissions`, calls `http://127.0.0.1:8765` |
-| Model | Model id from `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`). Secret name `llm-api-key` (not in git). The checklist judge checks a finished draft when it is on. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. The host is not written in this file. `claude-haiku-5-5` has no price row in `config/rules/cost.yaml`. |
+| Model | Model id from `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`). Secret name `llm-api-key` (not in git). The checklist judge checks a finished draft when it is on. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. The host is not written in this file. `claude-haiku-5-5` is priced from list in `config/rules/cost.yaml` at 0.10 USD per million input tokens and 0.50 USD per million output tokens. |
 | Ranker | Optional. `JEV_BASE_URL`, `JEV_API_KEY`, `JEV_MODEL`. Empty url or key skips Jev. Clef-flash fallback uses `CLEF_API_KEY`, `CLEF_ACCOUNT_ID`, `CLEF_MODEL`. Empty key or account skips Clef. Not set on the container template. Jev cost is unpriced. |
 | Monthly cost | unmeasured |
 

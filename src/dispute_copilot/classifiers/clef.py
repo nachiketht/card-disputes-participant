@@ -14,6 +14,10 @@ from dispute_copilot.observability.cost import price_call
 from dispute_copilot.observability.tracing import current
 
 _ACCOUNT = re.compile(r"^[0-9a-fA-F]{32}$")
+_INSTRUCTIONS = (
+    "Which dispute class best fits this customer complaint? "
+    "Pick the single best option, or ambiguous if it fits more than one or none."
+)
 _MODELS = frozenset({"clef-flash", "clef"})
 _HOST = "https://api.cloudflare.com/client/v4/accounts"
 
@@ -49,7 +53,7 @@ class ClefClient:
             "questions": {
                 _QUESTION: {
                     "type": "choice",
-                    "instructions": _QUESTION,
+                    "instructions": _INSTRUCTIONS,
                     "criteria": _criteria(),
                 }
             },

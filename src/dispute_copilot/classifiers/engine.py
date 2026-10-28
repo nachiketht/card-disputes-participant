@@ -171,8 +171,14 @@ def _after_ranker(
             chosen, path_agree, rules, jev_answer, None, started, transactions, unavailable, fields, clef_answer
         )
     if model is None:
-        return _manual(rules, "model_failed", jev_answer, None, True, started, transactions, unavailable, fields, clef_answer)
+        return _close(
+            rules, "ranker_disagreed_no_model", rules, jev_answer, None, True, started, transactions, unavailable, fields, clef_answer
+        )
     reply = call_model(model, cleaned)
+    if reply.get("failure"):
+        return _close(
+            rules, "ranker_disagreed_no_model", rules, jev_answer, reply, True, started, transactions, unavailable, fields, clef_answer
+        )
     picked = known_class(str(reply.get("class") or "")) if reply.get("accepted") else None
     ranker_class = known_class(str(answer.get("class") or ""))
     allowed = {rules.classification, ranker_class}
