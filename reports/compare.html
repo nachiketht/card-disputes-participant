@@ -1,0 +1,806 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Comparison</title><style>
+:root {
+  color-scheme: light;
+  --bg: #f7f5f1;
+  --bg-soft: #e8eef0;
+  --ink: #1a1f22;
+  --ink-soft: #5a656c;
+  --ink-faint: #8a969d;
+  --line: rgba(26,31,34,0.12);
+  --accent: #2f5f63;
+  --accent-soft: #c5d5d7;
+  --card: #fbfcfc;
+  --shadow: 0 30px 60px rgba(26,31,34,0.12);
+  --focus: rgba(47,95,99,0.45);
+  --warn: #7a4e24;
+  --warn-bg: #f4ecdf;
+  --bad: #7a332e;
+  --bad-bg: #f6e7e4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121618;
+    --bg-soft: #1a2022;
+    --ink: #e8ecee;
+    --ink-soft: #a3adb3;
+    --ink-faint: #7a858c;
+    --line: rgba(232,236,238,0.12);
+    --accent: #7eb0b4;
+    --accent-soft: #2a4548;
+    --card: #1a1f22;
+    --shadow: 0 30px 60px rgba(0,0,0,0.45);
+    --focus: rgba(126,176,180,0.5);
+    --warn: #e0c09a;
+    --warn-bg: #2a241c;
+    --bad: #e7b1a8;
+    --bad-bg: #2c211f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121618;
+  --bg-soft: #1a2022;
+  --ink: #e8ecee;
+  --ink-soft: #a3adb3;
+  --ink-faint: #7a858c;
+  --line: rgba(232,236,238,0.12);
+  --accent: #7eb0b4;
+  --accent-soft: #2a4548;
+  --card: #1a1f22;
+  --shadow: 0 30px 60px rgba(0,0,0,0.45);
+  --focus: rgba(126,176,180,0.5);
+  --warn: #e0c09a;
+  --warn-bg: #2a241c;
+  --bad: #e7b1a8;
+  --bad-bg: #2c211f;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f5f1;
+  --bg-soft: #e8eef0;
+  --ink: #1a1f22;
+  --ink-soft: #5a656c;
+  --ink-faint: #8a969d;
+  --line: rgba(26,31,34,0.12);
+  --accent: #2f5f63;
+  --accent-soft: #c5d5d7;
+  --card: #fbfcfc;
+  --shadow: 0 30px 60px rgba(26,31,34,0.12);
+  --focus: rgba(47,95,99,0.45);
+  --warn: #7a4e24;
+  --warn-bg: #f4ecdf;
+  --bad: #7a332e;
+  --bad-bg: #f6e7e4;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.6 "Inter", system-ui, sans-serif; }
+header, main { width:min(1120px, calc(100% - 48px)); margin:0 auto; }
+header { padding:48px 0 8px; }
+.top { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.mark { letter-spacing:.16em; text-transform:uppercase; font-size:12px; color:var(--accent); margin:0; }
+a.mark { text-decoration:none; }
+#theme-toggle, .replay button, .path-picks select, .filters input, .filters select {
+  font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:999px;
+}
+#theme-toggle { padding:6px 14px; }
+h1, h2, h3 { font-family:"Instrument Serif", Georgia, serif; font-weight:400; }
+h1 { font-size:52px; line-height:1.05; margin:18px 0 12px; }
+.lede { max-width:62ch; color:var(--ink-soft); margin:0 0 28px; }
+main { display:grid; gap:28px; padding-bottom:64px; min-width:0; }
+section { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px 32px 32px; box-shadow:var(--shadow); min-width:0; }
+#headline, #summaries, #client { background:transparent; border:0; box-shadow:none; padding:0; }
+.status-line { margin:18px 0 0; max-width:68ch; }
+.links { display:flex; gap:18px; align-items:center; }
+main > details { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px 24px 8px; box-shadow:var(--shadow); }
+main > details > summary { font-family:"Instrument Serif", Georgia, serif; font-size:28px; font-weight:400; cursor:pointer; }
+.safety-line { margin:16px 0 0; }
+.summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.summary-grid article { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px 24px 18px; box-shadow:var(--shadow); }
+.summary-grid h2 { font-size:28px; }
+#technical { background:transparent; border:0; box-shadow:none; padding:0 0 12px; }
+#technical > summary { font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; cursor:pointer; width:max-content; }
+.tech { display:grid; gap:28px; margin-top:18px; }
+h2 { font-size:32px; line-height:1.15; margin:0 0 18px; }
+h3 { font-size:22px; margin:28px 0 10px; }
+.num { color:var(--accent); margin-right:10px; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:14px; }
+.stats div { background:var(--bg-soft); border-radius:16px; padding:14px 16px; }
+.stats p { margin:0; color:var(--ink-soft); font-size:12px; text-transform:uppercase; letter-spacing:.06em; }
+.stats strong { display:block; margin-top:6px; font-family:"Instrument Serif", Georgia, serif; font-size:32px; font-weight:400; line-height:1.15; }
+.note, .empty { color:var(--ink-soft); }
+.note.muted { font-size:13px; }
+.ok { color:var(--accent); }
+.alerts { margin:12px 0; padding-left:18px; color:var(--warn); }
+table { width:100%; border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums; }
+th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--ink-soft); font-weight:600; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+td.pass { color:var(--accent); font-weight:600; }
+td.fail { color:var(--bad); font-weight:600; }
+td.num { text-align:right; }
+.tech details { border-top:1px solid var(--line); padding:12px 0; }
+.tech summary { font-weight:600; }
+summary em { color:var(--ink-soft); font-style:normal; font-weight:400; margin-left:8px; }
+.step { display:grid; grid-template-columns:minmax(140px, 220px) minmax(80px, 1fr) 72px minmax(80px, 220px); gap:8px; align-items:center; margin:6px 0; font-size:13px; }
+.step.sub .step-name { color:var(--ink-soft); }
+.track { height:8px; background:var(--bg-soft); border-radius:99px; overflow:hidden; }
+.fill { display:block; height:100%; background:var(--accent); border-radius:99px; }
+.step.sub .fill { background:var(--accent-soft); }
+.ms { text-align:right; font-variant-numeric:tabular-nums; }
+.detail { color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chart { width:100%; height:auto; margin:12px 0 16px; color:var(--ink); }
+.chart rect { fill:var(--accent); }
+.filters, .path-picks, .replay { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:8px 0 16px; }
+.filters input, .filters select, .path-picks select { border-radius:12px; padding:8px 10px; }
+.path-grid { display:flex; flex-direction:column; gap:28px; }
+.path-pane { background:var(--bg); border-radius:16px; padding:16px 16px 12px; min-width:0; }
+.path-summary { min-height:1.6em; color:var(--ink-soft); margin:0 0 8px; }
+.zoom { display:flex; gap:8px; margin:0 0 10px; }
+.zoom button, .replay button { padding:6px 12px; }
+.flow-scroll { overflow:auto; max-width:100%; min-width:0; padding-bottom:8px; }
+.flow-scale { transform-origin: top left; }
+.flow { display:block; }
+.col-title { fill:var(--ink); font-family:"Instrument Serif", Georgia, serif; font-size:18px; }
+.human-band { fill:var(--bg-soft); stroke:var(--line); }
+.edge { fill:none; }
+.edge-flow { stroke:var(--accent); stroke-width:2.4; }
+.edge-faint { stroke:var(--ink-faint); stroke-width:1; opacity:.55; }
+.edge-dashed { stroke:var(--bad); stroke-width:1.6; stroke-dasharray:5 4; }
+.edge-travel { stroke:var(--accent); stroke-width:3; }
+.arrow-flow { fill:var(--accent); }
+.arrow-faint { fill:var(--ink-faint); }
+.arrow-dashed { fill:var(--bad); }
+.loop-arrow { stroke:var(--warn); stroke-width:1.4; }
+.join-shape { fill:var(--card); stroke:var(--accent); stroke-width:1.4; }
+.diamond-label { fill:var(--ink); font:12px "Inter", system-ui, sans-serif; }
+.travel-dot { fill:var(--accent); }
+.node {
+  width:100%; height:100%; box-sizing:border-box; text-align:left; position:relative;
+  background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px;
+  padding:8px 10px 8px 14px; cursor:pointer; font:12.5px/1.35 "Inter", system-ui, sans-serif;
+}
+.node .stripe { position:absolute; left:0; top:0; bottom:0; width:5px; border-radius:16px 0 0 16px; background:var(--accent); }
+.node-label { display:block; font-weight:600; }
+.node-meta, .node-state { display:block; color:var(--ink-soft); }
+.node-state { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); }
+.badge { display:inline-block; margin-top:4px; padding:1px 6px; border-radius:999px; background:var(--warn-bg); color:var(--warn); font-size:11px; }
+.chip { display:inline-block; margin:4px 4px 0 0; padding:1px 6px; border-radius:999px; border:1px solid var(--line); background:var(--bg-soft); color:var(--ink); font-size:11px; }
+.chip.is-fail { background:var(--bad-bg); color:var(--bad); }
+.chip.is-retry { box-shadow:inset 0 0 0 1px var(--warn); }
+.node.is-fail { background:var(--bad-bg); }
+.node.is-fail .stripe { background:var(--bad); }
+.node.is-fail .node-state { color:var(--bad); }
+.node.is-retry .node-state { color:var(--warn); }
+.node.is-injection { box-shadow:inset 0 0 0 1px var(--warn); }
+.node.is-chosen { box-shadow:inset 0 0 0 1.5px var(--accent); }
+.node.is-faded { background:transparent; border-style:dashed; }
+.node.is-faded .stripe { background:var(--line); }
+.node.is-faded .node-state { color:var(--ink-soft); }
+.node.is-skipped { border-style:dashed; color:var(--ink-soft); }
+.node.is-skipped .stripe { background:var(--line); }
+.node.is-skipped .node-state { color:var(--ink-soft); }
+.node.is-future, .chip.is-future { opacity:.38; }
+.node.is-current { outline:2px solid var(--accent); outline-offset:2px; }
+.chip.is-current { outline:1px solid var(--accent); }
+.replay button[aria-pressed="true"] { background:var(--accent-soft); color:var(--ink); }
+.scrub { display:flex; align-items:center; gap:8px; color:var(--ink-soft); flex:1; min-width:160px; }
+.scrub input { flex:1; accent-color:var(--accent); }
+.path-detail {
+  margin:8px 0 0; white-space:pre-wrap; font:13px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  background:var(--bg-soft); border-radius:12px; padding:12px; min-height:3em; color:var(--ink);
+}
+.log-scroll { max-height:420px; overflow:auto; }
+code { font-size:.92em; }
+:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+@media (max-width: 800px) {
+  h1 { font-size:40px; }
+  section { padding:20px; border-radius:16px; }
+  .summary-grid { grid-template-columns:1fr; }
+  .step { grid-template-columns:minmax(0, 1fr) 64px; }
+  .detail { display:none; }
+}
+</style></head><body><header><div class="top"><a class="mark" href="status.html">Run status</a><p class="mark">Read-only</p><button type="button" id="theme-toggle">Dark</button></div><h1>Comparison</h1><p class="lede">Saved classification runs. The five rates are wrong-label, auto-routed but wrong, manual review, list-price cost per case, and latency p95. This page has case ids and counts. It does not include complaint text.</p></header><main><section id="approaches"><h2>Approaches</h2><p class="note">Wrong-label rate uses every case with a reviewer category. Auto-routed but wrong uses only those cases whose route is ready_for_review. Manual review is that route over cases run. Cost per case is list-price USD for the configured model and Jev, over cases run. Jev is priced from the vendor list in config/rules/cost.yaml at 0.042 USD per million input tokens, and output tokens are free. A case with no priced call adds zero. Latency p95 is the classification audit.</p><table><thead><tr><th>Approach</th><th>Cases run</th><th>Wrong-label rate</th><th>Auto-routed but wrong</th><th>Manual review</th><th>Cost per case</th><th>Latency p95</th></tr></thead><tbody><tr><td>1</td><td>12</td><td>0 of 1 (0.00)</td><td>—</td><td>3 of 12 (0.25)</td><td>0.000000 USD. No priced call</td><td>0.01</td></tr><tr><td>2</td><td>12</td><td>0 of 1 (0.00)</td><td>—</td><td>3 of 12 (0.25)</td><td>0.000006 USD</td><td>1272.149</td></tr><tr><td>3</td><td>12</td><td>0 of 1 (0.00)</td><td>—</td><td>3 of 12 (0.25)</td><td>0.000003 USD</td><td>126.059</td></tr></tbody></table><p class="note">Approach 1 wrong-label sample size 1 is below 30. Too small to conclude.</p><p class="note">Approach 1 auto-routed sample size 0 is below 30. Too small to conclude.</p><p class="note">Approach 2 wrong-label sample size 1 is below 30. Too small to conclude.</p><p class="note">Approach 2 auto-routed sample size 0 is below 30. Too small to conclude.</p><p class="note">Approach 3 wrong-label sample size 1 is below 30. Too small to conclude.</p><p class="note">Approach 3 auto-routed sample size 0 is below 30. Too small to conclude.</p></section><section id="when-wins"><h2>When each approach wins</h2><p class="note" id="threshold-label">Proposed thresholds, to be confirmed by the A/B test. Not measured results.</p><table><thead><tr><th>False positives and false negatives</th><th>What to use</th></tr></thead><tbody><tr><td>False positives under 10% and false negatives under the ceiling (2%)</td><td>Approach 1: cheapest and fastest; a model adds little.</td></tr><tr><td>False positives 10% to 40% and false negatives under the ceiling</td><td>Approach 3: most flagged cases are truly ambiguous; Jev saves Haiku calls.</td></tr><tr><td>False positives over 40% and false negatives under the ceiling</td><td>Approach 2: most flagged cases are really clear; Haiku helps nearly every time; Jev only adds cost and delay.</td></tr></tbody></table><p class="note">Above the false-negative ceiling, an approach is out, whatever its other numbers.</p></section><section id="agreement"><h2>Agreement</h2><p class="note">Each cell is the cases that share a class, over the cases saved for that pair.</p><table><thead><tr><th>Agreement</th><th>1</th><th>2</th><th>3</th></tr></thead><tbody><tr><th>1</th><td>12 / 12</td><td>12 / 12</td><td>12 / 12</td></tr><tr><th>2</th><td>12 / 12</td><td>12 / 12</td><td>12 / 12</td></tr><tr><th>3</th><td>12 / 12</td><td>12 / 12</td><td>12 / 12</td></tr></tbody></table></section><section id="disagreements"><h2>Disagreeing cases</h2><p>Approaches 1 and 2 agree on every shared case.</p><p>Approaches 1 and 3 agree on every shared case.</p><p>Approaches 2 and 3 agree on every shared case.</p></section><details id="technical"><summary>Technical details</summary><div class="tech"><section id="case-costs"><h2>Per case</h2><p class="note">Fallback used names the answering model when the configured model could not answer.</p><table><thead><tr><th>Approach</th><th>Case</th><th>Class</th><th>Route</th><th>Latency ms</th><th>Haiku USD</th><th>Jev USD</th><th>Fallback used</th></tr></thead><tbody><tr><td>1</td><td>CARD-D01</td><td>unauthorized</td><td>ready_for_review</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D02</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.01</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D03</td><td>service_not_received</td><td>ready_for_review</td><td>0.006</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D04</td><td>unauthorized</td><td>request_information</td><td>0.003</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D05</td><td>ambiguous</td><td>manual_review</td><td>0.002</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D06</td><td>unsupported</td><td>manual_review</td><td>0.007</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D07</td><td>unauthorized</td><td>manual_review</td><td>0.005</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D08</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.006</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D09</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.005</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D10</td><td>service_not_received</td><td>ready_for_review</td><td>0.005</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D11</td><td>unauthorized</td><td>ready_for_review</td><td>0.002</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>1</td><td>CARD-D12</td><td>service_not_received</td><td>request_information</td><td>0.003</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D01</td><td>unauthorized</td><td>ready_for_review</td><td>0.01</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D02</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.014</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D03</td><td>service_not_received</td><td>ready_for_review</td><td>0.002</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D04</td><td>unauthorized</td><td>request_information</td><td>1272.149</td><td>0.000073</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D05</td><td>ambiguous</td><td>manual_review</td><td>0.006</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D06</td><td>unsupported</td><td>manual_review</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D07</td><td>unauthorized</td><td>manual_review</td><td>0.005</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D08</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.008</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D09</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.013</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D10</td><td>service_not_received</td><td>ready_for_review</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D11</td><td>unauthorized</td><td>ready_for_review</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>2</td><td>CARD-D12</td><td>service_not_received</td><td>request_information</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D01</td><td>unauthorized</td><td>ready_for_review</td><td>0.002</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D02</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.003</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D03</td><td>service_not_received</td><td>ready_for_review</td><td>0.009</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D04</td><td>unauthorized</td><td>request_information</td><td>126.059</td><td>unpriced</td><td>0.000031</td><td>no</td></tr><tr><td>3</td><td>CARD-D05</td><td>ambiguous</td><td>manual_review</td><td>0.006</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D06</td><td>unsupported</td><td>manual_review</td><td>0.003</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D07</td><td>unauthorized</td><td>manual_review</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D08</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.006</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D09</td><td>duplicate_charge</td><td>ready_for_review</td><td>0.008</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D10</td><td>service_not_received</td><td>ready_for_review</td><td>0.003</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D11</td><td>unauthorized</td><td>ready_for_review</td><td>0.003</td><td>unpriced</td><td>unpriced</td><td>no</td></tr><tr><td>3</td><td>CARD-D12</td><td>service_not_received</td><td>request_information</td><td>0.004</td><td>unpriced</td><td>unpriced</td><td>no</td></tr></tbody></table></section></div></details></main>
+<script>
+(function () {
+  var root = document.documentElement;
+  var toggle = document.getElementById("theme-toggle");
+  function systemDark() {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function themeNow() {
+    var chosen = root.getAttribute("data-theme");
+    if (chosen === "dark" || chosen === "light") return chosen;
+    return systemDark() ? "dark" : "light";
+  }
+  function applyTheme(theme) {
+    if (theme === "dark" || theme === "light") root.setAttribute("data-theme", theme);
+    if (toggle) toggle.textContent = themeNow() === "dark" ? "Light" : "Dark";
+  }
+  var stored = null;
+  try { stored = localStorage.getItem("status-theme"); } catch (err) { stored = null; }
+  if (stored === "dark" || stored === "light") applyTheme(stored);
+  else if (toggle) toggle.textContent = themeNow() === "dark" ? "Light" : "Dark";
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      var next = themeNow() === "dark" ? "light" : "dark";
+      try { localStorage.setItem("status-theme", next); } catch (err) {}
+      applyTheme(next);
+    });
+  }
+
+  var count = document.getElementById("log-count");
+  if (count && document.getElementById("f-run")) {
+    var filterIds = ["f-run", "f-case", "f-span", "f-event", "f-level"];
+    function applyLogs() {
+      var run = document.getElementById("f-run").value.trim().toLowerCase();
+      var caseId = document.getElementById("f-case").value.trim().toLowerCase();
+      var span = document.getElementById("f-span").value.trim().toLowerCase();
+      var eventName = document.getElementById("f-event").value.trim().toLowerCase();
+      var level = document.getElementById("f-level").value.trim().toLowerCase();
+      var rows = document.querySelectorAll("#log-table tbody tr");
+      var shown = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var show = (!run || (row.dataset.run || "").toLowerCase().indexOf(run) !== -1)
+          && (!caseId || (row.dataset.case || "").toLowerCase().indexOf(caseId) !== -1)
+          && (!span || (row.dataset.span || "").toLowerCase().indexOf(span) !== -1)
+          && (!eventName || (row.dataset.event || "").toLowerCase().indexOf(eventName) !== -1)
+          && (!level || (row.dataset.level || "").toLowerCase() === level);
+        row.hidden = !show;
+        if (show) shown += 1;
+      }
+      var older = "";
+      var hidden = count.getAttribute("data-hidden");
+      if (hidden && hidden !== "0") {
+        older = ", showing " + count.getAttribute("data-limit") + ", " + hidden + " older lines left out";
+      }
+      count.textContent = shown + " of " + count.getAttribute("data-total") + " lines" + older;
+    }
+    for (var j = 0; j < filterIds.length; j++) {
+      document.getElementById(filterIds[j]).addEventListener("input", applyLogs);
+      document.getElementById(filterIds[j]).addEventListener("change", applyLogs);
+    }
+    applyLogs();
+  }
+
+  var dataEl = document.getElementById("path-data");
+  if (!dataEl) return;
+  var paths = [];
+  try { paths = JSON.parse(dataEl.textContent || "[]"); } catch (err) { paths = []; }
+  var svgNS = (function () {
+    var probe = document.createElement("div");
+    probe.innerHTML = "<svg></svg>";
+    return probe.firstChild.namespaceURI;
+  })();
+  var COL_ORDER = ["intake", "evidence", "ledger", "rules", "draft", "checklist", "human", "other"];
+  var NODE_W = 168;
+  var SLOT_GAP = 16;
+  var COL_GAP = 48;
+  var ROW_GAP = 28;
+
+  function cases() {
+    var list = [];
+    paths.forEach(function (path) { if (list.indexOf(path.case) === -1) list.push(path.case); });
+    return list;
+  }
+  function runsFor(caseId) {
+    var list = [];
+    paths.forEach(function (path) {
+      if (path.case === caseId && list.indexOf(path.run) === -1) list.push(path.run);
+    });
+    return list;
+  }
+  function findPath(caseId, runId) {
+    for (var i = 0; i < paths.length; i++) {
+      if (paths[i].case === caseId && paths[i].run === runId) return paths[i];
+    }
+    return null;
+  }
+  function fillSelect(select, values, current) {
+    while (select.firstChild) select.removeChild(select.firstChild);
+    values.forEach(function (value) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = value || "(none)";
+      if (value === current) option.selected = true;
+      select.appendChild(option);
+    });
+  }
+  function formatMs(value) {
+    if (value === null || value === undefined) return "not run";
+    var text = String(Math.round(Number(value) * 1000) / 1000);
+    return text + " ms";
+  }
+  function el(name) { return document.createElementNS(svgNS, name); }
+  function columnSet() {
+    var needOther = false;
+    paths.forEach(function (path) {
+      (path.diagram && path.diagram.nodes || []).forEach(function (node) {
+        if (node.column === "other") needOther = true;
+      });
+    });
+    var titles = {};
+    paths.forEach(function (path) {
+      (path.diagram && path.diagram.columns || []).forEach(function (column) { titles[column.id] = column; });
+    });
+    return COL_ORDER.filter(function (id) { return id !== "other" || needOther; }).map(function (id) {
+      return titles[id] || {id: id, title: id, human: id === "human"};
+    });
+  }
+  function slotsFor(columns) {
+    var slots = {intake: 1, evidence: 2, ledger: 1, rules: 2, draft: 1, checklist: 1, human: 1, other: 1};
+    paths.forEach(function (path) {
+      (path.diagram && path.diagram.nodes || []).forEach(function (node) {
+        var need = (node.slot || 0) + (node.kind === "side" ? 1 : 1);
+        if ((slots[node.column] || 1) < (node.slot || 0) + 1) slots[node.column] = (node.slot || 0) + 1;
+        if (need > (slots[node.column] || 1) && node.span > 1) slots[node.column] = Math.max(slots[node.column] || 1, node.span);
+      });
+    });
+    columns.forEach(function (column) { if (!slots[column.id]) slots[column.id] = 1; });
+    return slots;
+  }
+  function nodeHeight(node) {
+    if (node.kind === "fork" || node.kind === "join") return 52;
+    return 92 + ((node.chips && node.chips.length) || 0) * 18;
+  }
+  function statusText(node) {
+    if (node.faded) return "not taken";
+    if (!node.ran) return "not run";
+    var bits = [];
+    (node.marks || []).forEach(function (mark) {
+      if (bits.indexOf(mark) === -1) bits.push(mark);
+    });
+    if (!bits.length) bits.push("ok");
+    return bits.join(" · ");
+  }
+  function detailText(node) {
+    var lines = [node.label || "", node.name || ""];
+    lines.push(node.ran ? formatMs(node.duration_ms) : "not run");
+    if (node.record_status) lines.push("status=" + node.record_status);
+    lines.push(statusText(node));
+    if (node.summary) lines.push(node.summary);
+    (node.chips || []).forEach(function (chip) { lines.push(chip.label || ""); });
+    var attrs = node.attrs || {};
+    Object.keys(attrs).forEach(function (key) { lines.push(key + "=" + String(attrs[key])); });
+    (node.logs || []).forEach(function (row) { lines.push(row.level + " " + row.event + " " + row.text); });
+    return lines.join(String.fromCharCode(10));
+  }
+  function summaryText(path) {
+    if (!path) return "No saved steps.";
+    var bits = [];
+    if (path.ended) bits.push("Ended in " + path.ended);
+    if (path.injection) bits.push("Injection flagged");
+    if (!bits.length) bits.push("Saved steps");
+    return bits.join(". ");
+  }
+  function place(path, columns, slots) {
+    var colX = {};
+    var colW = {};
+    var x_pos = 20;
+    columns.forEach(function (column) {
+      if (column.human) x_pos += 36;
+      colX[column.id] = x_pos;
+      var count = slots[column.id] || 1;
+      colW[column.id] = count * NODE_W + (count - 1) * SLOT_GAP;
+      x_pos += colW[column.id] + COL_GAP;
+    });
+    var rows = {};
+    (path.diagram.nodes || []).forEach(function (node) {
+      var key = node.column;
+      if (!rows[key]) rows[key] = {};
+      var stack = node.stack || 0;
+      if (!rows[key][stack]) rows[key][stack] = [];
+      rows[key][stack].push(node);
+    });
+    var pos = {};
+    var bottom = 72;
+    columns.forEach(function (column) {
+      var stacks = Object.keys(rows[column.id] || {}).map(function (key) { return Number(key); }).sort(function (a, b) { return a - b; });
+      var y = 48;
+      stacks.forEach(function (stack) {
+        var group = rows[column.id][stack];
+        var height = 0;
+        group.forEach(function (node) { height = Math.max(height, nodeHeight(node)); });
+        group.forEach(function (node) {
+          var width = node.span > 1 ? (node.span * NODE_W + (node.span - 1) * SLOT_GAP) : NODE_W;
+          var x = colX[column.id] + (node.slot || 0) * (NODE_W + SLOT_GAP);
+          if (node.kind === "fork" || node.kind === "join") {
+            width = 22;
+            x = colX[column.id] + (colW[column.id] - 22) / 2;
+          }
+          pos[node.id] = {x: x, y: y, w: width, h: height, column: column.id, node: node};
+          bottom = Math.max(bottom, y + height);
+        });
+        y += height + ROW_GAP;
+      });
+    });
+    return {pos: pos, width: x_pos + 8, height: bottom + 24, colX: colX, colW: colW};
+  }
+  function curve(a, b) {
+    if (!a || !b) return "";
+    if (a.column === b.column && b.y >= a.y) {
+      var x = a.x + a.w / 2;
+      return "M" + x + "," + (a.y + a.h) + " L" + x + "," + b.y;
+    }
+    var x1 = a.x + a.w;
+    var y1 = a.y + a.h / 2;
+    var x2 = b.x;
+    var y2 = b.y + b.h / 2;
+    if (x2 < x1) {
+      x1 = a.x + a.w / 2;
+      y1 = a.y + a.h;
+      x2 = b.x + b.w / 2;
+      y2 = b.y;
+    }
+    var mid = (x1 + x2) / 2;
+    return "M" + x1 + "," + y1 + " C" + mid + "," + y1 + " " + mid + "," + y2 + " " + x2 + "," + y2;
+  }
+  function marker(defs, id, tone) {
+    var mark = el("marker");
+    mark.setAttribute("id", id);
+    mark.setAttribute("viewBox", "0 0 10 10");
+    mark.setAttribute("refX", "8");
+    mark.setAttribute("refY", "5");
+    mark.setAttribute("markerWidth", "8");
+    mark.setAttribute("markerHeight", "8");
+    mark.setAttribute("orient", "auto");
+    var head = el("path");
+    head.setAttribute("d", "M0,0 L10,5 L0,10 Z");
+    head.setAttribute("class", "arrow-head arrow-" + tone);
+    mark.appendChild(head);
+    defs.appendChild(mark);
+  }
+  function addPath(parent, d, kind, id) {
+    var edge = el("path");
+    edge.setAttribute("d", d);
+    edge.setAttribute("class", "edge edge-" + kind);
+    if (id) edge.setAttribute("data-edge", id);
+    edge.setAttribute("fill", "none");
+    parent.appendChild(edge);
+    return edge;
+  }
+  function draw(host, detail, path, shown, highlight, columns, slots) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+    if (!path || !path.diagram) {
+      host.textContent = "No saved steps.";
+      return null;
+    }
+    var laid = place(path, columns, slots);
+    var svg = el("svg");
+    svg.setAttribute("class", "flow");
+    svg.setAttribute("role", "group");
+    svg.setAttribute("aria-label", "Workflow for " + (path.case || "case"));
+    svg.setAttribute("width", String(laid.width));
+    svg.setAttribute("height", String(laid.height));
+    svg.setAttribute("viewBox", "0 0 " + laid.width + " " + laid.height);
+    var defs = el("defs");
+    marker(defs, "arrow-flow-" + host.id, "flow");
+    marker(defs, "arrow-faint-" + host.id, "faint");
+    marker(defs, "arrow-dashed-" + host.id, "dashed");
+    svg.appendChild(defs);
+    columns.forEach(function (column) {
+      if (!column.human || laid.colX[column.id] === undefined) return;
+      var band = el("rect");
+      band.setAttribute("class", "human-band");
+      band.setAttribute("x", String(laid.colX[column.id] - 16));
+      band.setAttribute("y", "8");
+      band.setAttribute("width", String(laid.colW[column.id] + 32));
+      band.setAttribute("height", String(laid.height - 16));
+      band.setAttribute("rx", "18");
+      svg.appendChild(band);
+    });
+    columns.forEach(function (column) {
+      if (laid.colX[column.id] === undefined) return;
+      var title = el("text");
+      title.setAttribute("class", "col-title");
+      title.setAttribute("x", String(laid.colX[column.id]));
+      title.setAttribute("y", "28");
+      title.textContent = column.title;
+      svg.appendChild(title);
+    });
+    var edges = el("g");
+    (path.diagram.edges || []).forEach(function (edge) {
+      var from = laid.pos[edge.from];
+      var to = laid.pos[edge.to];
+      if (!from || !to) return;
+      var kind = edge.kind || "faint";
+      var target = (path.diagram.nodes || []).filter(function (node) { return node.id === edge.to; })[0];
+      var source = (path.diagram.nodes || []).filter(function (node) { return node.id === edge.from; })[0];
+      if (shown < (path.diagram.beats || []).length) {
+        var targetBeat = target && target.beat !== null && target.beat !== undefined ? target.beat : null;
+        var sourceBeat = source && source.beat !== null && source.beat !== undefined ? source.beat : null;
+        var revealed = (targetBeat === null || targetBeat < shown) && (sourceBeat === null || sourceBeat < shown);
+        if (!revealed && kind === "flow") kind = "faint";
+      }
+      var drawn = addPath(edges, curve(from, to), kind, edge.from + ">" + edge.to);
+      drawn.setAttribute("marker-end", "url(#arrow-" + kind + "-" + host.id + ")");
+    });
+    svg.appendChild(edges);
+    (path.diagram.nodes || []).forEach(function (node) {
+      var box = laid.pos[node.id];
+      if (!box) return;
+      if (node.kind === "fork" || node.kind === "join") {
+        var caption = String(node.label || "").trim();
+        if (!caption) return;
+        var group = el("g");
+        group.setAttribute("role", "img");
+        group.setAttribute("aria-label", caption);
+        var shape = el("polygon");
+        var cx = box.x + box.w / 2;
+        var top = box.y;
+        var size = 22;
+        var cy = top + size / 2;
+        shape.setAttribute("points", cx + "," + top + " " + (box.x + box.w) + "," + cy + " " + cx + "," + (top + size) + " " + box.x + "," + cy);
+        shape.setAttribute("class", "join-shape");
+        var tip = el("title");
+        tip.textContent = node.tip || caption;
+        var text = el("text");
+        text.setAttribute("class", "diamond-label");
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("x", String(cx));
+        text.setAttribute("y", String(top + size + 16));
+        text.textContent = caption;
+        group.appendChild(tip);
+        group.appendChild(shape);
+        group.appendChild(text);
+        svg.appendChild(group);
+        return;
+      }
+      if (node.loop) {
+        var loop = el("path");
+        var lx = box.x + box.w - 4;
+        var ly = box.y + 6;
+        loop.setAttribute("d", "M" + lx + "," + (ly + 16) + " C" + (lx + 18) + "," + ly + " " + (lx + 18) + "," + (ly + 30) + " " + lx + "," + (ly + 20));
+        loop.setAttribute("class", "loop-arrow");
+        loop.setAttribute("fill", "none");
+        svg.appendChild(loop);
+      }
+      var holder = el("foreignObject");
+      holder.setAttribute("x", String(box.x));
+      holder.setAttribute("y", String(box.y));
+      holder.setAttribute("width", String(box.w));
+      holder.setAttribute("height", String(box.h));
+      var button = document.createElement("button");
+      button.type = "button";
+      var future = node.beat !== null && node.beat !== undefined && node.beat >= shown;
+      var current = false;
+      if (highlight && shown > 0) {
+        var beat = (path.diagram.beats || [])[shown - 1];
+        current = beat && beat.node === node.id;
+      }
+      var className = "node";
+      if (future) className += " is-future";
+      if (current) className += " is-current";
+      if (node.faded) className += " is-faded";
+      if (!node.ran) className += " is-skipped";
+      (node.marks || []).forEach(function (mark) {
+        if (mark === "fail") className += " is-fail";
+        if (mark === "retry") className += " is-retry";
+        if (mark === "injection") className += " is-injection";
+      });
+      if (node.chosen) className += " is-chosen";
+      button.className = className;
+      button.setAttribute("aria-label", (node.label || "Step") + ", " + statusText(node) + ", " + (node.ran ? formatMs(node.duration_ms) : "not run"));
+      var stripe = document.createElement("span");
+      stripe.className = "stripe";
+      stripe.setAttribute("aria-hidden", "true");
+      button.appendChild(stripe);
+      var title = document.createElement("span");
+      title.className = "node-label";
+      title.textContent = node.label || "";
+      button.appendChild(title);
+      var meta = document.createElement("span");
+      meta.className = "node-meta";
+      meta.textContent = node.ran ? formatMs(node.duration_ms) : "not run";
+      button.appendChild(meta);
+      var state = document.createElement("span");
+      state.className = "node-state";
+      state.textContent = statusText(node);
+      button.appendChild(state);
+      if (node.badge) {
+        var badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = node.badge;
+        button.appendChild(badge);
+      }
+      (node.chips || []).forEach(function (chip) {
+        var pill = document.createElement("span");
+        var chipClass = "chip";
+        if (chip.fail) chipClass += " is-fail";
+        if (chip.retry) chipClass += " is-retry";
+        if (highlight && shown > 0 && chip.beat === shown - 1) chipClass += " is-current";
+        if (chip.beat !== null && chip.beat !== undefined && chip.beat >= shown) chipClass += " is-future";
+        pill.className = chipClass;
+        pill.textContent = chip.label || "";
+        button.appendChild(pill);
+      });
+      button.addEventListener("click", function () { detail.textContent = detailText(node); });
+      holder.appendChild(button);
+      svg.appendChild(holder);
+    });
+    host.appendChild(svg);
+    return laid;
+  }
+  function bind(side, index) {
+    var caseSelect = document.getElementById("path-case-" + side);
+    var runSelect = document.getElementById("path-run-" + side);
+    var host = document.getElementById("path-scale-" + side);
+    var scroll = document.getElementById("path-scroll-" + side);
+    var detail = document.getElementById("path-detail-" + side);
+    var summary = document.getElementById("path-summary-" + side);
+    var range = document.getElementById("path-scrub-" + side);
+    var replay = document.getElementById("path-replay-" + side);
+    var pane = document.getElementById("path-pane-" + side);
+    var columns = columnSet();
+    var slots = slotsFor(columns);
+    var state = {timer: null, raf: null, speed: 1, playing: false, paused: false, zoom: 1, laid: null};
+    function current() { return findPath(caseSelect.value, runSelect.value); }
+    function clearMotion() {
+      if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+      if (state.raf) { cancelAnimationFrame(state.raf); state.raf = null; }
+    }
+    function applyZoom() {
+      host.style.transform = "scale(" + state.zoom + ")";
+      host.style.transformOrigin = "top left";
+      var svg = host.querySelector("svg");
+      if (!svg) return;
+      var width = Number(svg.getAttribute("width")) || 0;
+      var height = Number(svg.getAttribute("height")) || 0;
+      host.style.width = Math.ceil(width * state.zoom) + "px";
+      host.style.height = Math.ceil(height * state.zoom) + "px";
+    }
+    function show(path, shown, animate) {
+      if (!path) {
+        summary.textContent = "No saved steps.";
+        host.textContent = "No saved steps.";
+        return;
+      }
+      summary.textContent = summaryText(path);
+      var total = (path.diagram.beats || []).length;
+      range.max = String(total);
+      range.value = String(Math.max(0, Math.min(shown, total)));
+      state.laid = draw(host, detail, path, Number(range.value), state.playing || state.paused, columns, slots);
+      applyZoom();
+      if (animate && state.playing) travel(path, Number(range.value));
+    }
+    function travel(path, shown) {
+      if (shown <= 0) return;
+      var beats = path.diagram.beats || [];
+      var curr = beats[shown - 1];
+      var prev = shown > 1 ? beats[shown - 2] : null;
+      if (!curr || !state.laid) return;
+      var svg = host.querySelector("svg");
+      if (!svg) return;
+      var from = prev ? state.laid.pos[prev.node] : null;
+      var to = state.laid.pos[curr.node];
+      if (!to) return;
+      var d = from && prev.node !== curr.node ? curve(from, to) : "";
+      if (!d && to.node && to.node.loop) {
+        var lx = to.x + to.w - 4;
+        var ly = to.y + 6;
+        d = "M" + lx + "," + (ly + 16) + " C" + (lx + 18) + "," + ly + " " + (lx + 18) + "," + (ly + 30) + " " + lx + "," + (ly + 20);
+      }
+      if (!d) {
+        state.timer = setTimeout(step, Math.round(700 / state.speed));
+        return;
+      }
+      var trail = addPath(svg, d, "travel", "");
+      var dot = el("circle");
+      dot.setAttribute("r", "5");
+      dot.setAttribute("class", "travel-dot");
+      svg.appendChild(dot);
+      var len = trail.getTotalLength ? trail.getTotalLength() : 0;
+      var start = performance.now();
+      var dur = Math.max(120, Math.round(700 / state.speed));
+      function frame(now) {
+        if (!state.playing) return;
+        var t = Math.min(1, (now - start) / dur);
+        var point = len ? trail.getPointAtLength(len * t) : {x: to.x, y: to.y};
+        dot.setAttribute("cx", String(point.x));
+        dot.setAttribute("cy", String(point.y));
+        if (t < 1) state.raf = requestAnimationFrame(frame);
+        else state.timer = setTimeout(step, 30);
+      }
+      state.raf = requestAnimationFrame(frame);
+    }
+    function use(path, shown) {
+      clearMotion();
+      state.playing = false;
+      state.paused = false;
+      if (!path) { show(null, 0, false); return; }
+      fillSelect(caseSelect, cases(), path.case);
+      fillSelect(runSelect, runsFor(path.case), path.run);
+      show(path, shown, false);
+    }
+    function step() {
+      if (!state.playing) return;
+      var path = current();
+      var total = path && path.diagram ? path.diagram.beats.length : 0;
+      var shown = Number(range.value);
+      if (shown >= total) {
+        state.playing = false;
+        state.paused = true;
+        show(path, shown, false);
+        return;
+      }
+      show(path, shown + 1, true);
+    }
+    caseSelect.addEventListener("change", function () {
+      var runs = runsFor(caseSelect.value);
+      var path = findPath(caseSelect.value, runs[0]);
+      use(path, path && path.diagram ? path.diagram.beats.length : 0);
+    });
+    runSelect.addEventListener("change", function () {
+      var path = current();
+      use(path, path && path.diagram ? path.diagram.beats.length : 0);
+    });
+    range.addEventListener("input", function () {
+      clearMotion();
+      state.playing = false;
+      state.paused = true;
+      show(current(), Number(range.value), false);
+    });
+    pane.addEventListener("click", function (event) {
+      var target = event.target;
+      if (!target || !target.getAttribute) return;
+      var act = target.getAttribute("data-act");
+      var speed = target.getAttribute("data-speed");
+      var zoom = target.getAttribute("data-zoom");
+      if (zoom) {
+        var svg = host.querySelector("svg");
+        var width = svg ? Number(svg.getAttribute("width")) : 0;
+        if (zoom === "fit" && width && scroll.clientWidth) state.zoom = Math.min(1, (scroll.clientWidth - 8) / width);
+        if (zoom === "in") state.zoom = Math.min(2, state.zoom * 1.2);
+        if (zoom === "out") state.zoom = Math.max(0.35, state.zoom / 1.2);
+        applyZoom();
+        return;
+      }
+      if (speed) {
+        state.speed = Number(speed) || 1;
+        var speeds = replay.querySelectorAll("[data-speed]");
+        for (var s = 0; s < speeds.length; s++) speeds[s].setAttribute("aria-pressed", speeds[s] === target ? "true" : "false");
+        return;
+      }
+      if (act === "pause") {
+        clearMotion();
+        state.playing = false;
+        state.paused = true;
+        show(current(), Number(range.value), false);
+        return;
+      }
+      if (act === "restart") {
+        clearMotion();
+        state.playing = false;
+        state.paused = false;
+        show(current(), 0, false);
+        return;
+      }
+      if (act !== "play") return;
+      clearMotion();
+      var path = current();
+      var total = path && path.diagram ? path.diagram.beats.length : 0;
+      if (Number(range.value) >= total) range.value = "0";
+      state.playing = true;
+      state.paused = false;
+      step();
+    });
+    var initial = (function () {
+      if (!paths.length) return null;
+      if (index === 0) return paths[0];
+      for (var i = 1; i < paths.length; i++) if (paths[i].case !== paths[0].case) return paths[i];
+      return paths[Math.min(1, paths.length - 1)];
+    })();
+    use(initial, initial && initial.diagram ? initial.diagram.beats.length : 0);
+  }
+  if (!paths.length) {
+    var emptyA = document.getElementById("path-scale-a");
+    var emptyB = document.getElementById("path-scale-b");
+    if (emptyA) emptyA.textContent = "No saved steps.";
+    if (emptyB) emptyB.textContent = "No saved steps.";
+    return;
+  }
+  bind("a", 0);
+  bind("b", 1);
+})();
+</script>
+</body></html>

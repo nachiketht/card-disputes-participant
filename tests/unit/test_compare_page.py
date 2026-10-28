@@ -112,20 +112,32 @@ def test_comparison_rates_matrix_and_the_small_sample_note():
     pair = next(item for item in view["disagreements"] if item["left"] == "1" and item["right"] == "2")
     assert pair["ids"] == ["CARD-B"]
     page = render_comparison(view)
-    assert "Wrong-label rate" in page
-    assert "Auto-routed but wrong" in page
-    assert "Cost per case" in page
+    assert "Passed vs gold" in page
+    assert "SLO" in page
+    assert "Wrong-label rate" not in page
+    assert "Auto-routed but wrong" not in page
+    assert "Cost" in page
     assert "Latency p95" in page
     assert "p50" not in page
     assert "unpriced" in page
-    assert "Too small to conclude." in page
     assert "CARD-B" in page
     assert COMPLAINT not in page
     assert '<details id="technical" open' not in page
     assert 'id="technical"' in page
     large = build_comparison(runs, feedback, min_sample=1)
     assert all(item["too_small"] is False and item["auto_too_small"] is False for item in large["approaches"])
-    assert "Too small to conclude." not in render_comparison(large)
+    scored = build_comparison(
+        runs,
+        feedback,
+        min_sample=30,
+        gold={"CARD-A": {"unauthorized"}, "CARD-B": {"duplicate_charge"}},
+        official={"2": {"passed_cases": 1, "total_cases": 2}},
+        run_metrics={"2": {"metrics": {"good_case_rate": 0.98, "case_latency_ms": {"p95": 40}}, "slo": {"latency_target_ms": 2000, "objective": 0.95}}},
+    )
+    scored_page = render_comparison(scored)
+    assert "1 / 2" in scored_page
+    assert "98% within 2000 ms" in scored_page
+    assert "40 ms" in scored_page
 
 
 def test_saved_records_drop_complaint_text_and_keep_jev_unpriced(tmp_path: Path):
@@ -261,13 +273,73 @@ def test_auto_routed_wrong_ignores_a_held_case_and_spreads_cost_over_every_case(
     assert row["cost_per_case"] == 0.0015
 
 
+def test_a_compare_folder_without_traces_uses_the_approach_runs(tmp_path: Path):
+    from dispute_copilot.observability.board import load_view, render
+
+    reports = tmp_path / "compare-run"
+    reports.mkdir()
+    approach = tmp_path / "a1-run"
+    approach.mkdir()
+    (approach / "eval.json").write_text(json.dumps({"passed_cases": 59, "total_cases": 100}), encoding="utf-8")
+    (approach / "metrics.json").write_text(
+        json.dumps(
+            {
+                "metrics": {"cases_drafted": 100, "good_case_rate": 1.0, "case_latency_ms": {"p95": 69.497}},
+                "slo": {"latency_target_ms": 2000, "objective": 0.95},
+            }
+        ),
+        encoding="utf-8",
+    )
+    audit = approach / "classification" / "1"
+    audit.mkdir(parents=True)
+    (audit / "CARD-A.json").write_text(
+        json.dumps(
+            {
+                "case_id": "CARD-A",
+                "final_class": "unauthorized",
+                "route": "ready_for_review",
+                "haiku": {"cost": {"status": "estimate from list price", "usd": 0.004632}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    traces = approach / "traces"
+    traces.mkdir()
+    (traces / "CARD-A.jsonl").write_text(
+        json.dumps(
+            {
+                "kind": "span",
+                "name": "case",
+                "case_id": "CARD-A",
+                "run_id": "run-hidden",
+                "span_id": "s1",
+                "duration_ms": 12,
+                "status": "ok",
+                "attrs": {"outcome": "drafted", "route": "ready_for_review"},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    page = render(load_view(reports))
+    assert "59 / 100" in page
+    assert "69.497 ms" in page
+    assert "100%" in page
+    assert "0.004632 USD" in page
+    assert "No cases have been run yet" not in page
+    assert "Approach 1" in page
+    assert "CARD-A" in page
+    assert "No saved steps." not in page.split('id="path-data">', 1)[0]
+
+
 def test_export_writes_a_sibling_comparison_page(tmp_path: Path):
     dest = tmp_path / "nested" / "out.html"
     write_html(tmp_path, dest)
     sibling = dest.with_name("compare.html")
     text = sibling.read_text(encoding="utf-8")
     assert "Latency p95" in text
-    assert "Cost per case" in text
+    assert "<th>Cost</th>" in text
+    assert "per case" in text
     assert "p50" not in text
     assert "0.042" in text
     assert "list-price USD for the configured model and Jev" in text

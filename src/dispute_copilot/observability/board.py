@@ -45,12 +45,36 @@ _HOST = "127.0.0.1"
 def load_view(reports_dir: Path) -> dict:
     traces = reports_dir / "traces"
     records = read_traces(traces) if traces.is_dir() else []
-    return build_view(
+    view = build_view(
         records,
         _read_logs(reports_dir),
         audit=_read_audit(reports_dir / "audit.json"),
         approach_label=_approach_in_use(reports_dir),
     )
+    from dispute_copilot.observability.compare_page import sibling_run_summaries
+
+    view["sibling_runs"] = sibling_run_summaries(reports_dir)
+    if not view.get("paths"):
+        extra = _sibling_path_records(reports_dir)
+        if extra:
+            view["paths"] = Redactor().scrub(build_paths(extra, [], view.get("approval") or []))
+    return view
+
+
+def _sibling_path_records(reports_dir: Path) -> list[dict]:
+    """Case traces live beside a compare folder, one directory per approach."""
+    from dispute_copilot.observability.compare_page import _sibling_dirs
+
+    found = []
+    for approach, folder in _sibling_dirs(reports_dir).items():
+        label = f"Approach {approach}"
+        for record in read_traces(folder / "traces"):
+            if not isinstance(record, dict):
+                continue
+            copied = dict(record)
+            copied["run_id"] = label
+            found.append(copied)
+    return found
 
 
 def build_view(
@@ -465,6 +489,9 @@ def _closed(section_id: str, title: str, body: str) -> str:
 
 def _client_summary(view: dict) -> str:
     rows = view["overview"]["rows"]
+    siblings = view.get("sibling_runs") or []
+    if not rows and siblings:
+        return _sibling_summary(siblings)
     ready = _route_count(rows, Routing.READY_FOR_REVIEW.value)
     manual = _route_count(rows, Routing.MANUAL_REVIEW.value)
     information = _route_count(rows, Routing.REQUEST_INFORMATION.value)
@@ -484,6 +511,56 @@ def _client_summary(view: dict) -> str:
         f"<p id=\"status-line\" class=\"status-line\">{escape(line)}</p>"
         "</section>"
     )
+
+
+def _sibling_summary(runs: list[dict]) -> str:
+    body = []
+    for row in runs:
+        passed = row.get("passed")
+        total = row.get("passed_total")
+        passed_text = "—" if not isinstance(passed, int) or not isinstance(total, int) else f"{passed} / {total}"
+        rate = row.get("slo")
+        slo = "—" if isinstance(rate, bool) or not isinstance(rate, (int, float)) else f"{float(rate) * 100:.0f}%"
+        latency = row.get("p95")
+        if isinstance(latency, bool) or not isinstance(latency, (int, float)):
+            latency_text = "—"
+        else:
+            latency_text = f"{float(latency):.3f}".rstrip("0").rstrip(".") + " ms"
+        cases = row.get("cases")
+        body.append(
+            "<tr>"
+            f"<td>{escape(str(row.get('name') or ''))}</td>"
+            f"<td>{escape('—' if not isinstance(cases, int) else str(cases))}</td>"
+            f"<td>{escape(passed_text)}</td>"
+            f"<td>{escape(_run_cost(row))}</td>"
+            f"<td>{escape(latency_text)}</td>"
+            f"<td>{escape(slo)}</td>"
+            "</tr>"
+        )
+    return (
+        "<section id=\"client\" class=\"strip\">"
+        "<p id=\"status-line\" class=\"status-line\">"
+        "This folder stores the comparison audits. Case traces live with each approach run. "
+        "The figures below are those runs, scored against the golden set."
+        "</p>"
+        "<table><thead><tr><th>Approach</th><th>Cases drafted</th><th>Passed vs gold</th>"
+        "<th>Cost</th><th>Latency p95</th><th>SLO</th></tr></thead>"
+        f"<tbody>{''.join(body)}</tbody></table>"
+        "</section>"
+    )
+
+
+def _run_cost(row: dict) -> str:
+    total = row.get("cost_total")
+    per = row.get("cost_per_case")
+    if isinstance(total, bool) or not isinstance(total, (int, float)):
+        return "—"
+    amount = f"{float(total):.6f} USD"
+    if row.get("priced_calls", 0) <= 0:
+        return f"{amount}. No priced call"
+    if isinstance(per, bool) or not isinstance(per, (int, float)):
+        return amount
+    return f"{amount} ({float(per):.6f} per case)"
 
 
 def _route_count(rows: list[dict], route: str) -> int:

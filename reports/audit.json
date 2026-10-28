@@ -1,1 +1,1815 @@
-[]
+[
+  {
+    "seq": 1,
+    "at": "2026-10-21T18:14:04.733961+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 2,
+    "at": "2026-10-21T18:14:04.740191+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 3,
+    "at": "2026-10-21T18:14:04.742719+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 4,
+    "at": "2026-10-21T18:14:04.744753+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 5,
+    "at": "2026-10-21T18:14:04.746457+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 6,
+    "at": "2026-10-21T18:14:04.747945+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 7,
+    "at": "2026-10-21T18:14:04.749398+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 8,
+    "at": "2026-10-21T18:14:04.750757+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 9,
+    "at": "2026-10-21T18:14:04.752357+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 10,
+    "at": "2026-10-21T18:14:04.753795+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 11,
+    "at": "2026-10-21T18:14:04.754903+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 12,
+    "at": "2026-10-21T18:14:04.756345+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 13,
+    "at": "2026-10-21T18:14:04.757869+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":1,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 14,
+    "at": "2026-10-21T18:14:04.759508+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":2,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 15,
+    "at": "2026-10-21T18:14:04.760806+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":3,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 16,
+    "at": "2026-10-21T18:14:04.761965+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 17,
+    "at": "2026-10-21T18:14:04.763325+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 18,
+    "at": "2026-10-21T18:14:04.765302+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 19,
+    "at": "2026-10-21T18:14:04.766568+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 20,
+    "at": "2026-10-21T18:14:04.767731+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":1,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 21,
+    "at": "2026-10-21T18:14:04.768811+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 22,
+    "at": "2026-10-21T18:14:04.770514+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 23,
+    "at": "2026-10-21T18:14:04.771881+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 24,
+    "at": "2026-10-21T18:14:04.773031+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 25,
+    "at": "2026-10-21T18:14:04.775181+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 26,
+    "at": "2026-10-21T18:14:04.776384+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 27,
+    "at": "2026-10-21T18:15:18.727049+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 28,
+    "at": "2026-10-21T18:15:18.729161+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 29,
+    "at": "2026-10-21T18:15:18.772197+00:00",
+    "event": "review_requested",
+    "case_id": "CARD-D01",
+    "detail": "{\"draft_hash\":\"9582b5f2cf8535b1f7f0b62b4aa43c083c9d5d879eb7163a1c6c4f0b46228269\",\"review_id\":\"rev_5abb52eb8ee2\"}"
+  },
+  {
+    "seq": 30,
+    "at": "2026-10-25T21:31:27.153454+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 31,
+    "at": "2026-10-25T21:31:27.156949+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 32,
+    "at": "2026-10-26T14:07:37.551816+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 33,
+    "at": "2026-10-26T14:07:37.555136+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 34,
+    "at": "2026-10-26T14:07:54.441597+00:00",
+    "event": "review_requested",
+    "case_id": "CARD-D01",
+    "detail": "{\"draft_hash\":\"dad22cad793c922ccdb34e43743c52b24be34723fae2ce1fafcdd5700b914f0b\",\"review_id\":\"rev_6e42d6639a4e\"}"
+  },
+  {
+    "seq": 35,
+    "at": "2026-10-27T22:09:38.572897+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 36,
+    "at": "2026-10-27T22:09:38.575475+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 37,
+    "at": "2026-10-27T22:09:40.446993+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 38,
+    "at": "2026-10-27T22:09:40.451667+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 39,
+    "at": "2026-10-27T22:15:56.773807+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 40,
+    "at": "2026-10-27T22:15:56.777639+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 41,
+    "at": "2026-10-28T01:17:04.519566+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 42,
+    "at": "2026-10-28T01:17:04.523939+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 43,
+    "at": "2026-10-28T01:17:04.527127+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 44,
+    "at": "2026-10-28T01:17:04.529659+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 45,
+    "at": "2026-10-28T01:17:06.113902+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 46,
+    "at": "2026-10-28T01:17:06.123277+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 47,
+    "at": "2026-10-28T01:17:06.130529+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":4,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 48,
+    "at": "2026-10-28T01:17:06.173177+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":5,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 49,
+    "at": "2026-10-28T01:17:06.233429+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":6,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 50,
+    "at": "2026-10-28T01:17:06.239171+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 51,
+    "at": "2026-10-28T01:17:06.242942+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 52,
+    "at": "2026-10-28T01:17:06.246899+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 53,
+    "at": "2026-10-28T01:17:06.250399+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 54,
+    "at": "2026-10-28T01:17:06.254049+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 55,
+    "at": "2026-10-28T01:19:23.013498+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 56,
+    "at": "2026-10-28T01:19:23.018212+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 57,
+    "at": "2026-10-28T01:20:33.081493+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 58,
+    "at": "2026-10-28T01:20:33.088638+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 59,
+    "at": "2026-10-28T01:20:39.111504+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 60,
+    "at": "2026-10-28T01:20:39.114036+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 61,
+    "at": "2026-10-28T01:20:51.107659+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 62,
+    "at": "2026-10-28T01:20:51.109976+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 63,
+    "at": "2026-10-28T01:21:12.845329+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":10,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 64,
+    "at": "2026-10-28T01:21:12.850055+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 65,
+    "at": "2026-10-28T01:21:52.466621+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":11,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 66,
+    "at": "2026-10-28T01:21:52.470081+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":10,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 67,
+    "at": "2026-10-28T01:22:02.096847+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 68,
+    "at": "2026-10-28T01:22:02.101573+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 69,
+    "at": "2026-10-28T01:22:25.691960+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 70,
+    "at": "2026-10-28T01:22:25.696518+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 71,
+    "at": "2026-10-28T01:22:25.824674+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 72,
+    "at": "2026-10-28T01:22:25.827650+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 73,
+    "at": "2026-10-28T01:22:25.963130+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 74,
+    "at": "2026-10-28T01:22:25.965673+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 75,
+    "at": "2026-10-28T01:22:26.097069+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":12,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 76,
+    "at": "2026-10-28T01:22:26.099034+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":11,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 77,
+    "at": "2026-10-28T01:22:26.389747+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 78,
+    "at": "2026-10-28T01:22:26.394542+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 79,
+    "at": "2026-10-28T01:22:26.516455+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 80,
+    "at": "2026-10-28T01:22:26.522900+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 81,
+    "at": "2026-10-28T01:22:26.659603+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":7,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 82,
+    "at": "2026-10-28T01:22:26.712897+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":8,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 83,
+    "at": "2026-10-28T01:22:26.788795+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":9,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 84,
+    "at": "2026-10-28T01:22:26.793733+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":1,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 85,
+    "at": "2026-10-28T01:22:26.931954+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 86,
+    "at": "2026-10-28T01:22:26.934277+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 87,
+    "at": "2026-10-28T01:22:27.064790+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 88,
+    "at": "2026-10-28T01:22:27.069282+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 89,
+    "at": "2026-10-28T01:22:27.196365+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 90,
+    "at": "2026-10-28T01:22:27.202192+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 91,
+    "at": "2026-10-28T01:22:27.323707+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 92,
+    "at": "2026-10-28T01:22:27.330767+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 93,
+    "at": "2026-10-28T01:22:27.454257+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 94,
+    "at": "2026-10-28T01:22:27.460561+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 95,
+    "at": "2026-10-28T01:25:22.750425+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":13,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 96,
+    "at": "2026-10-28T01:25:22.757212+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":12,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 97,
+    "at": "2026-10-28T01:28:47.967248+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":14,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 98,
+    "at": "2026-10-28T01:28:47.974308+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":13,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 99,
+    "at": "2026-10-28T01:45:41.098650+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":15,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 100,
+    "at": "2026-10-28T01:45:41.105440+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":14,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 101,
+    "at": "2026-10-28T01:59:34.852146+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":16,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 102,
+    "at": "2026-10-28T01:59:34.859252+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":15,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 103,
+    "at": "2026-10-28T02:00:07.571727+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":17,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 104,
+    "at": "2026-10-28T02:00:07.577455+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":16,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 105,
+    "at": "2026-10-28T02:00:53.670568+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":18,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 106,
+    "at": "2026-10-28T02:00:53.678322+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":17,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 107,
+    "at": "2026-10-28T02:00:54.135295+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":19,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 108,
+    "at": "2026-10-28T02:00:54.140444+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":18,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 109,
+    "at": "2026-10-28T02:00:54.400120+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":20,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 110,
+    "at": "2026-10-28T02:00:54.406926+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":19,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 111,
+    "at": "2026-10-28T02:04:23.337657+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":21,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 112,
+    "at": "2026-10-28T02:04:23.344964+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":20,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 113,
+    "at": "2026-10-28T02:04:24.868055+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":22,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 114,
+    "at": "2026-10-28T02:04:24.874631+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":21,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 115,
+    "at": "2026-10-28T02:04:25.144037+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":23,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 116,
+    "at": "2026-10-28T02:04:25.150342+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":22,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 117,
+    "at": "2026-10-28T02:20:13.605532+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":24,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 118,
+    "at": "2026-10-28T02:20:13.615302+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":23,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 119,
+    "at": "2026-10-28T02:20:43.090583+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 120,
+    "at": "2026-10-28T02:20:43.098306+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 121,
+    "at": "2026-10-28T02:20:43.101916+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 122,
+    "at": "2026-10-28T02:20:43.105462+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":25,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 123,
+    "at": "2026-10-28T02:20:44.296727+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 124,
+    "at": "2026-10-28T02:20:44.306767+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 125,
+    "at": "2026-10-28T02:20:44.311116+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":10,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 126,
+    "at": "2026-10-28T02:20:44.345806+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":11,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 127,
+    "at": "2026-10-28T02:20:44.408077+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":12,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 128,
+    "at": "2026-10-28T02:20:44.414861+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 129,
+    "at": "2026-10-28T02:20:44.419034+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 130,
+    "at": "2026-10-28T02:20:44.422803+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 131,
+    "at": "2026-10-28T02:20:44.426516+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 132,
+    "at": "2026-10-28T02:20:44.429712+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 133,
+    "at": "2026-10-28T02:30:19.360202+00:00",
+    "event": "review_requested",
+    "case_id": "CARD-D01",
+    "detail": "{\"draft_hash\":\"dad22cad793c922ccdb34e43743c52b24be34723fae2ce1fafcdd5700b914f0b\",\"review_id\":\"rev_09cd52ee4143\"}"
+  },
+  {
+    "seq": 134,
+    "at": "2026-10-28T02:31:08.847890+00:00",
+    "event": "review_requested",
+    "case_id": "CARD-D04",
+    "detail": "{\"draft_hash\":\"771031459a15a7cb84ad8598a852e4329dddbefcc022f67404fc5e432579e79d\",\"review_id\":\"rev_83aa1f1a4b76\"}"
+  },
+  {
+    "seq": 135,
+    "at": "2026-10-28T02:31:17.090594+00:00",
+    "event": "human_approved",
+    "case_id": "CARD-D04",
+    "detail": "{\"draft_hash\":\"771031459a15a7cb84ad8598a852e4329dddbefcc022f67404fc5e432579e79d\",\"review_id\":\"rev_83aa1f1a4b76\",\"reviewer\":\"nachos\"}"
+  },
+  {
+    "seq": 136,
+    "at": "2026-10-28T02:31:22.732653+00:00",
+    "event": "record_created",
+    "case_id": "CARD-D04",
+    "detail": "{\"draft_hash\":\"771031459a15a7cb84ad8598a852e4329dddbefcc022f67404fc5e432579e79d\",\"record_id\":\"dispute-d04\",\"review_id\":\"rev_83aa1f1a4b76\",\"reviewer\":\"nachos\"}"
+  },
+  {
+    "seq": 137,
+    "at": "2026-10-28T17:55:37.258322+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 138,
+    "at": "2026-10-28T17:55:37.260514+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 139,
+    "at": "2026-10-28T17:55:37.399089+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 140,
+    "at": "2026-10-28T17:55:37.406264+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 141,
+    "at": "2026-10-28T17:55:37.412210+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 142,
+    "at": "2026-10-28T17:55:37.413895+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 143,
+    "at": "2026-10-28T17:55:37.418506+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 144,
+    "at": "2026-10-28T17:55:37.419827+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 145,
+    "at": "2026-10-28T17:55:37.426539+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":26,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 146,
+    "at": "2026-10-28T17:55:37.428470+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":24,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 147,
+    "at": "2026-10-28T17:55:37.433947+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 148,
+    "at": "2026-10-28T17:55:37.435826+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 149,
+    "at": "2026-10-28T17:55:37.440823+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 150,
+    "at": "2026-10-28T17:55:37.442371+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 151,
+    "at": "2026-10-28T17:55:37.446710+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":13,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 152,
+    "at": "2026-10-28T17:55:37.492317+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":14,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 153,
+    "at": "2026-10-28T17:55:37.546229+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":15,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 154,
+    "at": "2026-10-28T17:55:37.551880+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":2,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 155,
+    "at": "2026-10-28T17:55:37.558688+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 156,
+    "at": "2026-10-28T17:55:37.560394+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 157,
+    "at": "2026-10-28T17:55:37.566573+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 158,
+    "at": "2026-10-28T17:55:37.568421+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 159,
+    "at": "2026-10-28T17:55:37.574627+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 160,
+    "at": "2026-10-28T17:55:37.576137+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 161,
+    "at": "2026-10-28T17:55:37.580705+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 162,
+    "at": "2026-10-28T17:55:37.581938+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 163,
+    "at": "2026-10-28T17:55:37.586566+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 164,
+    "at": "2026-10-28T17:55:37.589051+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 165,
+    "at": "2026-10-28T17:55:37.742618+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":10,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 166,
+    "at": "2026-10-28T17:55:37.748792+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 167,
+    "at": "2026-10-28T17:55:37.885573+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":11,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 168,
+    "at": "2026-10-28T17:55:37.891479+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 169,
+    "at": "2026-10-28T17:55:37.896708+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 170,
+    "at": "2026-10-28T17:55:37.898670+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 171,
+    "at": "2026-10-28T17:55:37.904572+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 172,
+    "at": "2026-10-28T17:55:37.906022+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 173,
+    "at": "2026-10-28T17:55:37.910770+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":27,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 174,
+    "at": "2026-10-28T17:55:37.911998+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":25,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 175,
+    "at": "2026-10-28T17:55:39.395463+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 176,
+    "at": "2026-10-28T17:55:39.399262+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 177,
+    "at": "2026-10-28T17:55:39.409299+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 178,
+    "at": "2026-10-28T17:55:39.412109+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 179,
+    "at": "2026-10-28T17:55:39.419394+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":16,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 180,
+    "at": "2026-10-28T17:55:39.473855+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":17,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 181,
+    "at": "2026-10-28T17:55:39.577537+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":18,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 182,
+    "at": "2026-10-28T17:55:39.583028+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":3,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 183,
+    "at": "2026-10-28T17:55:39.597660+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 184,
+    "at": "2026-10-28T17:55:39.600515+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 185,
+    "at": "2026-10-28T17:55:39.612565+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 186,
+    "at": "2026-10-28T17:55:39.616426+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 187,
+    "at": "2026-10-28T17:55:39.628084+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 188,
+    "at": "2026-10-28T17:55:39.630970+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 189,
+    "at": "2026-10-28T17:55:39.641002+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 190,
+    "at": "2026-10-28T17:55:39.642875+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 191,
+    "at": "2026-10-28T17:55:39.652705+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 192,
+    "at": "2026-10-28T17:55:39.655715+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 193,
+    "at": "2026-10-28T17:55:39.779449+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":12,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 194,
+    "at": "2026-10-28T17:55:39.784946+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":10,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 195,
+    "at": "2026-10-28T17:55:39.790568+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 196,
+    "at": "2026-10-28T17:55:39.792718+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 197,
+    "at": "2026-10-28T17:55:39.798106+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 198,
+    "at": "2026-10-28T17:55:39.799419+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 199,
+    "at": "2026-10-28T17:55:39.804107+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":28,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 200,
+    "at": "2026-10-28T17:55:39.805497+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":26,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 201,
+    "at": "2026-10-28T17:55:39.982897+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 202,
+    "at": "2026-10-28T17:55:39.987398+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 203,
+    "at": "2026-10-28T17:55:39.995917+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 204,
+    "at": "2026-10-28T17:55:39.997726+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 205,
+    "at": "2026-10-28T17:55:40.003533+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":19,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 206,
+    "at": "2026-10-28T17:55:40.053180+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":20,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 207,
+    "at": "2026-10-28T17:55:40.129816+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":21,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 208,
+    "at": "2026-10-28T17:55:40.134292+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":4,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 209,
+    "at": "2026-10-28T17:55:40.140802+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 210,
+    "at": "2026-10-28T17:55:40.142327+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 211,
+    "at": "2026-10-28T17:55:40.148385+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 212,
+    "at": "2026-10-28T17:55:40.150171+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 213,
+    "at": "2026-10-28T17:55:40.155504+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 214,
+    "at": "2026-10-28T17:55:40.158069+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 215,
+    "at": "2026-10-28T17:55:40.163598+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 216,
+    "at": "2026-10-28T17:55:40.165396+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 217,
+    "at": "2026-10-28T17:55:40.170489+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 218,
+    "at": "2026-10-28T17:55:40.171751+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 219,
+    "at": "2026-10-28T17:55:40.291700+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":13,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 220,
+    "at": "2026-10-28T17:55:40.293078+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":11,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 221,
+    "at": "2026-10-28T17:55:40.299022+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 222,
+    "at": "2026-10-28T17:55:40.300738+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 223,
+    "at": "2026-10-28T17:55:40.305772+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 224,
+    "at": "2026-10-28T17:55:40.307149+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 225,
+    "at": "2026-10-28T17:55:40.312179+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":29,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 226,
+    "at": "2026-10-28T17:55:40.313365+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":27,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 227,
+    "at": "2026-10-28T17:55:41.467061+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 228,
+    "at": "2026-10-28T17:55:41.471682+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":7,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 229,
+    "at": "2026-10-28T17:55:41.479848+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 230,
+    "at": "2026-10-28T17:55:41.481656+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 231,
+    "at": "2026-10-28T17:55:41.487843+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":22,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 232,
+    "at": "2026-10-28T17:55:41.529266+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":23,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 233,
+    "at": "2026-10-28T17:55:41.607600+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":24,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 234,
+    "at": "2026-10-28T17:55:41.612478+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":5,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 235,
+    "at": "2026-10-28T17:55:41.621479+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 236,
+    "at": "2026-10-28T17:55:41.623329+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 237,
+    "at": "2026-10-28T17:55:41.631132+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 238,
+    "at": "2026-10-28T17:55:41.632694+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 239,
+    "at": "2026-10-28T17:55:41.638669+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 240,
+    "at": "2026-10-28T17:55:41.640070+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 241,
+    "at": "2026-10-28T17:55:41.645576+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 242,
+    "at": "2026-10-28T17:55:41.646894+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 243,
+    "at": "2026-10-28T17:55:41.652171+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":8,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 244,
+    "at": "2026-10-28T17:55:41.653562+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":6,\"status\":200,\"tool\":\"merchant\"}"
+  },
+  {
+    "seq": 245,
+    "at": "2026-10-28T17:56:03.700312+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D01",
+    "detail": "{\"attempt\":14,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 246,
+    "at": "2026-10-28T17:56:03.704970+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D02",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 247,
+    "at": "2026-10-28T17:56:03.707122+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D03",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 248,
+    "at": "2026-10-28T17:56:03.709083+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D04",
+    "detail": "{\"attempt\":30,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 249,
+    "at": "2026-10-28T17:56:05.111619+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D05",
+    "detail": "{\"attempt\":10,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 250,
+    "at": "2026-10-28T17:56:05.119115+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D06",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 251,
+    "at": "2026-10-28T17:56:05.123985+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":25,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 252,
+    "at": "2026-10-28T17:56:05.177811+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":26,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 253,
+    "at": "2026-10-28T17:56:05.279876+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D07",
+    "detail": "{\"attempt\":27,\"status\":503,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 254,
+    "at": "2026-10-28T17:56:05.288965+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D08",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 255,
+    "at": "2026-10-28T17:56:05.293595+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D09",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 256,
+    "at": "2026-10-28T17:56:05.299264+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D10",
+    "detail": "{\"attempt\":10,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 257,
+    "at": "2026-10-28T17:56:05.305025+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D11",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 258,
+    "at": "2026-10-28T17:56:05.309293+00:00",
+    "event": "tool_read",
+    "case_id": "CARD-D12",
+    "detail": "{\"attempt\":9,\"status\":200,\"tool\":\"transactions\"}"
+  },
+  {
+    "seq": 259,
+    "at": "2026-10-28T17:58:48.377741+00:00",
+    "event": "review_requested",
+    "case_id": "CARD-D01",
+    "detail": "{\"draft_hash\":\"dad22cad793c922ccdb34e43743c52b24be34723fae2ce1fafcdd5700b914f0b\",\"review_id\":\"rev_7588c4c1d2a2\"}"
+  }
+]

@@ -21,10 +21,14 @@ _APPROACHES = ("1", "2", "3")
 def load_comparison(reports_dir: Path, submissions_dir: Path | None = None) -> dict:
     roots = _roots(reports_dir, submissions_dir)
     settings = load_settings()
+    runs = _read_runs(roots)
     view = build_comparison(
-        _read_runs(roots),
+        runs,
         _read_feedback(roots),
         min_sample=settings.min_sample,
+        gold=_load_gold(runs),
+        official=_load_official(reports_dir),
+        run_metrics=_load_run_metrics(reports_dir),
     )
     view["thresholds"] = {
         "false_negative_ceiling": settings.false_negative_ceiling,
@@ -34,12 +38,23 @@ def load_comparison(reports_dir: Path, submissions_dir: Path | None = None) -> d
     return view
 
 
-def build_comparison(runs: dict[str, dict[str, dict]], feedback: dict[str, str], *, min_sample: int) -> dict:
+def build_comparison(
+    runs: dict[str, dict[str, dict]],
+    feedback: dict[str, str],
+    *,
+    min_sample: int,
+    gold: dict[str, set[str]] | None = None,
+    official: dict[str, dict] | None = None,
+    run_metrics: dict[str, dict] | None = None,
+) -> dict:
     """Summarize one row per approach. `runs` maps approach to case id to a safe row."""
     approaches = []
+    labels = gold or {}
+    reports = official or {}
+    metrics = run_metrics or {}
     for name in _APPROACHES:
         rows = runs.get(name) or {}
-        approaches.append(_approach(name, rows, feedback, min_sample))
+        approaches.append(_approach(name, rows, feedback, min_sample, labels, reports.get(name) or {}, metrics.get(name) or {}))
     return {
         "min_sample": min_sample,
         "approaches": approaches,
@@ -60,7 +75,15 @@ def render_comparison(view: dict, back_href: str = "index.html") -> str:
     return masked
 
 
-def _approach(name: str, rows: dict[str, dict], feedback: dict[str, str], min_sample: int) -> dict:
+def _approach(
+    name: str,
+    rows: dict[str, dict],
+    feedback: dict[str, str],
+    min_sample: int,
+    gold: dict[str, set[str]],
+    official: dict,
+    run_metrics: dict,
+) -> dict:
     ordered = [rows[key] for key in sorted(rows)]
     called = sum(1 for row in ordered if row.get("called_model") is True)
     manual = sum(1 for row in ordered if row.get("route") == Routing.MANUAL_REVIEW.value)
@@ -79,20 +102,68 @@ def _approach(name: str, rows: dict[str, dict], feedback: dict[str, str], min_sa
     sample = len(paired)
     auto_sample = len(auto)
     cases = len(ordered)
+    passed, passed_total, passed_source = _passed(ordered, gold, official)
+    span = _span_metrics(run_metrics)
+    if span["p95"] is not None:
+        p95 = span["p95"]
+        p95_source = "case"
+    else:
+        p95 = None if not latencies else round(percentile(latencies, 0.95) or 0, 3)
+        p95_source = "audit"
     return {
         "name": name,
         "cases": cases,
         "called_model": called,
         "manual_count": manual,
-        "p95": None if not latencies else round(percentile(latencies, 0.95) or 0, 3),
+        "p95": p95,
+        "p95_source": p95_source,
         "priced_calls": len(priced),
+        "cost_total": None if cases == 0 else round(sum(priced), 6),
         "cost_per_case": None if cases == 0 else round(sum(priced) / cases, 6),
+        "passed": passed,
+        "passed_total": passed_total,
+        "passed_source": passed_source,
+        "slo": span["slo"],
+        "slo_target_ms": span["target_ms"],
+        "slo_objective": span["objective"],
         "wrong": wrong,
         "sample": sample,
         "auto_wrong": auto_wrong,
         "auto_sample": auto_sample,
         "too_small": sample < min_sample,
         "auto_too_small": auto_sample < min_sample,
+    }
+
+
+def _passed(rows: list[dict], gold: dict[str, set[str]], official: dict) -> tuple[int | None, int | None, str]:
+    passed_cases = official.get("passed_cases")
+    total_cases = official.get("total_cases")
+    if isinstance(passed_cases, int) and isinstance(total_cases, int) and total_cases >= 0:
+        return passed_cases, total_cases, "eval"
+    if not gold:
+        return None, None, "none"
+    by_id = {str(row.get(CASE_ID)): row for row in rows}
+    hits = 0
+    for case_id, labels in gold.items():
+        row = by_id.get(case_id)
+        if row is not None and row.get("final_class") in labels:
+            hits += 1
+    return hits, len(gold), "class"
+
+
+def _span_metrics(run_metrics: dict) -> dict:
+    inner = run_metrics.get("metrics") if isinstance(run_metrics.get("metrics"), dict) else {}
+    latency = inner.get("case_latency_ms") if isinstance(inner.get("case_latency_ms"), dict) else {}
+    p95 = latency.get("p95")
+    rate = inner.get("good_case_rate")
+    rules = run_metrics.get("slo") if isinstance(run_metrics.get("slo"), dict) else {}
+    target = rules.get("latency_target_ms")
+    objective = rules.get("objective")
+    return {
+        "p95": None if isinstance(p95, bool) or not isinstance(p95, (int, float)) else round(float(p95), 3),
+        "slo": None if isinstance(rate, bool) or not isinstance(rate, (int, float)) else float(rate),
+        "target_ms": 2000.0 if isinstance(target, bool) or not isinstance(target, (int, float)) else float(target),
+        "objective": 0.95 if isinstance(objective, bool) or not isinstance(objective, (int, float)) else float(objective),
     }
 
 
@@ -240,7 +311,7 @@ def _markup(view: dict, back_href: str) -> str:
         "<p class=\"mark\">Read-only</p>",
         "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
         "<h1>Comparison</h1>",
-        "<p class=\"lede\">Saved classification runs. The five rates are wrong-label, auto-routed but wrong, manual review, list-price cost per case, and latency p95. This page has case ids and counts. It does not include complaint text.</p>",
+        "<p class=\"lede\">Saved runs scored against the golden set. Each approach shows how many cases passed, list-price cost per case, case latency, and the SLO. This page has case ids and counts. It does not include complaint text.</p>",
         "</header><main>",
         _approach_table(view),
         _wins_table(view),
@@ -260,49 +331,71 @@ def _approach_table(view: dict) -> str:
     from html import escape
 
     head = (
-        "<tr><th>Approach</th><th>Cases run</th><th>Wrong-label rate</th>"
-        "<th>Auto-routed but wrong</th><th>Manual review</th>"
-        "<th>Cost per case</th><th>Latency p95</th></tr>"
+        "<tr><th>Approach</th><th>Passed vs gold</th>"
+        "<th>Cost</th><th>Latency p95</th><th>SLO</th></tr>"
     )
     body = []
-    notes = []
-    floor = view["min_sample"]
     for row in view["approaches"]:
-        total = row["cases"]
         body.append(
             "<tr>"
             f"<td>{escape(row['name'])}</td>"
-            f"<td>{total}</td>"
-            f"<td>{escape(_share(row['wrong'], row['sample']))}</td>"
-            f"<td>{escape(_share(row['auto_wrong'], row['auto_sample']))}</td>"
-            f"<td>{escape(_share(row['manual_count'], total))}</td>"
+            f"<td>{escape(_passed_text(row))}</td>"
             f"<td>{escape(_cost(row))}</td>"
-            f"<td>{escape(_ms(row['p95']))}</td>"
+            f"<td>{escape(_latency_cell(row['p95']))}</td>"
+            f"<td>{escape(_slo_text(row))}</td>"
             "</tr>"
         )
-        if row["too_small"]:
-            notes.append(
-                f"Approach {row['name']} wrong-label sample size {row['sample']} is below {floor}. Too small to conclude."
-            )
-        if row["auto_too_small"]:
-            notes.append(
-                f"Approach {row['name']} auto-routed sample size {row['auto_sample']} is below {floor}. Too small to conclude."
-            )
     defined = (
-        "<p class=\"note\">Wrong-label rate uses every case with a reviewer category. "
-        "Auto-routed but wrong uses only those cases whose route is ready_for_review. "
-        "Manual review is that route over cases run. "
-        "Cost per case is list-price USD for the configured model and Jev, over cases run. "
+        "<p class=\"note\">Passed vs gold is how many golden-set cases passed every automated check. "
+        "Cost is the list-price USD for the configured model and Jev across every case run, with the per-case figure beside it. "
         "Jev is priced from the vendor list in config/rules/cost.yaml at 0.042 USD per million input tokens, and output tokens are free. "
-        "A case with no priced call adds zero. Latency p95 is the classification audit.</p>"
+        "A case with no priced call adds zero. "
+        f"{_latency_note(view)}</p>"
     )
-    note = "".join(f"<p class=\"note\">{escape(line)}</p>" for line in notes)
     return (
-        "<section id=\"approaches\"><h2>Approaches</h2>"
+        "<section id=\"approaches\"><h2>Golden set</h2>"
         f"{defined}"
         f"<table><thead>{head}</thead><tbody>{''.join(body)}</tbody></table>"
-        f"{note}</section>"
+        "</section>"
     )
+
+
+def _passed_text(row: dict) -> str:
+    passed = row.get("passed")
+    total = row.get("passed_total")
+    if not isinstance(passed, int) or not isinstance(total, int) or total < 0:
+        return "—"
+    return f"{passed} / {total}"
+
+
+def _slo_text(row: dict) -> str:
+    rate = row.get("slo")
+    if isinstance(rate, bool) or not isinstance(rate, (int, float)):
+        return "—"
+    shown = f"{rate * 100:.0f}%"
+    objective = row.get("slo_objective")
+    target = row.get("slo_target_ms")
+    if isinstance(objective, (int, float)) and not isinstance(objective, bool) and rate < float(objective):
+        goal = f"{float(objective) * 100:.0f}%"
+        return f"{shown}, below {goal}"
+    if isinstance(target, (int, float)) and not isinstance(target, bool):
+        return f"{shown} within {float(target):.0f} ms"
+    return shown
+
+
+def _latency_note(view: dict) -> str:
+    rows = view.get("approaches") or []
+    if any(row.get("p95_source") == "case" for row in rows):
+        return (
+            "Latency p95 is the case span. "
+            "SLO is the share of cases drafted within the latency target. The objective is 95%."
+        )
+    if any(row.get("passed_source") == "class" for row in rows):
+        return (
+            "Passed counts a saved class that matches the gold class, because no eval report was found. "
+            "Latency p95 is the classification audit. SLO needs the case-span metrics report."
+        )
+    return "Latency p95 is the classification audit. SLO needs the case-span metrics report."
 
 
 def _wins_table(view: dict) -> str:
@@ -430,19 +523,142 @@ def _ms(value: float | None) -> str:
     return f"{value:.3f}".rstrip("0").rstrip(".")
 
 
+def _latency_cell(value: float | None) -> str:
+    text = _ms(value)
+    if text == "—":
+        return text
+    return f"{text} ms"
+
+
 def _cost(row: dict) -> str:
-    if row["cases"] <= 0 or row["cost_per_case"] is None:
+    total = row.get("cost_total")
+    per = row.get("cost_per_case")
+    if row.get("cases", 0) <= 0 or not isinstance(total, (int, float)) or isinstance(total, bool):
         return "—"
-    amount = f"{row['cost_per_case']:.6f} USD"
-    if row["priced_calls"] <= 0:
+    amount = f"{float(total):.6f} USD"
+    if row.get("priced_calls", 0) <= 0:
         return f"{amount}. No priced call"
-    return amount
+    if isinstance(per, bool) or not isinstance(per, (int, float)):
+        return amount
+    return f"{amount} ({float(per):.6f} per case)"
 
 
 def _usd_text(value: float | None) -> str:
     if value is None:
         return "unpriced"
     return f"{value:.6f}"
+
+
+def sibling_run_summaries(reports_dir: Path) -> list[dict]:
+    """Per-approach case spans and golden-set passes stored beside a compare folder."""
+    rows = []
+    for approach, folder in _sibling_dirs(reports_dir).items():
+        metrics = _read_json(folder / "metrics.json")
+        official = _read_json(folder / "eval.json")
+        span = _span_metrics(metrics)
+        passed = official.get("passed_cases")
+        total = official.get("total_cases")
+        cases = metrics.get("metrics") if isinstance(metrics.get("metrics"), dict) else {}
+        drafted = cases.get("cases_drafted")
+        priced_total, priced_calls, audit_cases = _priced_total(folder, approach, reports_dir)
+        denominator = audit_cases or (drafted if isinstance(drafted, int) else 0)
+        rows.append(
+            {
+                "name": approach,
+                "cases": drafted if isinstance(drafted, int) else None,
+                "passed": passed if isinstance(passed, int) else None,
+                "passed_total": total if isinstance(total, int) else None,
+                "p95": span["p95"],
+                "slo": span["slo"],
+                "slo_target_ms": span["target_ms"],
+                "slo_objective": span["objective"],
+                "cost_total": round(priced_total, 6),
+                "cost_per_case": None if denominator <= 0 else round(priced_total / denominator, 6),
+                "priced_calls": priced_calls,
+            }
+        )
+    return rows
+
+
+def _load_gold(runs: dict[str, dict[str, dict]]) -> dict[str, set[str]]:
+    ids = [case_id for name in _APPROACHES for case_id in (runs.get(name) or {})]
+    root = Path(__file__).resolve().parents[3]
+    path = root / "synthetic-data" / "seed_gold.json" if any(case_id.startswith("CARD-S") for case_id in ids) else root / "feedback" / "dev_gold.json"
+    loaded = _read_json(path)
+    labels: dict[str, set[str]] = {}
+    for case_id, answer in loaded.items():
+        if not isinstance(case_id, str) or not isinstance(answer, dict):
+            continue
+        raw = answer.get(CLASSIFICATION)
+        if isinstance(raw, list):
+            labels[case_id] = {item for item in raw if isinstance(item, str)}
+    return labels
+
+
+def _load_official(reports_dir: Path) -> dict[str, dict]:
+    found = {}
+    for approach, folder in _sibling_dirs(reports_dir).items():
+        loaded = _read_json(folder / "eval.json")
+        if isinstance(loaded.get("passed_cases"), int) and isinstance(loaded.get("total_cases"), int):
+            found[approach] = {"passed_cases": loaded["passed_cases"], "total_cases": loaded["total_cases"]}
+    return found
+
+
+def _load_run_metrics(reports_dir: Path) -> dict[str, dict]:
+    found = {}
+    for approach, folder in _sibling_dirs(reports_dir).items():
+        loaded = _read_json(folder / "metrics.json")
+        if loaded:
+            found[approach] = loaded
+    return found
+
+
+def _priced_total(run_dir: Path, approach: str, reports_dir: Path) -> tuple[float, int, int]:
+    for folder in (run_dir / CLASSIFICATION / approach, reports_dir / CLASSIFICATION / approach):
+        if not folder.is_dir():
+            continue
+        total = 0.0
+        priced_calls = 0
+        cases = 0
+        for path in sorted(folder.glob("*.json")):
+            row = _safe_row(path, path.stem)
+            if row is None:
+                continue
+            cases += 1
+            for key in ("haiku_usd", "jev_usd"):
+                value = row.get(key)
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    continue
+                total += float(value)
+                priced_calls += 1
+        return total, priced_calls, cases
+    return 0.0, 0, 0
+
+
+def _sibling_dirs(reports_dir: Path) -> dict[str, Path]:
+    name = reports_dir.name
+    prefix = "compare-"
+    if not name.startswith(prefix):
+        return {}
+    tag = name[len(prefix):]
+    if not tag or tag in {".", ".."} or "/" in tag or "\\" in tag:
+        return {}
+    found = {}
+    for approach in _APPROACHES:
+        folder = reports_dir.parent / f"a{approach}-{tag}"
+        if folder.is_dir():
+            found[approach] = folder
+    return found
+
+
+def _read_json(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
 
 
 def _roots(*folders: Path | None) -> list[Path]:

@@ -9,17 +9,18 @@
 .write.lock
 
 # Generated evaluation and runtime artifacts.
-# Drafts, reviews, submissions/results.json, reports/dev.json, and reports/audit.json stay tracked.
+# reports/dev.json and reports/audit.json stay tracked.
 reports/traces/
 reports/logs/
 reports/evals.json
 reports/classification/
 reports/metrics.json
-submissions/classification/
+
+# Local run output: drafts, reviews, and results.
+submissions/
 
 # Synthetic bake-off output. Inputs stay in data/synthetic and synthetic-data/.
 reports/synthetic/
-submissions/synthetic/
 
 # Secrets and local environment
 .env
