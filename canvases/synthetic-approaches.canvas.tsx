@@ -18,7 +18,7 @@ import {
 } from "cursor/canvas";
 
 const SOURCE =
-  "Local 100-case synthetic bake-off, 2026-10-28. A1 = a1-now (rules). A2 = a2-now (rules then gpt-6-luna). A3 = a3-now (Jev first; Clef only if Jev is missing or fails; then gpt-6-luna on disagreement). Classifier v3 pinned. Cost from classification-audit usage: gpt-6-luna $0.10 / $0.50 per million in/out; Jev $0.042 / $0.00. Clef did not run. Latency is case-span p50/p95 from metrics.json.";
+  "Local 100-case synthetic bake-off, 2026-10-28. A1 = a1-now (rules). A2 = a2-now (rules then gpt-6-luna). A3 = a3-now (Jev first; Clef only if Jev is missing or fails; then gpt-6-luna on disagreement). Classifier v3 pinned. Cost from classification-audit usage: gpt-6-luna $0.10 / $0.50 per million in/out; Jev $0.042 / $0.00. Clef did not run. Latency is case-span p50/p95 from metrics.json. Run files under reports/synthetic and submissions/synthetic are generated and are not committed.";
 
 const CHECKS = [
   "classification",
@@ -209,8 +209,9 @@ export default function SyntheticApproachesCanvas() {
             />
             <Text tone="tertiary" size="small">
               Y-axis: USD per 1,000 cases. Source: sum of priced
-              haiku.cost.usd and jev.cost.usd on a1-now / a2-now / a3-now
-              audits.
+              haiku.cost.usd and jev.cost.usd on the local a1-now / a2-now /
+              a3-now audits. Those directories are gitignored under
+              reports/synthetic.
             </Text>
           </Stack>
           <Stack gap={8}>
@@ -388,8 +389,9 @@ export default function SyntheticApproachesCanvas() {
           height={280}
         />
         <Text tone="tertiary" size="small">
-          Y-axis: cases passing each eval check out of 100. Source:
-          reports/synthetic/a1-now, a2-now, a3-now eval.json.
+          Y-axis: cases passing each eval check out of 100. Source: eval.json
+          from the local a1-now, a2-now, and a3-now runs. Those files are
+          gitignored under reports/synthetic.
         </Text>
       </Stack>
 

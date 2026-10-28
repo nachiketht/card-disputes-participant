@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S077",
-  "haiku_called": true,
-  "haiku_class": "unauthorized",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The complaint says the cardholder has never shopped at or heard of the merchant, indicating an unauthorized charge.",
-  "haiku_unusable": false
-}

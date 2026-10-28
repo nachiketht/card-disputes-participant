@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S004",
-  "haiku_called": true,
-  "haiku_class": "service_not_received",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The customer says they have not received anything from the tutoring service after paying.",
-  "haiku_unusable": false
-}

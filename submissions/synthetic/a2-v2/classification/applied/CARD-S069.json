@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S069",
-  "haiku_called": true,
-  "haiku_class": "service_not_received",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The customer paid for a booking that was cancelled and not rescheduled.",
-  "haiku_unusable": false
-}

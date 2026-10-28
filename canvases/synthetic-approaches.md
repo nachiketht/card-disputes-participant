@@ -2,7 +2,7 @@
 
 100 gold cases (CARD-S001–S100). Official score is **full eval** (every check must pass). Classification is the bake-off target. Drafter was off.
 
-**Source:** local run 2026-10-28. A1 = `a1-now` (rules). A2 = `a2-now` (rules then gpt-6-luna). A3 = `a3-now` (Jev first; Clef only if Jev is missing or fails; then gpt-6-luna on disagreement). Classifier v3 pinned. Cost from classification-audit usage: gpt-6-luna $0.10 / $0.50 per million in/out; Jev $0.042 / $0.00. Clef did not run. Latency is case-span p50/p95 from `metrics.json`.
+**Source:** local run 2026-10-28. A1 = `a1-now` (rules). A2 = `a2-now` (rules then gpt-6-luna). A3 = `a3-now` (Jev first; Clef only if Jev is missing or fails; then gpt-6-luna on disagreement). Classifier v3 pinned. Cost from classification-audit usage: gpt-6-luna $0.10 / $0.50 per million in/out; Jev $0.042 / $0.00. Clef did not run. Latency is case-span p50/p95 from `metrics.json`. The run files under `reports/synthetic/` and `submissions/synthetic/` are generated and are not committed. The figures below are the recorded summary of that run.
 
 A2 is the accuracy winner at 97/100 class and full eval, **$0.0046** list for 100 cases. A3 is 96/100. Jev is priced: 55 ranker calls add $0.0017, so A3 totals **$0.0054**. Both beat the 2000 ms case SLO (A2 0.98, A3 0.99, objective 0.95).
 
@@ -57,7 +57,7 @@ Mean input tokens per call: A2 gpt-6-luna 460.5; A3 gpt-6-luna 461.4; A3 Jev 749
 | A2 | 55 | 0 | $0.004632 | $0 | $0.004632 | $0.000046 |
 | A3 | 44 | 55 | $0.003639 | $0.001724 | $0.005363 | $0.000054 |
 
-A2 gpt-6-luna: 25,328 in / 4,196 out. A3 gpt-6-luna: 20,301 in / 3,212 out. A3 Jev: 41,231 in / 4,081 out (output uncharged). Source: sum of priced `haiku.cost.usd` and `jev.cost.usd` on `a1-now` / `a2-now` / `a3-now` audits.
+A2 gpt-6-luna: 25,328 in / 4,196 out. A3 gpt-6-luna: 20,301 in / 3,212 out. A3 Jev: 41,231 in / 4,081 out (output uncharged). Source: sum of priced `haiku.cost.usd` and `jev.cost.usd` on the local `a1-now` / `a2-now` / `a3-now` audits. Those audit directories are gitignored under `reports/synthetic/`.
 
 ## Latency
 
@@ -85,7 +85,7 @@ The two auto-routed-wrong cases on A2 and A3 are CARD-S054 (gold unsupported, pr
 
 ## Score vs gold
 
-Cases passing each eval check out of 100. Source: `reports/synthetic/a1-now`, `a2-now`, `a3-now` `eval.json`.
+Cases passing each eval check out of 100. Source: `eval.json` from the local `a1-now`, `a2-now`, and `a3-now` runs. Those files are gitignored under `reports/synthetic/`.
 
 | Check | A1 | A2 | A3 |
 |---|---:|---:|---:|

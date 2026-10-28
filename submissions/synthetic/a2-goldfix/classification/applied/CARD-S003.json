@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S003",
-  "haiku_called": true,
-  "haiku_class": "duplicate_charge",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The customer paid for one order but sees two charges of the same amount.",
-  "haiku_unusable": false
-}

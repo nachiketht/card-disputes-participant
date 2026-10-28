@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S014",
-  "haiku_called": true,
-  "haiku_class": "service_not_received",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The customer says the paid service was not performed.",
-  "haiku_unusable": false
-}

@@ -395,7 +395,7 @@ export FEATURE_LLM_REVIEW=off
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |
 
-This checkout tracks drafts, reviews, `submissions/results.json`, `reports/dev.json`, and `reports/audit.json`. Classification run output (`reports/classification/`, `submissions/classification/`) and `reports/metrics.json` are generated and ignored. Point `SUBMISSIONS_DIR`, `REPORTS_DIR`, and `--report` at a directory you do not commit if the tree should stay clean. `.state/` is ignored.
+This checkout tracks drafts, reviews, `submissions/results.json`, `reports/dev.json`, and `reports/audit.json`. Classification run output (`reports/classification/`, `submissions/classification/`), synthetic bake-off output (`reports/synthetic/`, `submissions/synthetic/`), `.write.lock` files, and `reports/metrics.json` are generated and ignored. Point `SUBMISSIONS_DIR`, `REPORTS_DIR`, and `--report` at a directory you do not commit if the tree should stay clean. `.state/` is ignored.
 
 ## Container files
 
@@ -820,7 +820,7 @@ uv run --locked dispute-copilot compare --case CARD-D01
 make compare
 ```
 
-`make synthetic` is `uv run --locked python tools/run_synthetic.py`. It runs approaches 1, 2, and 3 on `data/synthetic`, scores them with `synthetic-data/seed_gold.json`, and writes under `submissions/synthetic` and `reports/synthetic`. The drafter stays off. It uses a loopback mock at `http://127.0.0.1:8766` and starts that mock when it is not already healthy. `--no-start-mock` fails instead of starting one. `--approaches` defaults to `1,2,3`. `--tag` sets the folder suffix.
+`make synthetic` is `uv run --locked python tools/run_synthetic.py`. It runs approaches 1, 2, and 3 on `data/synthetic`, scores them with `synthetic-data/seed_gold.json`, and writes under `submissions/synthetic` and `reports/synthetic`. Those two directories are generated output and are gitignored. A fresh clone does not contain them; the command creates them. `data/synthetic/dataset.json` and `synthetic-data/` stay in git. `data/synthetic/documents` is a relative link to `synthetic-data/documents`, and `data/synthetic/policies` is a relative link to `data/dev/policies`. The drafter stays off. It uses a loopback mock at `http://127.0.0.1:8766` and starts that mock when it is not already healthy. `--no-start-mock` fails instead of starting one. `--approaches` defaults to `1,2,3`. `--tag` sets the folder suffix.
 
 On the review page, the narrative is first, then the original complaint. The model note is closed until opened. Saving feedback posts the reviewer name, the correct category, a note, and `haiku_block_opened` (true when that note was opened). The record is `submissions/feedback/CASE.json` and `reports/feedback/CASE.json`. Feedback does not accept or decline the review. `make review-page` serves that page. A created or declined case leaves Drafts and is listed under Decisions. See [Review page](#review-page).
 

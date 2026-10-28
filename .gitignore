@@ -5,8 +5,8 @@
 *.sqlite-wal
 *.sqlite-shm
 
-# Submission write lock
-submissions/.write.lock
+# Write locks created while a submissions directory is open.
+.write.lock
 
 # Generated evaluation and runtime artifacts.
 # Drafts, reviews, submissions/results.json, reports/dev.json, and reports/audit.json stay tracked.
@@ -16,6 +16,10 @@ reports/evals.json
 reports/classification/
 reports/metrics.json
 submissions/classification/
+
+# Synthetic bake-off output. Inputs stay in data/synthetic and synthetic-data/.
+reports/synthetic/
+submissions/synthetic/
 
 # Secrets and local environment
 .env

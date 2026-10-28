@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S077",
-  "haiku_called": true,
-  "haiku_class": "unauthorized",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The customer says they have never shopped at or heard of the merchant, indicating an unrecognized purchase.",
-  "haiku_unusable": false
-}

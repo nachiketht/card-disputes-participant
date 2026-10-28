@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S001",
-  "haiku_called": true,
-  "haiku_class": "service_not_received",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The customer paid upfront for repair work that has not been performed.",
-  "haiku_unusable": false
-}

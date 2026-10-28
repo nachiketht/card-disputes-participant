@@ -1,8 +1,0 @@
-{
-  "case_id": "CARD-S048",
-  "haiku_called": true,
-  "haiku_class": "duplicate_charge",
-  "haiku_quote_missing": false,
-  "haiku_reason": "The same purchase was charged twice after the customer tapped pay again.",
-  "haiku_unusable": false
-}
