@@ -14,7 +14,7 @@
 # Long-context rates (0.20 input / 0.75 output) and Data Zone US (+10%) / EU (+20%) are not modelled; our prompts are far below the long-context threshold.
 # The status is list price from Azure Global Standard. The Azure invoice may differ from list.
 # The stored id is not rewritten. A space in the id is matched to this row only for the price.
-# Source: https://azure.microsoft.com/en-us/blog/gpt-6-astra-sol-and-luna-for-production-agents-in-microsoft-foundry/
+# Source: Azure Global Standard list, checked 2026-10-27.
 models:
   claude-haiku-4-5:
     input_per_million: 1.00
