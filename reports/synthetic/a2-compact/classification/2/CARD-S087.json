@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S087",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000108
+    },
+    "evidence_end": null,
+    "evidence_ok": false,
+    "evidence_sha256": "313236155a5244766c3cc0d532d3427809d8b96ed020efde935a70ea8facab71",
+    "evidence_start": null,
+    "fallback_used": false,
+    "latency_ms": 1718.829,
+    "model": "gpt-6-luna",
+    "reason": "The complaint includes both an unbooked service and a service that never showed up.",
+    "tokens_in": 440,
+    "tokens_out": 127,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1721.396,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

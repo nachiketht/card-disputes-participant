@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S048",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.9e-05
+    },
+    "evidence_end": 106,
+    "evidence_ok": true,
+    "evidence_sha256": "29143d93a0751e2cf6c4bb3157ed78cf9489f79327172c67fbd73c6c5d421783",
+    "evidence_start": 72,
+    "fallback_used": false,
+    "latency_ms": 1061.192,
+    "model": "gpt-6-luna",
+    "reason": "The same checkout appears to have gone through twice.",
+    "tokens_in": 442,
+    "tokens_out": 70,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1063.567,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

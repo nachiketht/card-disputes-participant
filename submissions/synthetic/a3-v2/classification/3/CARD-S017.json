@@ -1,0 +1,41 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S017",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": null,
+  "jev": {
+    "class": "unauthorized",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 95.43,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 1.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 95.52,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "jev_agreed",
+  "route": "request_information",
+  "rules": {
+    "class": "unauthorized",
+    "conflict": false,
+    "missing": [
+      "authorization_confirmation"
+    ]
+  }
+}

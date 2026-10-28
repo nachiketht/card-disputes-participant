@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S063",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.1e-05
+    },
+    "evidence_end": 43,
+    "evidence_ok": true,
+    "evidence_sha256": "c94a2faafe84ca5564c533fa45f2dc611d2bf8e76b5421ffb7e096b1a2f04840",
+    "evidence_start": 27,
+    "fallback_used": false,
+    "latency_ms": 2888.961,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says cash did not come out of a cash machine.",
+    "tokens_in": 430,
+    "tokens_out": 75,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unsupported",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 71.321,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 0.0,
+      "unsupported": 1.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 2963.133,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

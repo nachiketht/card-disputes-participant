@@ -1,0 +1,57 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S019",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000108
+    },
+    "evidence_end": 93,
+    "evidence_ok": true,
+    "evidence_sha256": "1239c9e4a56fc9ab37a485f475aaf2e1d8e065b51fdf8eec57115ba692cb96c8",
+    "evidence_start": 46,
+    "fallback_used": false,
+    "latency_ms": 1389.896,
+    "model": "gpt-6-luna",
+    "reason": "They took payment and the complaint says nothing was received.",
+    "tokens_in": 436,
+    "tokens_out": 128,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 0.99,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 63.611,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.01,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.99,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1455.783,
+  "missing": [
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

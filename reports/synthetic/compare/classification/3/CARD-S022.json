@@ -1,0 +1,37 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S022",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": null,
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 0.4,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 81.98,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.01,
+      "ambiguous_or_unclear": 0.01,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.5,
+      "unauthorized": 0.01,
+      "unsupported": 0.47
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 82.032,
+  "missing": [],
+  "path": "jev_ambiguous",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

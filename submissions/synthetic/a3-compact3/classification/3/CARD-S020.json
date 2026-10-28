@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S020",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 9.1e-05
+    },
+    "evidence_end": 63,
+    "evidence_ok": true,
+    "evidence_sha256": "ae5c0aca1879d315969c65dd2b52a50b6ef4680030426438102a2856b925b682",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1147.091,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says they have never been to or ordered from the merchant.",
+    "tokens_in": 461,
+    "tokens_out": 89,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unauthorized",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 89.912,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 1.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1239.395,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

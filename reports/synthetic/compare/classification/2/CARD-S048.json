@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S048",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 6.6e-05
+    },
+    "evidence_end": 129,
+    "evidence_ok": true,
+    "evidence_sha256": "50ce73f905ddaf97e4d5cace7e669af76ca8d71c56b70d500a53e6dd6e0c8031",
+    "evidence_start": 72,
+    "fallback_used": false,
+    "latency_ms": 1234.812,
+    "model": "gpt-6-luna",
+    "reason": "The customer says the same purchase went through twice and that they should owe only once.",
+    "tokens_in": 225,
+    "tokens_out": 86,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1236.587,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

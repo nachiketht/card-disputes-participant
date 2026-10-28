@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S069",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000109
+    },
+    "evidence_end": 136,
+    "evidence_ok": true,
+    "evidence_sha256": "754515243440c0458b75a0a6c3d93618dfd5fa3bc2b067a9b1636e038735a51d",
+    "evidence_start": 72,
+    "fallback_used": false,
+    "latency_ms": 1373.382,
+    "model": "gpt-6-luna",
+    "reason": "They paid for a booking that was cancelled and did not receive the service or a new date.",
+    "tokens_in": 444,
+    "tokens_out": 129,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1375.486,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

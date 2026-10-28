@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S015",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "ambiguous",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.6e-05
+    },
+    "evidence_end": 91,
+    "evidence_ok": true,
+    "evidence_sha256": "6c8264f181bb04e47921037db349dfce51aabdac0fee71078f517b457f42ae01",
+    "evidence_start": 38,
+    "fallback_used": false,
+    "latency_ms": 1213.986,
+    "model": "gpt-6-luna",
+    "reason": "The complaint is about receiving an incorrect item and a refused return, which does not fit the listed classes.",
+    "tokens_in": 231,
+    "tokens_out": 106,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1216.348,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

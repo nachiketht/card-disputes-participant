@@ -1,0 +1,57 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S039",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.1e-05
+    },
+    "evidence_end": 93,
+    "evidence_ok": true,
+    "evidence_sha256": "332808062e61007888aa37be5dd2f81f4888ceb856982b0b7a3dbfd1c423eeec",
+    "evidence_start": 62,
+    "fallback_used": false,
+    "latency_ms": 977.93,
+    "model": "gpt-6-luna",
+    "reason": "The order has not arrived after several weeks.",
+    "tokens_in": 459,
+    "tokens_out": 51,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 81.191,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1059.999,
+  "missing": [
+    "authorization_confirmation",
+    "promised_service_date"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

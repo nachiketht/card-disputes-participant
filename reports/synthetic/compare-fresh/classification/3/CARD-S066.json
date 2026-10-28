@@ -1,0 +1,56 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S066",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000143
+    },
+    "evidence_end": 16,
+    "evidence_ok": true,
+    "evidence_sha256": "7c4347854c140b507e01aa3f15bae013a6e110cf5b12b77d1af8eab5e5a629fa",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1104.346,
+    "model": "gpt-6-luna",
+    "reason": "The customer identifies an unknown merchant, indicating an unauthorized purchase.",
+    "tokens_in": 1041,
+    "tokens_out": 78,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unauthorized",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 106.891,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 1.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1213.005,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

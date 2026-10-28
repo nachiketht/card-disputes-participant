@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S023",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000134
+    },
+    "evidence_end": 66,
+    "evidence_ok": true,
+    "evidence_sha256": "b18a92f9c5fd54cf828a1731a33b13be1e6dfd772a864461449eec11ef77068e",
+    "evidence_start": 45,
+    "fallback_used": false,
+    "latency_ms": 1156.112,
+    "model": "gpt-6-luna",
+    "reason": "The cash machine did not dispense any notes despite showing a completed withdrawal.",
+    "tokens_in": 1055,
+    "tokens_out": 57,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1158.597,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

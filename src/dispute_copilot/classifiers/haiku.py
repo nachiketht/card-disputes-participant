@@ -8,18 +8,15 @@ from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import Classification
 from dispute_copilot.llm.base import LLMError, failure_kind
 from dispute_copilot.llm.guard import rejects
+from dispute_copilot.classifiers.guide import UNCLEAR, category_lines
 from dispute_copilot.llm.prompts import PromptRegistry
 from dispute_copilot.llm.schema import ClassifierReply, complete_json, parse_model
 from dispute_copilot.observability.cost import price_call
 from dispute_copilot.observability.tracing import current
 
-UNCLEAR = "multiple_or_unclear"
-
 
 def category_text() -> str:
-    lines = [f"{item.value}: {_meaning(item)}" for item in Classification]
-    lines.append(f"{UNCLEAR}: more than one class, or not clear")
-    return "\n".join(lines)
+    return "\n".join(category_lines())
 
 
 def redact_complaint(complaint: str, redactor: Redactor | None = None) -> str | None:
@@ -189,15 +186,3 @@ def _kept_failure(value: object) -> str:
     if not isinstance(value, str) or not value.strip():
         return ""
     return failure_kind(LLMError(value))
-
-
-def _meaning(item: Classification) -> str:
-    if item == Classification.UNAUTHORIZED:
-        return "the customer did not authorize the purchase"
-    if item == Classification.DUPLICATE_CHARGE:
-        return "the same purchase was charged more than once"
-    if item == Classification.SERVICE_NOT_RECEIVED:
-        return "goods or a service were not delivered"
-    if item == Classification.AMBIGUOUS:
-        return "the complaint does not fit one class"
-    return "cash or ATM"

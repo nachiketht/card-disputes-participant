@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S088",
+  "haiku_called": true,
+  "haiku_class": "service_not_received",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer paid for home repair work that has not been completed after a month.",
+  "haiku_unusable": false
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S066",
+  "haiku_called": true,
+  "haiku_class": "unauthorized",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint identifies an unknown merchant, which matches unauthorized.",
+  "haiku_unusable": false
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S078",
+  "haiku_called": true,
+  "haiku_class": "multiple_or_unclear",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint says the account was cancelled before renewal but a charge was still taken, and that nothing was received. This raises both an unauthorized-charge claim and a non-receipt claim.",
+  "haiku_unusable": false
+}

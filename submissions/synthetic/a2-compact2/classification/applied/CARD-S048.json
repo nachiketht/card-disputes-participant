@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S048",
+  "haiku_called": true,
+  "haiku_class": "duplicate_charge",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint says both payments went through for one checkout, though only one was owed.",
+  "haiku_unusable": false
+}

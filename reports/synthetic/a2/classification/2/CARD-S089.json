@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S089",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 6e-05
+    },
+    "evidence_end": 88,
+    "evidence_ok": true,
+    "evidence_sha256": "005f6701a3a3cd7ac4a70776cf766d721ac0e976ebd18052e68dcc7213341de3",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1211.739,
+    "model": "gpt-6-luna",
+    "reason": "The complaint concerns a cash-terminal transaction, which is unsupported.",
+    "tokens_in": 225,
+    "tokens_out": 75,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1214.114,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

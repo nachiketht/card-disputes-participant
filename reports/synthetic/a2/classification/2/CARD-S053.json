@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S053",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 6.1e-05
+    },
+    "evidence_end": 85,
+    "evidence_ok": true,
+    "evidence_sha256": "c21900dfea73450771864663cc8ff498a632c8c1425d4c1d00b95cf2386dd0c1",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 994.049,
+    "model": "gpt-6-luna",
+    "reason": "The customer says someone else used their card and they did not make the purchase.",
+    "tokens_in": 222,
+    "tokens_out": 77,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 996.021,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

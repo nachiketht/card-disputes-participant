@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S022",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.8e-05
+    },
+    "evidence_end": 45,
+    "evidence_ok": true,
+    "evidence_sha256": "bb568aae9f97aa68d4ab603541eb69152e71b7be32a9ac5bcbaf4f55d0573dd2",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1227.121,
+    "model": "gpt-6-luna",
+    "reason": "The cash machine did not dispense cash.",
+    "tokens_in": 444,
+    "tokens_out": 87,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1227.925,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

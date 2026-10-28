@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S020",
+  "haiku_called": true,
+  "haiku_class": "unauthorized",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer says they have never been to or ordered from the merchant.",
+  "haiku_unusable": false
+}

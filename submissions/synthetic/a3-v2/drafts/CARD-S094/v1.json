@@ -1,0 +1,61 @@
+{
+  "case_id": "CARD-S094",
+  "classification": "service_not_received",
+  "routing": "ready_for_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S094",
+    "amount": 858,
+    "currency": "XCR",
+    "reported_date": "2026-09-17"
+  },
+  "missing_information": [],
+  "deadline": "2026-11-16",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Service deadline days: 60"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S094-INTAKE",
+      "quote": "Fenwick Fitness Club TOOK MY 858 AND NEVER SHOWED UP!!! WHERE IS MY SERVICE"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S094-INTAKE",
+      "quote": "Reported date: 2026-09-17"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S094-INTAKE",
+      "quote": "Transaction ID: TX-S094"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S094-TRANSACTIONS",
+      "quote": "\"amount\": 858"
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: service_not_received complaint for TX-S094, reported 2026-09-17. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Fenwick Fitness Club. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-16. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-28 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S063",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 6.5e-05
+    },
+    "evidence_end": 51,
+    "evidence_ok": true,
+    "evidence_sha256": "3e777412d6c3ad56a7432bc82783071215c547f056c67baeef810ab30aa6d350",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1175.447,
+    "model": "gpt-6-luna",
+    "reason": "This complaint concerns a cash withdrawal that was not dispensed.",
+    "tokens_in": 213,
+    "tokens_out": 87,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1177.536,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

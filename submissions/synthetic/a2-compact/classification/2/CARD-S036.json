@@ -1,0 +1,37 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S036",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.9e-05
+    },
+    "evidence_end": 68,
+    "evidence_ok": true,
+    "evidence_sha256": "83d44c0022fb670ec17cae123659eaa5073f957560d57641d5727de288bafd5b",
+    "evidence_start": 54,
+    "fallback_used": false,
+    "latency_ms": 1075.134,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the charge is not theirs and they never bought anything there.",
+    "tokens_in": 438,
+    "tokens_out": 70,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1076.58,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

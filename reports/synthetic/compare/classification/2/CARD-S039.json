@@ -1,0 +1,38 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S039",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 5e-05
+    },
+    "evidence_end": 93,
+    "evidence_ok": true,
+    "evidence_sha256": "332808062e61007888aa37be5dd2f81f4888ceb856982b0b7a3dbfd1c423eeec",
+    "evidence_start": 62,
+    "fallback_used": false,
+    "latency_ms": 986.097,
+    "model": "gpt-6-luna",
+    "reason": "The customer says the order has not arrived after several weeks.",
+    "tokens_in": 222,
+    "tokens_out": 56,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 988.041,
+  "missing": [
+    "authorization_confirmation",
+    "promised_service_date"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

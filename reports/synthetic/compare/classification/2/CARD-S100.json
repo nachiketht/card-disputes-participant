@@ -1,0 +1,37 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S100",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 4.5e-05
+    },
+    "evidence_end": 13,
+    "evidence_ok": true,
+    "evidence_sha256": "e1bd74fe3cec2d49700b70de4619efaa2f7740422a6b6ac368ae580f1e98fc16",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1136.571,
+    "model": "gpt-6-luna",
+    "reason": "The customer says they did not authorize the charge.",
+    "tokens_in": 201,
+    "tokens_out": 50,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1138.957,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

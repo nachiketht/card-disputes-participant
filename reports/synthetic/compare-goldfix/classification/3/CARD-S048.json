@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S048",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000161
+    },
+    "evidence_end": 106,
+    "evidence_ok": true,
+    "evidence_sha256": "29143d93a0751e2cf6c4bb3157ed78cf9489f79327172c67fbd73c6c5d421783",
+    "evidence_start": 72,
+    "fallback_used": false,
+    "latency_ms": 1262.393,
+    "model": "gpt-6-luna",
+    "reason": "The customer says the same checkout payment went through twice.",
+    "tokens_in": 1056,
+    "tokens_out": 110,
+    "unusable": false
+  },
+  "jev": {
+    "class": "duplicate_charge",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 104.961,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 1.0,
+      "service_not_received": 0.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1369.751,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

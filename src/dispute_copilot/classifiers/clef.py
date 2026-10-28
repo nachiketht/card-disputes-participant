@@ -7,6 +7,7 @@ import time
 import httpx
 
 from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
+from dispute_copilot.classifiers.guide import ranker_instructions, ranker_state
 from dispute_copilot.classifiers.jev import _QUESTION, _criteria, read_answer
 from dispute_copilot.fields import Classification
 from dispute_copilot.llm.base import LLMError, failure_kind
@@ -14,10 +15,6 @@ from dispute_copilot.observability.cost import price_call
 from dispute_copilot.observability.tracing import current
 
 _ACCOUNT = re.compile(r"^[0-9a-fA-F]{32}$")
-_INSTRUCTIONS = (
-    "Which dispute class best fits this customer complaint? "
-    "Pick the single best option, or ambiguous if it fits more than one or none."
-)
 _MODELS = frozenset({"clef-flash", "clef"})
 _HOST = "https://api.cloudflare.com/client/v4/accounts"
 
@@ -49,11 +46,11 @@ class ClefClient:
     def ask(self, state: str) -> dict:
         payload = {
             "model": self.model,
-            "state": state,
+            "state": ranker_state(state),
             "questions": {
                 _QUESTION: {
                     "type": "choice",
-                    "instructions": _INSTRUCTIONS,
+                    "instructions": ranker_instructions(),
                     "criteria": _criteria(),
                 }
             },

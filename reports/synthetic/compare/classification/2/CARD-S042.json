@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S042",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.2e-05
+    },
+    "evidence_end": 37,
+    "evidence_ok": true,
+    "evidence_sha256": "39cefce51afb9a607b4627df51fb9e0dbbdbb62c8a25c8209d62ee6411806f14",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1126.204,
+    "model": "gpt-6-luna",
+    "reason": "The complaint concerns a cash-machine withdrawal. Cash and ATM complaints are unsupported.",
+    "tokens_in": 285,
+    "tokens_out": 106,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1128.299,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

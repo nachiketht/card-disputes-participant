@@ -1,0 +1,1709 @@
+{
+  "passed": false,
+  "format_errors": [],
+  "cases": [
+    {
+      "case_id": "CARD-S001",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S002",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S003",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S004",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": false,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S005",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S006",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S007",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": false,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S008",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S009",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S010",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S011",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S012",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S013",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S014",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S015",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S016",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S017",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S018",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S019",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S020",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S021",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S022",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": false,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S023",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S024",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S025",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S026",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S027",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S028",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S029",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S030",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S031",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S032",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S033",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S034",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S035",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S036",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S037",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S038",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S039",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S040",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S041",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S042",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S043",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S044",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S045",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S046",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S047",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S048",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S049",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S050",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S051",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S052",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S053",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S054",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S055",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S056",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S057",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S058",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S059",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S060",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": false,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S061",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S062",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S063",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S064",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S065",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S066",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S067",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S068",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S069",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S070",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S071",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S072",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S073",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S074",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S075",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S076",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S077",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S078",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S079",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S080",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S081",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S082",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S083",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S084",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S085",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S086",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S087",
+      "passed": false,
+      "checks": {
+        "classification": false,
+        "routing": false,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": false,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S088",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S089",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S090",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S091",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S092",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S093",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S094",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S095",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S096",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S097",
+      "passed": false,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": false,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": false
+      }
+    },
+    {
+      "case_id": "CARD-S098",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S099",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    },
+    {
+      "case_id": "CARD-S100",
+      "passed": true,
+      "checks": {
+        "classification": true,
+        "routing": true,
+        "policy_selection": true,
+        "facts": true,
+        "missing_information": true,
+        "deadline": true,
+        "citations_valid": true,
+        "required_evidence": true,
+        "narrative_present": true,
+        "no_restricted_values": true,
+        "targeted_questions": true
+      }
+    }
+  ],
+  "passed_cases": 72,
+  "total_cases": 100,
+  "limitations": "Automated checks do not establish semantic grounding, safe prose, human approval, tool correctness or readiness. Review narrative and server audit separately."
+}

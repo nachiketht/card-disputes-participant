@@ -1,0 +1,39 @@
+{
+  "3": {
+    "written": 100,
+    "not_written": 0,
+    "elapsed_s": 65.88,
+    "run_id": "run-3b7f86e74b",
+    "passed_cases": 96,
+    "total_cases": 100,
+    "eval_passed": false,
+    "class_hits": 96,
+    "class_total": 100,
+    "class_misses": [
+      {
+        "case_id": "CARD-S024",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S054",
+        "gold": "unsupported",
+        "pred": "unauthorized",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S060",
+        "gold": "ambiguous",
+        "pred": "duplicate_charge",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S078",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      }
+    ]
+  }
+}

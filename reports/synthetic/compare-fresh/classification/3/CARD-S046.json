@@ -1,0 +1,26 @@
+{
+  "approach": "3",
+  "called_model": false,
+  "case_id": "CARD-S046",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": null,
+  "jev": null,
+  "latency_ms": 0.006,
+  "missing": [
+    "authorization_confirmation",
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "path": "rules_only",
+  "route": "request_information",
+  "rules": {
+    "class": "service_not_received",
+    "conflict": false,
+    "missing": [
+      "authorization_confirmation",
+      "promised_service_date",
+      "purchase_receipt"
+    ]
+  }
+}

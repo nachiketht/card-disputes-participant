@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S065",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.3e-05
+    },
+    "evidence_end": 66,
+    "evidence_ok": true,
+    "evidence_sha256": "f41ec48569f8ca9d43de9d619402ae73d9faf0fec011369535bde10a9f0ea4d4",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1205.658,
+    "model": "gpt-6-luna",
+    "reason": "The customer says one purchase appears twice on the card.",
+    "tokens_in": 220,
+    "tokens_out": 103,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1207.751,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

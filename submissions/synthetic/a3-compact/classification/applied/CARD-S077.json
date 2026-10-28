@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S077",
+  "haiku_called": true,
+  "haiku_class": "unauthorized",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint says the merchant is unknown to them, indicating an unauthorized purchase.",
+  "haiku_unusable": false
+}

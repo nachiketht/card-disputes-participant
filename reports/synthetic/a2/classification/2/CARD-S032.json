@@ -1,0 +1,37 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S032",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 5.2e-05
+    },
+    "evidence_end": 72,
+    "evidence_ok": true,
+    "evidence_sha256": "c024e68e0e38e1069a10ab6fb0d4ae8b159357f46187fd3f005c3c2d5bb87797",
+    "evidence_start": 36,
+    "fallback_used": false,
+    "latency_ms": 1093.454,
+    "model": "gpt-6-luna",
+    "reason": "The customer says the paid laundry service was not performed.",
+    "tokens_in": 215,
+    "tokens_out": 60,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1095.173,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

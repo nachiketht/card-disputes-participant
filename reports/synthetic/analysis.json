@@ -1,0 +1,1808 @@
+{
+  "check_rates": {
+    "1": {
+      "passed_cases": 37,
+      "total": 100,
+      "classification": {
+        "n": 52,
+        "pct": 52.0
+      },
+      "routing": {
+        "n": 64,
+        "pct": 64.0
+      },
+      "policy_selection": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "facts": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "missing_information": {
+        "n": 64,
+        "pct": 64.0
+      },
+      "deadline": {
+        "n": 62,
+        "pct": 62.0
+      },
+      "citations_valid": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "required_evidence": {
+        "n": 96,
+        "pct": 96.0
+      },
+      "narrative_present": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "no_restricted_values": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "targeted_questions": {
+        "n": 64,
+        "pct": 64.0
+      }
+    },
+    "2": {
+      "passed_cases": 70,
+      "total": 100,
+      "classification": {
+        "n": 87,
+        "pct": 87.0
+      },
+      "routing": {
+        "n": 91,
+        "pct": 91.0
+      },
+      "policy_selection": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "facts": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "missing_information": {
+        "n": 81,
+        "pct": 81.0
+      },
+      "deadline": {
+        "n": 90,
+        "pct": 90.0
+      },
+      "citations_valid": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "required_evidence": {
+        "n": 96,
+        "pct": 96.0
+      },
+      "narrative_present": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "no_restricted_values": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "targeted_questions": {
+        "n": 81,
+        "pct": 81.0
+      }
+    },
+    "3": {
+      "passed_cases": 64,
+      "total": 100,
+      "classification": {
+        "n": 80,
+        "pct": 80.0
+      },
+      "routing": {
+        "n": 88,
+        "pct": 88.0
+      },
+      "policy_selection": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "facts": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "missing_information": {
+        "n": 78,
+        "pct": 78.0
+      },
+      "deadline": {
+        "n": 87,
+        "pct": 87.0
+      },
+      "citations_valid": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "required_evidence": {
+        "n": 96,
+        "pct": 96.0
+      },
+      "narrative_present": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "no_restricted_values": {
+        "n": 100,
+        "pct": 100.0
+      },
+      "targeted_questions": {
+        "n": 78,
+        "pct": 78.0
+      }
+    }
+  },
+  "class_scores": {
+    "1": {
+      "unauthorized": {
+        "gold": 24,
+        "pred": 16,
+        "correct": 15,
+        "recall": 62.5,
+        "precision": 93.8
+      },
+      "duplicate_charge": {
+        "gold": 15,
+        "pred": 9,
+        "correct": 8,
+        "recall": 53.3,
+        "precision": 88.9
+      },
+      "service_not_received": {
+        "gold": 20,
+        "pred": 0,
+        "correct": 0,
+        "recall": 0.0,
+        "precision": null
+      },
+      "ambiguous": {
+        "gold": 24,
+        "pred": 69,
+        "correct": 23,
+        "recall": 95.8,
+        "precision": 33.3
+      },
+      "unsupported": {
+        "gold": 17,
+        "pred": 6,
+        "correct": 6,
+        "recall": 35.3,
+        "precision": 100.0
+      }
+    },
+    "2": {
+      "unauthorized": {
+        "gold": 24,
+        "pred": 21,
+        "correct": 20,
+        "recall": 83.3,
+        "precision": 95.2
+      },
+      "duplicate_charge": {
+        "gold": 15,
+        "pred": 15,
+        "correct": 14,
+        "recall": 93.3,
+        "precision": 93.3
+      },
+      "service_not_received": {
+        "gold": 20,
+        "pred": 18,
+        "correct": 17,
+        "recall": 85.0,
+        "precision": 94.4
+      },
+      "ambiguous": {
+        "gold": 24,
+        "pred": 33,
+        "correct": 23,
+        "recall": 95.8,
+        "precision": 69.7
+      },
+      "unsupported": {
+        "gold": 17,
+        "pred": 13,
+        "correct": 13,
+        "recall": 76.5,
+        "precision": 100.0
+      }
+    },
+    "3": {
+      "unauthorized": {
+        "gold": 24,
+        "pred": 19,
+        "correct": 18,
+        "recall": 75.0,
+        "precision": 94.7
+      },
+      "duplicate_charge": {
+        "gold": 15,
+        "pred": 15,
+        "correct": 14,
+        "recall": 93.3,
+        "precision": 93.3
+      },
+      "service_not_received": {
+        "gold": 20,
+        "pred": 17,
+        "correct": 16,
+        "recall": 80.0,
+        "precision": 94.1
+      },
+      "ambiguous": {
+        "gold": 24,
+        "pred": 40,
+        "correct": 23,
+        "recall": 95.8,
+        "precision": 57.5
+      },
+      "unsupported": {
+        "gold": 17,
+        "pred": 9,
+        "correct": 9,
+        "recall": 52.9,
+        "precision": 100.0
+      }
+    }
+  },
+  "confusion": {
+    "1": {
+      "unauthorized": {
+        "unauthorized": 15,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 9,
+        "unsupported": 0
+      },
+      "duplicate_charge": {
+        "unauthorized": 0,
+        "duplicate_charge": 8,
+        "service_not_received": 0,
+        "ambiguous": 7,
+        "unsupported": 0
+      },
+      "service_not_received": {
+        "unauthorized": 0,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 20,
+        "unsupported": 0
+      },
+      "ambiguous": {
+        "unauthorized": 0,
+        "duplicate_charge": 1,
+        "service_not_received": 0,
+        "ambiguous": 23,
+        "unsupported": 0
+      },
+      "unsupported": {
+        "unauthorized": 1,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 10,
+        "unsupported": 6
+      }
+    },
+    "2": {
+      "unauthorized": {
+        "unauthorized": 20,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 4,
+        "unsupported": 0
+      },
+      "duplicate_charge": {
+        "unauthorized": 0,
+        "duplicate_charge": 14,
+        "service_not_received": 1,
+        "ambiguous": 0,
+        "unsupported": 0
+      },
+      "service_not_received": {
+        "unauthorized": 0,
+        "duplicate_charge": 0,
+        "service_not_received": 17,
+        "ambiguous": 3,
+        "unsupported": 0
+      },
+      "ambiguous": {
+        "unauthorized": 0,
+        "duplicate_charge": 1,
+        "service_not_received": 0,
+        "ambiguous": 23,
+        "unsupported": 0
+      },
+      "unsupported": {
+        "unauthorized": 1,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 3,
+        "unsupported": 13
+      }
+    },
+    "3": {
+      "unauthorized": {
+        "unauthorized": 18,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 6,
+        "unsupported": 0
+      },
+      "duplicate_charge": {
+        "unauthorized": 0,
+        "duplicate_charge": 14,
+        "service_not_received": 1,
+        "ambiguous": 0,
+        "unsupported": 0
+      },
+      "service_not_received": {
+        "unauthorized": 0,
+        "duplicate_charge": 0,
+        "service_not_received": 16,
+        "ambiguous": 4,
+        "unsupported": 0
+      },
+      "ambiguous": {
+        "unauthorized": 0,
+        "duplicate_charge": 1,
+        "service_not_received": 0,
+        "ambiguous": 23,
+        "unsupported": 0
+      },
+      "unsupported": {
+        "unauthorized": 1,
+        "duplicate_charge": 0,
+        "service_not_received": 0,
+        "ambiguous": 7,
+        "unsupported": 9
+      }
+    }
+  },
+  "route_scores": {
+    "1": {
+      "ready_for_review": {
+        "gold": 34,
+        "pred": 23,
+        "correct": 21,
+        "recall": 61.8,
+        "precision": 91.3
+      },
+      "request_information": {
+        "gold": 22,
+        "pred": 1,
+        "correct": 1,
+        "recall": 4.5,
+        "precision": 100.0
+      },
+      "manual_review": {
+        "gold": 44,
+        "pred": 76,
+        "correct": 42,
+        "recall": 95.5,
+        "precision": 55.3
+      }
+    },
+    "2": {
+      "ready_for_review": {
+        "gold": 34,
+        "pred": 33,
+        "correct": 31,
+        "recall": 91.2,
+        "precision": 93.9
+      },
+      "request_information": {
+        "gold": 22,
+        "pred": 18,
+        "correct": 18,
+        "recall": 81.8,
+        "precision": 100.0
+      },
+      "manual_review": {
+        "gold": 44,
+        "pred": 49,
+        "correct": 42,
+        "recall": 95.5,
+        "precision": 85.7
+      }
+    },
+    "3": {
+      "ready_for_review": {
+        "gold": 34,
+        "pred": 33,
+        "correct": 31,
+        "recall": 91.2,
+        "precision": 93.9
+      },
+      "request_information": {
+        "gold": 22,
+        "pred": 15,
+        "correct": 15,
+        "recall": 68.2,
+        "precision": 100.0
+      },
+      "manual_review": {
+        "gold": 44,
+        "pred": 52,
+        "correct": 42,
+        "recall": 95.5,
+        "precision": 80.8
+      }
+    }
+  },
+  "comparison": {
+    "1": {
+      "cases": 100,
+      "called_model": 0,
+      "manual_count": 76,
+      "manual_rate": 76.0,
+      "p95_ms": 0.014,
+      "median_ms": 0.008,
+      "cost_usd_total": 0,
+      "cost_per_case": 0.0,
+      "priced_calls": 0,
+      "wrong": 48,
+      "wrong_rate": 48.0,
+      "auto_sample": 23,
+      "auto_wrong": 2,
+      "auto_wrong_rate": 8.7,
+      "paths": {
+        "rules_only": 99,
+        "duplicate_unmatched": 1
+      },
+      "fallback_used": 0,
+      "jev_used": 0,
+      "clef_used": 0,
+      "haiku_unusable": 0
+    },
+    "2": {
+      "cases": 100,
+      "called_model": 56,
+      "manual_count": 49,
+      "manual_rate": 49.0,
+      "p95_ms": 1609.69,
+      "median_ms": 956.747,
+      "cost_usd_total": 0.003504,
+      "cost_per_case": 3.5e-05,
+      "priced_calls": 56,
+      "wrong": 13,
+      "wrong_rate": 13.0,
+      "auto_sample": 33,
+      "auto_wrong": 3,
+      "auto_wrong_rate": 9.1,
+      "paths": {
+        "haiku_assigned": 38,
+        "rules_only": 43,
+        "authorization_conflict": 7,
+        "haiku_unclear": 11,
+        "duplicate_unmatched": 1
+      },
+      "fallback_used": 0,
+      "jev_used": 0,
+      "clef_used": 0,
+      "haiku_unusable": 0
+    },
+    "3": {
+      "cases": 100,
+      "called_model": 56,
+      "manual_count": 52,
+      "manual_rate": 52.0,
+      "p95_ms": 1405.13,
+      "median_ms": 77.838,
+      "cost_usd_total": 0.002232,
+      "cost_per_case": 2.2e-05,
+      "priced_calls": 37,
+      "wrong": 20,
+      "wrong_rate": 20.0,
+      "auto_sample": 33,
+      "auto_wrong": 3,
+      "auto_wrong_rate": 9.1,
+      "paths": {
+        "haiku_assigned": 29,
+        "rules_only": 43,
+        "authorization_conflict": 7,
+        "jev_ambiguous": 18,
+        "jev_agreed": 1,
+        "duplicate_unmatched": 1,
+        "haiku_rejected": 1
+      },
+      "fallback_used": 0,
+      "jev_used": 56,
+      "clef_used": 0,
+      "haiku_unusable": 0
+    }
+  },
+  "agreement": {
+    "1v2": {
+      "agree": 64,
+      "shared": 100,
+      "pct": 64.0,
+      "diff_n": 36,
+      "diffs": [
+        {
+          "case_id": "CARD-S001",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S003",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S004",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S006",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S007",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S014",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S019",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S021",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S022",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S023",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S025",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S032",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S036",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S037",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S039",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S040",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S041",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S042",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S048",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S051",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S061",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S063",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S065",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S069",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S070",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S074",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S075",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S080",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S083",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S084",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S088",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S089",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S092",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S094",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S098",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S100",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        }
+      ]
+    },
+    "1v3": {
+      "agree": 71,
+      "shared": 100,
+      "pct": 71.0,
+      "diff_n": 29,
+      "diffs": [
+        {
+          "case_id": "CARD-S001",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S003",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S004",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S006",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S007",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S014",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S019",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S021",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S025",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S032",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S036",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S039",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S041",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S048",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S051",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S061",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S063",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S065",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S069",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S070",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S074",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S075",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S080",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S083",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S088",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S089",
+          "left": "ambiguous",
+          "right": "unsupported",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S092",
+          "left": "ambiguous",
+          "right": "duplicate_charge",
+          "gold": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S094",
+          "left": "ambiguous",
+          "right": "service_not_received",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S098",
+          "left": "ambiguous",
+          "right": "unauthorized",
+          "gold": "unauthorized"
+        }
+      ]
+    },
+    "2v3": {
+      "agree": 93,
+      "shared": 100,
+      "pct": 93.0,
+      "diff_n": 7,
+      "diffs": [
+        {
+          "case_id": "CARD-S022",
+          "left": "unsupported",
+          "right": "ambiguous",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S023",
+          "left": "unsupported",
+          "right": "ambiguous",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S037",
+          "left": "unsupported",
+          "right": "ambiguous",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S040",
+          "left": "service_not_received",
+          "right": "ambiguous",
+          "gold": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S042",
+          "left": "unsupported",
+          "right": "ambiguous",
+          "gold": "unsupported"
+        },
+        {
+          "case_id": "CARD-S084",
+          "left": "unauthorized",
+          "right": "ambiguous",
+          "gold": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S100",
+          "left": "unauthorized",
+          "right": "ambiguous",
+          "gold": "unauthorized"
+        }
+      ]
+    }
+  },
+  "delta": {
+    "2": {
+      "recovered": [
+        {
+          "case_id": "CARD-S001",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S003",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S006",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S007",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S014",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S019",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S021",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S022",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S023",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S025",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S032",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S036",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S037",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S039",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S040",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S041",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S042",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S048",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S051",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S061",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S063",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S065",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S069",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S070",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S074",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S075",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S080",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S083",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S084",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S088",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S089",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S092",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S094",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S098",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S100",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        }
+      ],
+      "regressed": [],
+      "still_wrong_n": 13,
+      "recovered_n": 35,
+      "regressed_n": 0
+    },
+    "3": {
+      "recovered": [
+        {
+          "case_id": "CARD-S001",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S003",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S006",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S007",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S014",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S019",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S021",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S025",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S032",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S036",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        },
+        {
+          "case_id": "CARD-S039",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S041",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S048",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S051",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S061",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S063",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S065",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S069",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S070",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S074",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S075",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S080",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S083",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S088",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S089",
+          "gold": "unsupported",
+          "a1": "ambiguous",
+          "pred": "unsupported"
+        },
+        {
+          "case_id": "CARD-S092",
+          "gold": "duplicate_charge",
+          "a1": "ambiguous",
+          "pred": "duplicate_charge"
+        },
+        {
+          "case_id": "CARD-S094",
+          "gold": "service_not_received",
+          "a1": "ambiguous",
+          "pred": "service_not_received"
+        },
+        {
+          "case_id": "CARD-S098",
+          "gold": "unauthorized",
+          "a1": "ambiguous",
+          "pred": "unauthorized"
+        }
+      ],
+      "regressed": [],
+      "still_wrong_n": 20,
+      "recovered_n": 28,
+      "regressed_n": 0
+    }
+  },
+  "partial": {
+    "1": {
+      "n": 15,
+      "cases": [
+        {
+          "case_id": "CARD-S011",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S013",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S020",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S027",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S028",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S029",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S049",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S053",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S059",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S077",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S079",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S085",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S090",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S096",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S097",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        }
+      ]
+    },
+    "2": {
+      "n": 17,
+      "cases": [
+        {
+          "case_id": "CARD-S007",
+          "failed": [
+            "required_evidence"
+          ]
+        },
+        {
+          "case_id": "CARD-S011",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S013",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S020",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S022",
+          "failed": [
+            "required_evidence"
+          ]
+        },
+        {
+          "case_id": "CARD-S027",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S028",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S029",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S049",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S053",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S059",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S077",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S079",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S085",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S090",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S096",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S097",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        }
+      ]
+    },
+    "3": {
+      "n": 16,
+      "cases": [
+        {
+          "case_id": "CARD-S007",
+          "failed": [
+            "required_evidence"
+          ]
+        },
+        {
+          "case_id": "CARD-S011",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S013",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S020",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S027",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S028",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S029",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S049",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S053",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S059",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S077",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S079",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S085",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S090",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S096",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        },
+        {
+          "case_id": "CARD-S097",
+          "failed": [
+            "missing_information",
+            "targeted_questions"
+          ]
+        }
+      ]
+    }
+  },
+  "metrics": {
+    "1": {
+      "good_case_rate": 1.0,
+      "manual_review_rate": 0.76,
+      "routes": {
+        "manual_review": 76,
+        "ready_for_review": 23,
+        "request_information": 1
+      },
+      "alerts": [],
+      "injection_detected": 1,
+      "guardrails": {
+        "approval": 0,
+        "boundary": 0,
+        "input": 1,
+        "output": 0
+      },
+      "case_latency_ms": {
+        "max": 173.193,
+        "median": 20.527,
+        "n": 100,
+        "p95": 88.298
+      },
+      "tool_exhausted_rate": 0.025,
+      "cost_usd": null
+    },
+    "2": {
+      "good_case_rate": 0.96,
+      "manual_review_rate": 0.49,
+      "routes": {
+        "manual_review": 49,
+        "ready_for_review": 33,
+        "request_information": 18
+      },
+      "alerts": [],
+      "injection_detected": 1,
+      "guardrails": {
+        "approval": 0,
+        "boundary": 0,
+        "input": 1,
+        "output": 0
+      },
+      "case_latency_ms": {
+        "max": 5142.77,
+        "median": 974.592,
+        "n": 100,
+        "p95": 1636.568
+      },
+      "tool_exhausted_rate": 0.025,
+      "cost_usd": null
+    },
+    "3": {
+      "good_case_rate": 0.99,
+      "manual_review_rate": 0.52,
+      "routes": {
+        "manual_review": 52,
+        "ready_for_review": 33,
+        "request_information": 15
+      },
+      "alerts": [],
+      "injection_detected": 1,
+      "guardrails": {
+        "approval": 0,
+        "boundary": 0,
+        "input": 1,
+        "output": 0
+      },
+      "case_latency_ms": {
+        "max": 2807.059,
+        "median": 107.049,
+        "n": 100,
+        "p95": 1431.47
+      },
+      "tool_exhausted_rate": 0.025,
+      "cost_usd": null
+    }
+  }
+}

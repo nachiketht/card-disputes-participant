@@ -1,0 +1,39 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S017",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000138
+    },
+    "evidence_end": 117,
+    "evidence_ok": true,
+    "evidence_sha256": "4eff1b0e51870cc082e2ca2c1646ae0f9017dec21dc7b989a26151c854a200ee",
+    "evidence_start": 77,
+    "fallback_used": false,
+    "latency_ms": 1082.619,
+    "model": "gpt-6-luna",
+    "reason": "The customer says the charge is one of several they do not recognize.",
+    "tokens_in": 1069,
+    "tokens_out": 63,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1084.362,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "unauthorized",
+    "conflict": false,
+    "missing": [
+      "authorization_confirmation"
+    ]
+  }
+}

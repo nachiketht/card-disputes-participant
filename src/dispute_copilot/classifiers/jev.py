@@ -6,12 +6,12 @@ import time
 import httpx
 
 from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
-from dispute_copilot.classifiers.haiku import category_text, known_class
+from dispute_copilot.classifiers.guide import AMBIGUOUS_OPTION, ranker_criteria, ranker_instructions, ranker_state
+from dispute_copilot.classifiers.haiku import known_class
 from dispute_copilot.fields import Classification
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.observability.tracing import current
 
-AMBIGUOUS_OPTION = "ambiguous_or_unclear"
 _QUESTION = "class"
 
 
@@ -30,10 +30,11 @@ class JevClient:
     def ask(self, state: str) -> dict:
         payload = {
             "model": self.model,
-            "state": state,
+            "state": ranker_state(state),
             "questions": {
                 _QUESTION: {
                     "type": "choice",
+                    "instructions": ranker_instructions(),
                     "criteria": _criteria(),
                 }
             },
@@ -139,14 +140,4 @@ def _option(name: str) -> Classification | None:
 
 
 def _criteria() -> dict[str, str]:
-    rows = {item.value: line for line, item in _pairs()}
-    rows[AMBIGUOUS_OPTION] = "ambiguous or unclear"
-    return rows
-
-
-def _pairs():
-    for line in category_text().splitlines():
-        name = line.split(":", 1)[0]
-        found = known_class(name)
-        if found is not None:
-            yield line, found
+    return ranker_criteria()

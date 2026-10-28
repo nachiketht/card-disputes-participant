@@ -1,0 +1,58 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S001",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000146
+    },
+    "evidence_end": 110,
+    "evidence_ok": true,
+    "evidence_sha256": "d9600ce19a02270aead6b14148a5271627483ff695e674f63f01ac21890147bc",
+    "evidence_start": 91,
+    "fallback_used": false,
+    "latency_ms": 1145.234,
+    "model": "gpt-6-luna",
+    "reason": "The customer paid upfront, but the repair work was never performed.",
+    "tokens_in": 1058,
+    "tokens_out": 81,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 114.874,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1262.175,
+  "missing": [
+    "authorization_confirmation",
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

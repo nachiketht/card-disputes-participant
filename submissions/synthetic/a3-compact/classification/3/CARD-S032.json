@@ -1,0 +1,56 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S032",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.4e-05
+    },
+    "evidence_end": 60,
+    "evidence_ok": true,
+    "evidence_sha256": "717cdfc008ea2a3f512d6ebaaa41edd98548e8e030722872956bc9ade6cf5378",
+    "evidence_start": 36,
+    "fallback_used": false,
+    "latency_ms": 4368.021,
+    "model": "gpt-6-luna",
+    "reason": "The paid laundry service was not performed.",
+    "tokens_in": 432,
+    "tokens_out": 62,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 116.018,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 4486.165,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

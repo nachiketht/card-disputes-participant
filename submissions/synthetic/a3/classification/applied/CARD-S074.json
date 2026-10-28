@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S074",
+  "haiku_called": true,
+  "haiku_class": "service_not_received",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer says the booked service was not provided.",
+  "haiku_unusable": false
+}

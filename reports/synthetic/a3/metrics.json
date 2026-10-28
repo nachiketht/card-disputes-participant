@@ -1,0 +1,104 @@
+{
+  "alert_rules": [
+    {
+      "metric": "tool_exhausted_rate",
+      "name": "tool_exhausted_rate_high",
+      "op": ">",
+      "severity": "page",
+      "threshold": 0.25,
+      "why": "A read dependency is failing all three attempts on more than one case in four. Cases are degrading to manual_review."
+    },
+    {
+      "metric": "good_case_rate",
+      "name": "good_case_rate_below_slo",
+      "op": "<",
+      "severity": "page",
+      "threshold": 0.95,
+      "why": "The SLO itself is being missed for this window. The error budget is burning."
+    },
+    {
+      "metric": "breaker_opens",
+      "name": "breaker_opened",
+      "op": ">",
+      "severity": "ticket",
+      "threshold": 0,
+      "why": "A dependency outage lasted long enough to open its breaker."
+    },
+    {
+      "metric": "untrusted_instruction_cases",
+      "name": "untrusted_instruction_spike",
+      "op": ">",
+      "severity": "ticket",
+      "threshold": 2,
+      "why": "Several cases carried instruction-like text. Possible coordinated injection attempt."
+    },
+    {
+      "metric": "gate_blocked",
+      "name": "unapproved_create_attempt",
+      "op": ">",
+      "severity": "page",
+      "threshold": 0,
+      "why": "Something tried to create a record without a passing approval gate."
+    }
+  ],
+  "alerts_fired": [],
+  "metrics": {
+    "breaker_opens": 0,
+    "breaker_skips": 0,
+    "case_latency_ms": {
+      "max": 2807.059,
+      "median": 107.049,
+      "n": 100,
+      "p95": 1431.47
+    },
+    "cases_drafted": 100,
+    "cases_total": 100,
+    "error_budget": {
+      "allowed_bad_cases": 5.0,
+      "bad_cases": 1,
+      "objective": 0.95,
+      "remaining_fraction": 0.8
+    },
+    "gate_blocked": 0,
+    "good_case_rate": 0.99,
+    "guardrails": {
+      "approval": 0,
+      "boundary": 0,
+      "input": 1,
+      "output": 0
+    },
+    "injection_detected": 1,
+    "manual_review_rate": 0.52,
+    "routes": {
+      "manual_review": 52,
+      "ready_for_review": 33,
+      "request_information": 15
+    },
+    "tool_by_dependency": {
+      "merchant": {
+        "attempts": 100,
+        "calls": 100,
+        "exhausted": 0
+      },
+      "transactions": {
+        "attempts": 115,
+        "calls": 100,
+        "exhausted": 5
+      }
+    },
+    "tool_calls": 200,
+    "tool_exhausted": 5,
+    "tool_exhausted_rate": 0.025,
+    "tool_retries": 15,
+    "untrusted_instruction_cases": 1,
+    "valid_contract_rate": 1.0
+  },
+  "run_id": "run-49b9b5cf68",
+  "slo": {
+    "description": "A case is good when its case span has outcome drafted and duration_ms at or under latency_target_ms. The rate divides that count by every case span. The route is not read.",
+    "latency_target_ms": 2000,
+    "name": "case_drafted_within_target",
+    "objective": 0.95,
+    "window": "rolling 7 days"
+  }
+}

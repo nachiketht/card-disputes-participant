@@ -1,0 +1,61 @@
+{
+  "case_id": "CARD-S003",
+  "classification": "ambiguous",
+  "routing": "manual_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S003",
+    "amount": null,
+    "currency": null,
+    "reported_date": "2026-09-26"
+  },
+  "missing_information": [],
+  "deadline": null,
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "service_outage",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Never treat service failure as an empty transaction history. Retry a transient failure at most twice"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S003-INTAKE",
+      "quote": "paid for one order at Thistledown Books and when i checked this morning there were two of the same amount 580 crowns sitting there and i only got one confirmation so one of them has to be a mistake"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S003-INTAKE",
+      "quote": "Reported date: 2026-09-26"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S003-INTAKE",
+      "quote": "Transaction ID: TX-S003"
+    },
+    {
+      "claim": "duplicate_delivery",
+      "source_id": "CARD-S003-INTAKE",
+      "quote": "Delivery note: repeat submission: the customer already reported this and is resending it."
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: ambiguous complaint for TX-S003, reported 2026-09-26. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 3; merchant tool attempts 1. The named purchase was not returned. Amount and currency stay empty. That is unknown evidence, not an empty history, and no other purchase was substituted. Merchant display name from the tool: Thistledown Books. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

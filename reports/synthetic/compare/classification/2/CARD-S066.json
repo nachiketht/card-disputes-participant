@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S066",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000133
+    },
+    "evidence_end": 39,
+    "evidence_ok": true,
+    "evidence_sha256": "fb21b4963fe5cc547c1f38aac92e78dd0bacb4e5551634aefdeb09f5812ceb10",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 2088.395,
+    "model": "gpt-6-luna",
+    "reason": "The complaint identifies an unknown merchant but does not clarify whether the purchase was unauthorized, duplicated, or not delivered.",
+    "tokens_in": 210,
+    "tokens_out": 225,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 2090.572,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

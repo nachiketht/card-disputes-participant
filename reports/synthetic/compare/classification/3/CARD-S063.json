@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S063",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 6.2e-05
+    },
+    "evidence_end": 43,
+    "evidence_ok": true,
+    "evidence_sha256": "d8a55403d41bcbc1fb1f6b83b170d2321efe6b7a501903246622ae5996f85cf2",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1131.354,
+    "model": "gpt-6-luna",
+    "reason": "This is a cash withdrawal complaint.",
+    "tokens_in": 213,
+    "tokens_out": 81,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unsupported",
+    "confidence": 0.71,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 150.698,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.01,
+      "ambiguous_or_unclear": 0.01,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.22,
+      "unauthorized": 0.0,
+      "unsupported": 0.76
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1284.112,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}
