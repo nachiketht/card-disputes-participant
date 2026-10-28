@@ -6,8 +6,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
+from dispute_copilot.errors import LeakError
 from dispute_copilot.evidence.redaction import MASK, Redactor, load_redaction
 from dispute_copilot.observability.metrics import write_report
 from dispute_copilot.observability.tracing import case_trace
@@ -75,6 +77,106 @@ def test_span_ids_dates_and_ordinary_words_are_not_restricted():
         assert not redactor.contains_restricted(sample), sample
     assert redactor.mask(SPAN_ID) == SPAN_ID
     assert redactor.scrub({"span_id": PAN, "note": PAN}) == {"span_id": PAN, "note": MASK}
+
+
+def test_redaction_config_rejects_broken_files(tmp_path):
+    missing = tmp_path / "missing.yaml"
+    rules = load_redaction(missing)
+    assert "email" in rules.patterns
+    mapping = tmp_path / "mapping.yaml"
+    mapping.write_text("[1]\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be a mapping"):
+        load_redaction(mapping)
+    unknown = tmp_path / "unknown.yaml"
+    unknown.write_text(
+        "enabled: [markers, card, iban, account, email, phone]\ncard: luhn\nnope: 1\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unknown keys"):
+        load_redaction(unknown)
+    enabled = tmp_path / "enabled.yaml"
+    enabled.write_text("enabled: [markers]\ncard: luhn\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must enable"):
+        load_redaction(enabled)
+    card = tmp_path / "card.yaml"
+    card.write_text(
+        "enabled: [markers, card, iban, account, email, phone]\ncard: none\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="must stay luhn"):
+        load_redaction(card)
+    markers = tmp_path / "markers.yaml"
+    markers.write_text(
+        "enabled: [markers, card, iban, account, email, phone]\ncard: luhn\nmarkers: nope\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="markers must be lists"):
+        load_redaction(markers)
+    patterns = tmp_path / "patterns.yaml"
+    patterns.write_text(
+        "enabled: [markers, card, iban, account, email, phone]\ncard: luhn\npatterns: nope\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="patterns must be a mapping"):
+        load_redaction(patterns)
+    unknown_patterns = tmp_path / "unknown_patterns.yaml"
+    unknown_patterns.write_text(
+        "\n".join(
+            [
+                "enabled: [markers, card, iban, account, email, phone]",
+                "card: luhn",
+                "patterns:",
+                "  nope: x",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unknown patterns"):
+        load_redaction(unknown_patterns)
+    empty_pattern = tmp_path / "empty_pattern.yaml"
+    empty_pattern.write_text(
+        "\n".join(
+            [
+                "enabled: [markers, card, iban, account, email, phone]",
+                "card: luhn",
+                "patterns:",
+                "  email: '   '",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="regular expression"):
+        load_redaction(empty_pattern)
+    extra = tmp_path / "extra.yaml"
+    extra.write_text(
+        "\n".join(
+            [
+                "enabled: [markers, card, iban, account, email, phone]",
+                "card: luhn",
+                "extra_patterns: [1]",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="extra_patterns"):
+        load_redaction(extra)
+    with pytest.raises(LeakError):
+        Redactor().assert_clean(PAN)
+    assert Redactor().mask_quote("ab") is None
+    assert Redactor().mask_quote(PAN) is None
+    from dispute_copilot.evidence.redaction import _iban_ok, _merge
+
+    assert _iban_ok("GB12") is False
+    assert _iban_ok("GB12WEST1234-987654") is False
+    assert _merge([]) == []
+    assert _merge([(0, 4), (2, 8), (10, 12)]) == [(0, 8), (10, 12)]
+    redactor = Redactor()
+    redactor.mask = lambda quote: quote
+    redactor.contains_restricted = lambda text: True
+    assert redactor.mask_quote("still dirty") is None
 
 
 def test_extra_patterns_extend_the_config(tmp_path):

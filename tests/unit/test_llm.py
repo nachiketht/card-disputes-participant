@@ -495,6 +495,79 @@ def test_prompt_registry_rejects_a_missing_pin_file(tmp_path: Path):
     )["deadline"] == "null"
 
 
+def test_empty_second_completion_raises_then_falls_back():
+    from dispute_copilot.llm.prompts import RenderedPrompt
+
+    class Empty:
+        model = "fake"
+
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system, user
+            return Completion("  ", 1, 1, "fake")
+
+    rendered = RenderedPrompt("drafter.v1", 1, "hash", "system", "user")
+    drafter = Drafter(Empty(), NullProvider())
+    with pytest.raises(LLMError, match="empty completion"):
+        drafter._complete(rendered)
+    message = drafter.customer_message(_variables())
+    assert message.downgraded is True
+
+
+def test_prompt_registry_rejects_broken_prompt_files(tmp_path: Path):
+    names = _variables()
+    pins = tmp_path / "pins.yaml"
+    root = tmp_path / "prompts"
+    (root / "drafter").mkdir(parents=True)
+    pins.write_text("drafter: 1\n", encoding="utf-8")
+    registry = PromptRegistry(root=root, rules_path=pins)
+    with pytest.raises(ValueError, match="is not on disk"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("no front matter\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no front matter"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("---\ntask: drafter\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="does not close"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("---\n- 1\n---\nbody\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="not a mapping"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("---\ntask: critic\nversion: 1\nvariables: [classification]\n---\nbody\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="does not match"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("---\ntask: drafter\nversion: 9\nvariables: [classification]\n---\nbody\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="does not match the pin"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("---\ntask: drafter\nversion: 1\nvariables: []\n---\nbody\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="does not declare variables"):
+        registry.render("drafter", names)
+    (root / "drafter" / "v1.md").write_text("---\ntask: drafter\nversion: 1\nvariables: [classification]\n---\nHello {{classification}}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must match the declared set"):
+        registry.render("drafter", names)
+    declared = "\n".join(f"  - {name}" for name in names)
+    (root / "drafter" / "v1.md").write_text(
+        f"---\ntask: drafter\nversion: 1\nvariables:\n{declared}\n---\nHello {{{{classification}}}} and {{{{leftover}}}}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unsubstituted placeholder"):
+        registry.render("drafter", names)
+    pins.write_text("critic: 1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="no pinned version"):
+        PromptRegistry(root=root, rules_path=pins).render("drafter", names)
+    with pytest.raises(ValueError, match="raw document text"):
+        registry._reject_raw({"policy_id": "Source ID: CARD-POLICY-V2"})
+    registry._reject_raw({"complaint": "hello from the cardholder"}, "classifier")
+    with pytest.raises(ValueError, match="raw prose"):
+        registry._reject_raw({"intake": "raw", "complaint": "hello"}, "classifier")
+
+    class BoomRegistry:
+        def render(self, task: str, variables: dict[str, str]):
+            del task, variables
+            raise OSError("disk")
+
+    message = Drafter(NullProvider(), NullProvider(), registry=BoomRegistry()).customer_message(names)
+    assert message.downgraded is True
+
+
 def test_provider_name_and_null_drafter(monkeypatch):
     from dispute_copilot.llm.factory import build_drafter, provider_name
 

@@ -461,6 +461,8 @@ def test_run_all_report_reraises_a_down_mock(tmp_path: Path, monkeypatch: pytest
 
 
 def test_review_page_defaults_the_state_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    import sys
+
     seen = {}
 
     def fake_run(app, host, port):
@@ -468,6 +470,9 @@ def test_review_page_defaults_the_state_file(tmp_path: Path, monkeypatch: pytest
         seen["ok"] = True
 
     monkeypatch.setattr("uvicorn.run", fake_run)
+    filtered = [item for item in sys.path if Path(item).resolve() != ROOT.resolve()]
+    monkeypatch.setattr(sys, "path", filtered)
     settings = _settings(tmp_path)
     assert _serve_review_page(settings, FakeCaseSystem(), FileCorpus(DATA), _tools(), None) == 0
     assert seen["ok"] is True
+    assert any(Path(item).resolve() == ROOT.resolve() for item in sys.path)

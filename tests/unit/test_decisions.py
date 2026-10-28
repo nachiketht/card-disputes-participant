@@ -184,6 +184,10 @@ def test_decision_helpers_cover_empty_and_invalid_values(tmp_path: Path):
     assert _message(None) == ("", False)
     assert _message("{") == ("", False)
     assert _message("{}") == ("", False)
+    marker = "SYNTHETIC-" + "PRIVATE-X"
+    assert _message(json.dumps({"narrative": f"Customer message draft: {marker}"})) == ("", True)
+    assert _message(json.dumps({"narrative": "Customer message draft:   "})) == ("", True)
     assert _safe_id("") is False
     assert _safe_id("x" * 129) is False
+    assert _safe_id("rev..1") is False
     assert _safe_id("rev_1") is True

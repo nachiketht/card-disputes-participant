@@ -11,17 +11,24 @@ from dispute_copilot.contract import validate_draft
 from datetime import date
 
 from dispute_copilot.drafting import DraftedMessage
-from dispute_copilot.errors import ContractError, OutsideCheckpoint, ToolFailed
+from dispute_copilot.errors import ContractError, LeakError, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
 from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CASE_ID, CONTRACT_VERSION, Classification, Routing
 from dispute_copilot.retrieval.policy import PolicyResolver
 from dispute_copilot.rules.documents import parse_attachment, parse_followup, parse_intake
 from dispute_copilot.serialization import citation_source_text
+from dispute_copilot.retrieval.policy import PolicySelection
+from dispute_copilot.rules.classify import Decision
 from dispute_copilot.workflow import (
+    _cite,
+    _cite_authorization,
+    _cite_transactions,
+    _deadline,
     _find_case,
     _find_named,
     _merchant as merchant_note,
     _named_facts,
+    _narrative,
     _posted_split,
     _reported_date,
     _require_case_shape,
@@ -705,6 +712,124 @@ def test_merchant_note_and_posted_split_cover_the_edges():
     assert _posted_split({"posted_date": "not-a-date"}, resolver, "CARD-POLICY-V2") == ""
     assert "CARD-POLICY-V1" in _posted_split({"posted_date": "2026-08-19"}, resolver, "CARD-POLICY-V2")
     assert _posted_split({"posted_date": "2026-10-01"}, resolver, "CARD-POLICY-V2") == ""
+
+
+def test_prepare_looks_up_a_listed_case_and_fails_closed_on_output_gates(monkeypatch: pytest.MonkeyPatch):
+    case_id = "CARD-D01"
+    payload = _tx(case_id, "TX-D01", 117, "XCR", "2026-08-19")
+    tools = FakeToolClient(
+        cases=[_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"])],
+        transactions={case_id: [(200, payload)]},
+        merchants={case_id: [(200, _merchant("Morrow Supplies"))]},
+    )
+    draft = prepare(case_id, corpus=FileCorpus(DATA), tools=tools, case_system=FakeCaseSystem())
+    assert draft[CASE_ID] == case_id
+    monkeypatch.setattr(
+        "dispute_copilot.workflow.validate_draft",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ContractError("nope")),
+    )
+    with pytest.raises(ContractError):
+        prepare(
+            case_id,
+            corpus=FileCorpus(DATA),
+            tools=_tools(case_id, payload, _merchant("Morrow Supplies")),
+            case_system=FakeCaseSystem(),
+            case=_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        )
+    monkeypatch.undo()
+    monkeypatch.setattr(
+        Redactor,
+        "assert_clean",
+        lambda self, text: (_ for _ in ()).throw(LeakError("leak")),
+    )
+    with pytest.raises(LeakError):
+        prepare(
+            case_id,
+            corpus=FileCorpus(DATA),
+            tools=_tools(case_id, payload, _merchant("Morrow Supplies")),
+            case_system=FakeCaseSystem(),
+            case=_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        )
+
+
+def test_merchant_display_is_withheld_when_masking_fails(monkeypatch: pytest.MonkeyPatch):
+    class Sticky:
+        def contains_restricted(self, text: str) -> bool:
+            return True
+
+        def mask(self, text: str) -> str:
+            return text
+
+    monkeypatch.setattr("dispute_copilot.workflow.Redactor", lambda: Sticky())
+    named = FakeToolClient(cases=[], transactions={}, merchants={"C": [(200, {"source_id": "M", "display_name": "Shop"})]})
+    note, attempts = merchant_note(named, "C")
+    assert "withheld" in note
+    assert attempts == 1
+
+
+def test_citation_helpers_fail_closed_on_missing_source_text():
+    selection = PolicySelection(True, "P", "text", {}, "PROC", "procedure")
+    decision = Decision(Classification.UNAUTHORIZED, (), False)
+    with pytest.raises(OutsideCheckpoint, match="no day count"):
+        _deadline("CARD-D01", decision, selection, date(2026, 10, 1))
+    with pytest.raises(OutsideCheckpoint, match="no authorization line"):
+        _cite_authorization([], "CARD-D01-INTAKE", "no label here", [])
+    with pytest.raises(OutsideCheckpoint, match="no source id"):
+        _cite_transactions([], "CARD-D01", decision, {"transactions": []}, "TX", 1, [])
+    with pytest.raises(OutsideCheckpoint, match="amount quote"):
+        _cite_transactions([], "CARD-D01", decision, {"source_id": "TXS", "transactions": []}, "TX", 1, [])
+    _cite_transactions(
+        [],
+        "CARD-D01",
+        Decision(Classification.DUPLICATE_CHARGE, (), False),
+        {"source_id": "TXS", "transactions": {"nope": 1}, "amount": 1},
+        "TX",
+        1,
+        [],
+    )
+    rows: list[dict] = []
+    _cite_transactions(
+        rows,
+        "CARD-D01",
+        Decision(Classification.DUPLICATE_CHARGE, (), False),
+        {"source_id": "TXS", "transactions": ["skip", {"transaction_id": "TX-2"}], "amount": 1},
+        "TX",
+        1,
+        [],
+    )
+    with pytest.raises(OutsideCheckpoint, match="quote for"):
+        _cite([], "classification", "SRC", "missing quote", "source without it", [])
+    text = _narrative(
+        classification=Classification.UNAUTHORIZED,
+        routing=Routing.READY_FOR_REVIEW,
+        transaction_id="TX-D01",
+        reported="2026-10-01",
+        deadline="2026-10-31",
+        policy_id="CARD-POLICY-V2",
+        missing=(),
+        conflict=False,
+        transactions_unavailable=False,
+        transaction_attempts=1,
+        merchant_attempts=1,
+        merchant_note="Merchant display name from the tool: Shop.",
+        ledger_id="record-CARD-D01",
+        posted_split="",
+    )
+    assert "record-CARD-D01" in text
+
+
+def test_compare_requires_a_transaction_id(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        "dispute_copilot.workflow.parse_intake",
+        lambda _text: {"complaint": "x", "authorization": AUTH_NOT_SUPPLIED},
+    )
+    with pytest.raises(OutsideCheckpoint, match="no transaction id"):
+        compare_approaches(
+            "CARD-D01",
+            corpus=FileCorpus(DATA),
+            tools=_tools("CARD-D01", _tx("CARD-D01", "TX-D01", 117, "XCR", "2026-08-19"), _merchant("Shop")),
+            case=_case("CARD-D01", ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        )
 
 
 def test_customer_message_replacement_keeps_the_prefix():

@@ -13,6 +13,7 @@ from dispute_copilot.evals.scorecard import (
     _drafts,
     _escalation,
     _extra_rate,
+    _latency_category,
     _min_rate,
     _official,
     _payload_sources,
@@ -175,3 +176,5 @@ def test_score_math_and_category_rows(tmp_path: Path):
     assert unpriced["passed"] is False
     empty = _cost_category(tmp_path / "missing", {"minimum": {}, "cost": {"maximum_usd": 1}}, "cost")
     assert empty["passed"] is True
+    latency = _latency_category(tmp_path / "missing", {"minimum": {}}, "latency")
+    assert latency["detail"] == "no case spans"

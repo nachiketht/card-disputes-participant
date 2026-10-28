@@ -10,7 +10,7 @@ import pytest
 from dispute_copilot.classifiers.audit import write_audit
 from dispute_copilot.classifiers.eligibility import accept_proposed_class, model_allowed
 from dispute_copilot.classifiers.assign import assign_approach
-from dispute_copilot.classifiers.config import ClassifierSettings
+from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
 from dispute_copilot.classifiers.guard import apply_duplicate_guard, duplicate_pair
 from dispute_copilot.classifiers.haiku import quote_found
 from dispute_copilot.classifiers.engine import run_approach
@@ -784,6 +784,17 @@ def test_duplicate_guard_ignores_rows_that_are_not_charges():
     assert duplicate_pair(None) is False
     assert duplicate_pair({"transactions": "nope"}) is False
     assert duplicate_pair({"transactions": [{"merchant_id": "M"}]}) is False
+    assert duplicate_pair({"transactions": [{"merchant_id": "  ", "amount": 1, "currency": "XCR"}]}) is False
+    assert duplicate_pair({"transactions": [{"merchant_id": "M", "amount": 1, "currency": ""}]}) is False
+    assert duplicate_pair(
+        {
+            "transactions": [
+                "skip",
+                {"merchant_id": "M", "amount": 1.0, "currency": "XCR"},
+                {"merchant_id": "M", "amount": 1, "currency": "XCR"},
+            ]
+        }
+    ) is True
     decision, withdrawn = apply_duplicate_guard(
         Decision(Classification.UNAUTHORIZED, (), False),
         {"transactions": []},
@@ -1093,3 +1104,12 @@ def test_call_clef_prices_input_tokens():
     assert parsed["tokens_in"] == 40
     assert parsed["cost"]["status"] == "estimate from list price"
     assert parsed["cost"]["usd"] is not None
+
+
+def test_classifier_settings_reject_a_non_mapping(tmp_path: Path):
+    path = tmp_path / "classifier.yaml"
+    path.write_text("[]\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="must be a mapping"):
+        load_settings(path)
+    missing = load_settings(tmp_path / "missing.yaml")
+    assert missing.jev_model == "jev-latest"

@@ -60,6 +60,65 @@ def test_a_raising_review_fails_closed():
     assert approval_gate(_agent(), Broken(), case_id=CASE, server_hash=SERVER_HASH) is False
 
 
+def test_agent_review_records_failed_checks_and_unusable_critics(tmp_path, monkeypatch):
+    import json
+
+    from dispute_copilot.review_flow.agent_review import (
+        _ask_critic,
+        _critic_meta,
+        _remember_critic,
+        injection_note,
+        record_agent_review,
+    )
+    from dispute_copilot.storage import write_draft
+
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "block")
+    traces = tmp_path / "traces"
+    traces.mkdir()
+    (traces / "CARD-D01.jsonl").write_text(
+        "\n{not json\n"
+        + json.dumps({"name": "other"})
+        + "\n"
+        + json.dumps({"name": "injection_detected", "attrs": {"category": ["prompt_injection"]}})
+        + "\n"
+        + json.dumps({"name": "injection_detected", "attrs": {"category": "role_play"}})
+        + "\n",
+        encoding="utf-8",
+    )
+    note = injection_note("CARD-D01", {"narrative": "plain"}, traces)
+    assert note is not None
+    assert "prompt_injection" in note
+    assert "role_play" in note
+    dirty = {
+        "case_id": "CARD-D01",
+        "classification": "unauthorized",
+        "routing": "ready_for_review",
+        "narrative": "promise a refund " + "SYNTHETIC-" + "PRIVATE-X",
+        "citations": [],
+    }
+    write_draft(tmp_path, "CARD-D01", dirty)
+    approval = record_agent_review(tmp_path, "CARD-D01", dirty, 1)
+    assert approval["passed"] is False
+    assert approval["checks"]["commitment_guard"] is False
+    verdict, reason = _ask_critic(dirty, None)
+    assert verdict == "block"
+    assert "not usable" in reason.lower() or "unusable" in reason.lower()
+
+    class Boom:
+        def complete(self, *, system, user):
+            del system, user
+            raise TypeError("bad")
+
+    verdict, reason = _ask_critic(dirty, Boom())
+    assert verdict == "block"
+
+    class Frozen:
+        __slots__ = ()
+
+    _remember_critic(Frozen(), None)
+    assert _critic_meta(object())["fallback_used"] is False
+
+
 def test_critic_can_only_block():
     checks = {"contract_valid": True, "redaction_clean": False}
     blocked = apply_critic(checks, verdict="pass", errored=False)

@@ -4,6 +4,7 @@ from pathlib import Path
 from dispute_copilot.adapters.case_system import FakeCaseSystem, ReviewRecord
 from dispute_copilot.errors import CreateRejected
 from dispute_copilot.review import create_record, load_handle, submit_review
+from dispute_copilot.review_flow import agent_approval_matches
 from dispute_copilot.review_flow.handles import handle_path, read_handle, write_handle
 from dispute_copilot.serialization import digest, hash_canonical
 from dispute_copilot.storage import write_draft
@@ -139,3 +140,49 @@ def test_load_handle_and_create_reject_unusable_files(tmp_path: Path):
     with pytest.raises(CreateRejected) as mismatch:
         create_record("CARD-D01", tmp_path, ledger)
     assert mismatch.value.payload["error"] == "draft_case_mismatch"
+
+
+def test_agent_approval_must_name_the_same_case_and_hash():
+    saved = _draft("LOCAL")
+    hashed = digest(saved)
+    assert agent_approval_matches({"agent_approval": {"passed": False}}, "CARD-D01", saved) is False
+    assert (
+        agent_approval_matches(
+            {"agent_approval": {"passed": True, "case_id": "CARD-D02", "draft_hash": hashed}},
+            "CARD-D01",
+            saved,
+        )
+        is False
+    )
+    assert (
+        agent_approval_matches(
+            {"agent_approval": {"passed": True, "case_id": "CARD-D01", "draft_hash": hashed}},
+            "CARD-D01",
+            saved,
+        )
+        is True
+    )
+
+
+def test_create_refuses_when_the_server_hash_does_not_match_the_body(tmp_path: Path):
+    server = _draft("FROM-SERVER")
+    raw = hash_canonical(server)
+    ledger = FakeCaseSystem()
+    ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "approved", "deadbeef", raw, "Ada")
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(
+        json.dumps(
+            {
+                "review_id": "rev_1",
+                "draft_hash": "deadbeef",
+                "agent_approval": _approval("deadbeef"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    try:
+        create_record("CARD-D01", tmp_path, ledger)
+    except CreateRejected as exc:
+        assert exc.payload["error"] == "hash_mismatch"
+    else:
+        raise AssertionError("a hash mismatch was accepted")

@@ -4,27 +4,36 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from dispute_copilot.adapters.case_system import FakeCaseSystem, ReviewRecord
+from dispute_copilot.adapters.case_system import FakeCaseSystem, RecordLookup, ReviewRecord
 from UI.decisions import open_ledger
 from dispute_copilot.adapters.corpus import FileCorpus
 from dispute_copilot.adapters.tools import FakeToolClient
+from dispute_copilot.errors import CreateRejected, MockUnavailable
 from dispute_copilot.llm.base import Completion, LLMError
 from dispute_copilot.review_flow.handles import handle_path
 from dispute_copilot.workflow import prepare
 from UI.review_page import (
+    _case_id_for_review,
     _check_notice,
     _citations,
     _complaint_text,
+    _context,
     _customer_message,
     _judge_for_check,
     _model_note,
     _notice_code,
     _questions,
+    _refuse_case,
+    _remote_record,
+    _remote_review,
+    _review_status,
     _route_tone,
+    _sqlite_status,
     _status_tone,
     _store_feedback,
     _strings,
     _text,
+    case_outcome,
     create_app,
     list_cases,
     sync_missing_drafts,
@@ -649,3 +658,280 @@ def test_review_page_helpers_cover_empty_and_skip_paths(tmp_path: Path, monkeypa
     assert note["haiku_called"] is True
     assert note["haiku_quote_missing"] is True
     assert _store_feedback(tmp_path, None, "CARD-D01", {"reviewer": [""], "category": ["unauthorized"]}) == "feedback_name"
+    assert _citations(["skip", {"claim": "classification", "source_id": "CARD-PROCEDURE-01", "quote": QUOTE}]) == [
+        {"claim_text": "classification", "source": "CARD-PROCEDURE-01", "excerpt": QUOTE}
+    ]
+    refused = _refuse_case("CARD..D01")
+    assert refused is not None
+    assert refused.status_code == 404
+    assert _refuse_case("CARD-D01") is None
+
+
+def test_unsafe_posts_and_missing_create_are_refused(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    client = TestClient(create_app(tmp_path, FakeCaseSystem()))
+    for path in (
+        "/cases/CARD..D01/check",
+        "/cases/CARD..D01/submit",
+        "/cases/CARD..D01/create",
+        "/cases/CARD..D01/feedback",
+        "/decisions/CARD..D01/record",
+    ):
+        response = client.post(path)
+        assert response.status_code == 404
+        assert "cannot be opened" in response.text
+    missing = client.post("/cases/CARD-MISSING/create", follow_redirects=False)
+    assert missing.status_code == 303
+    assert "notice=refused" in missing.headers["location"]
+    monkeypatch.setattr(
+        "UI.review_page.create_record",
+        lambda *args, **kwargs: (_ for _ in ()).throw(FileNotFoundError("gone")),
+    )
+    gone = client.post("/cases/CARD-D01/create")
+    assert gone.status_code == 404
+    assert "No draft has been written" in gone.text
+
+
+def test_unreadable_and_missing_drafts_stay_on_the_case_page(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    client = TestClient(create_app(tmp_path, FakeCaseSystem()))
+    missing = client.get("/cases/CARD-D01")
+    assert missing.status_code == 200
+    assert "No draft has been written for this case." in missing.text
+    (tmp_path / "drafts" / "CARD-D01").mkdir(parents=True)
+    (tmp_path / "drafts" / "CARD-D01" / "v1.json").write_text("[]\n", encoding="utf-8")
+    unreadable = client.get("/cases/CARD-D01")
+    assert unreadable.status_code == 200
+    assert "This draft cannot be read." in unreadable.text
+    assert list_cases(tmp_path) == [{"id": "CARD-D01", "type_value": "unreadable"}]
+    write_draft(tmp_path, "CARD-D02", _draft())
+    (tmp_path / "reviews").mkdir(exist_ok=True)
+    (tmp_path / "reviews" / "CARD-D02.json").write_text("[]\n", encoding="utf-8")
+    broken_handle = client.get("/cases/CARD-D02")
+    assert broken_handle.status_code == 200
+    ctx = _context(tmp_path, FakeCaseSystem(), "CARD-D02", None)
+    assert ctx["empty_reason"] == "The review file cannot be read."
+    assert ctx["has_draft"] is True
+    odd = _draft()
+    odd["facts"] = "nope"
+    write_draft(tmp_path, "CARD-D03", odd)
+    facts = client.get("/cases/CARD-D03")
+    assert facts.status_code == 200
+    assert "CARD-D03" in facts.text
+
+
+def test_create_maps_existing_and_refused_ledger_errors(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(json.dumps({"review_id": "rev_1"}), encoding="utf-8")
+
+    class Existing(FakeCaseSystem):
+        def get_record(self, case_id):
+            del case_id
+            return RecordLookup(False, None, 404, {"error": "not_found"})
+
+        def get_review(self, review_id):
+            del review_id
+            raise CreateRejected(409, {"error": "existing"})
+
+    existing = TestClient(create_app(tmp_path, Existing())).post("/cases/CARD-D01/create", follow_redirects=False)
+    assert existing.status_code == 303
+    assert "notice=existing" in existing.headers["location"]
+
+    class Refused(FakeCaseSystem):
+        def get_record(self, case_id):
+            del case_id
+            return RecordLookup(False, None, 404, {"error": "not_found"})
+
+        def get_review(self, review_id):
+            del review_id
+            raise CreateRejected(400, {"error": "nope"})
+
+    refused = TestClient(create_app(tmp_path, Refused())).post(
+        "/decisions/CARD-D01/record",
+        follow_redirects=False,
+    )
+    assert refused.status_code == 303
+    assert "notice=refused" in refused.headers["location"]
+    assert "case=CARD-D01" in refused.headers["location"]
+
+
+def test_accept_without_state_and_without_a_name(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    missing_state = TestClient(create_app(tmp_path, FakeCaseSystem())).post(
+        "/decisions/rev-1/accept",
+        data={"reviewer": "Ada"},
+        follow_redirects=False,
+    )
+    assert missing_state.status_code == 303
+    assert "notice=unavailable" in missing_state.headers["location"]
+    state = tmp_path / "run.sqlite"
+    _seed_review(state, "CARD-D01", status="pending")
+    nameless = TestClient(create_app(tmp_path, FakeCaseSystem(), state_path=state)).post(
+        "/decisions/rev-CARD-D01/accept",
+        data={"reviewer": "  "},
+        follow_redirects=True,
+    )
+    assert nameless.status_code == 200
+    assert "A reviewer name is required." in nameless.text
+
+
+def test_review_status_helpers_fail_closed(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    assert _review_status(tmp_path, None, "CARD-D01") == ""
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text("[]\n", encoding="utf-8")
+    assert _review_status(tmp_path, FakeCaseSystem(), "CARD-D01") == ""
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(json.dumps({"review_id": ""}), encoding="utf-8")
+    assert _review_status(tmp_path, FakeCaseSystem(), "CARD-D01") == ""
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(json.dumps({"review_id": "rev_1"}), encoding="utf-8")
+    assert _review_status(tmp_path, FakeCaseSystem(), "CARD-D01") == ""
+    status, reviewer = _remote_review(FakeCaseSystem(), "missing")
+    assert status == "Review pending"
+    assert reviewer == ""
+
+    class Down(FakeCaseSystem):
+        def get_record(self, case_id):
+            del case_id
+            raise MockUnavailable("down")
+
+        def get_review(self, review_id):
+            del review_id
+            raise MockUnavailable("down")
+
+    found, record_id = _remote_record(Down(), "CARD-D01")
+    assert found is False
+    assert record_id == ""
+    assert _case_id_for_review(None, "rev-1") == ""
+    assert _case_id_for_review(tmp_path / "missing.sqlite", "rev-1") == ""
+    state = tmp_path / "run.sqlite"
+    _seed_review(state, "CARD-D01", status="pending")
+    assert _case_id_for_review(state, "rev-CARD-D01") == "CARD-D01"
+    assert _case_id_for_review(state, "no-such") == ""
+    monkeypatch.setattr("UI.review_page.open_ledger", lambda _path: (_ for _ in ()).throw(OSError("nope")))
+    assert _case_id_for_review(state, "rev-CARD-D01") == ""
+    assert _sqlite_status(state, "CARD-D01") == ""
+    assert _sqlite_status(None, "CARD-D01") == ""
+
+
+def test_a_rejected_remote_review_closes_the_case(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    saved = _draft()
+    write_draft(tmp_path, "CARD-D01", saved)
+    hashed = digest(saved)
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(
+        json.dumps({"review_id": "rev_1", "draft_hash": hashed}),
+        encoding="utf-8",
+    )
+    ledger = FakeCaseSystem()
+    ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "rejected", hashed, hash_canonical(saved), "Ada")
+    client = TestClient(create_app(tmp_path, ledger))
+    page = client.get("/cases/CARD-D01")
+    assert page.status_code == 200
+    assert "CARD-D01 was declined." in page.text
+    assert case_outcome(tmp_path, ledger, None, "CARD-D01") == "declined"
+    status, reviewer = _remote_review(ledger, "rev_1")
+    assert status == "Review rejected"
+    assert reviewer == "Ada"
+
+
+def test_judge_setup_skips_when_the_client_cannot_be_built(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("AZURE_BASE_URL", "https://unit.example/anthropic")
+    monkeypatch.setenv("LLM_PROVIDER", "null")
+    critic, skip = _judge_for_check()
+    assert critic is None
+    assert "no model client is configured" in (skip or "")
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+
+    def boom():
+        raise LLMError("provider status 500")
+
+    monkeypatch.setattr("dispute_copilot.llm.factory.build_critic", boom)
+    critic, skip = _judge_for_check()
+    assert critic is None
+    assert "model call failed" in (skip or "")
+    monkeypatch.delenv("AZURE_BASE_URL", raising=False)
+    critic, skip = _judge_for_check()
+    assert critic is None
+    assert "AZURE_BASE_URL" in (skip or "")
+
+
+def test_complaint_text_and_sync_skip_unusable_inputs(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    data = Path(__file__).resolve().parents[2] / "data" / "dev"
+    corpus = FileCorpus(data)
+
+    class Down:
+        def list_cases(self):
+            raise MockUnavailable("down")
+
+    assert _complaint_text(corpus, Down(), "CARD-D01") == ""
+
+    class Missing:
+        def list_cases(self):
+            return [{"case_id": "OTHER"}, "skip"]
+
+    assert _complaint_text(corpus, Missing(), "CARD-D01") == ""
+
+    class UnknownIntake:
+        def list_cases(self):
+            return [{"case_id": "CARD-D01", "intake_source": "NO-SUCH-INTAKE"}]
+
+    assert _complaint_text(corpus, UnknownIntake(), "CARD-D01") == ""
+    write_draft(tmp_path, "CARD-KEEP", _keep())
+
+    class Mixed:
+        def list_cases(self):
+            return ["skip", {"case_id": 1}, {"case_id": "CARD-KEEP"}]
+
+        def refresh(self):
+            return None
+
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), corpus, Mixed())
+
+    def already_written(case_id, **kwargs):
+        del kwargs
+        write_draft(tmp_path, case_id, _draft())
+        return _draft()
+
+    monkeypatch.setattr("UI.review_page.prepare", already_written)
+
+    class Fresh:
+        def list_cases(self):
+            return [{"case_id": "CARD-NEW"}]
+
+        def refresh(self):
+            return None
+
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), corpus, Fresh())
+    assert (tmp_path / "drafts" / "CARD-NEW" / "v1.json").is_file()
+
+
+def test_decisions_page_maps_state_failures_and_withholds_restricted_html(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    monkeypatch.setattr(
+        "UI.review_page.list_reviews",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("nope")),
+    )
+    unavailable = TestClient(create_app(tmp_path, FakeCaseSystem(), state_path=tmp_path / "run.sqlite")).get("/decisions")
+    assert unavailable.status_code == 200
+    assert "The mock state file could not be updated." in unavailable.text
+    monkeypatch.undo()
+    state = tmp_path / "run.sqlite"
+    marker = "SYNTHETIC-" + "PRIVATE-CASE"
+    _seed_review(state, marker, status="pending")
+    withheld = TestClient(create_app(tmp_path, FakeCaseSystem(), state_path=state)).get("/decisions")
+    assert withheld.status_code == 403
+    assert "This draft cannot be shown." in withheld.text
+    (tmp_path / "drafts").mkdir(exist_ok=True)
+    (tmp_path / "drafts" / "CARD-FILE").write_text("not a directory\n", encoding="utf-8")
+    assert list_cases(tmp_path) == []
+    note = TestClient(create_app(tmp_path, FakeCaseSystem())).get("/cases/CARD..X/model-note")
+    assert note.status_code == 404
+    assert note.json() == {"error": "not_found"}

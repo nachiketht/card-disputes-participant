@@ -25,6 +25,24 @@ def test_spans_nest_and_attributes_are_redacted(tmp_path):
     assert SECRET not in (tmp_path / "CARD-T1.jsonl").read_text()
 
 
+def test_log_formatter_falls_back_when_masking_cannot_clean(monkeypatch):
+    from dispute_copilot.fields import CASE_ID
+
+    class Sticky:
+        def contains_restricted(self, text: str) -> bool:
+            return text != "CARD-D01"
+
+        def mask(self, text: str) -> str:
+            return text
+
+    monkeypatch.setattr("dispute_copilot.observability.logs.Redactor", lambda: Sticky())
+    record = logging.LogRecord("n", logging.INFO, __file__, 1, "msg", (), None)
+    record.record = {CASE_ID: "CARD-D01", "name": "log", "message": "kept"}
+    text = JsonFormatter().format(record)
+    assert "[redacted]" in text
+    assert "CARD-D01" in text
+
+
 def test_no_tracer_is_a_no_op():
     with current().span("anything") as span:
         span.set(value=1)

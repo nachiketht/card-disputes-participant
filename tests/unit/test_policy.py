@@ -56,6 +56,18 @@ def test_a_new_policy_file_is_selected_by_its_dates(tmp_path):
     assert selection.days[Classification.UNAUTHORIZED] == 10
 
 
+def _policy_body(*, start="2026-01-01", end="2026-12-31", unauthorized="1", duplicate="1", service="1") -> str:
+    return "\n".join(
+        [
+            f"Effective from: {start}",
+            f"Effective through: {end}",
+            f"Unauthorized deadline days: {unauthorized}",
+            f"Duplicate deadline days: {duplicate}",
+            f"Service deadline days: {service}",
+        ]
+    )
+
+
 def test_overlapping_policies_are_an_error():
     text = "\n".join(
         [
@@ -86,6 +98,62 @@ def test_overlapping_policies_are_an_error():
 @settings(max_examples=40)
 def test_deadline_arithmetic(reported, days):
     assert add_calendar_days(reported, days) == reported + timedelta(days=days)
+
+
+def test_policy_files_reject_broken_dates_and_day_counts():
+    from dispute_copilot.adapters.corpus import MemoryCorpus
+    from dispute_copilot.fields import Classification
+    from dispute_copilot.retrieval.policy import deadline_line
+
+    procedure = "Source ID: CARD-PROCEDURE-01\n"
+    with pytest.raises(ValueError, match="no policy versions"):
+        PolicyResolver(MemoryCorpus({"CARD-PROCEDURE-01": procedure}))
+    with pytest.raises(ValueError, match="ends before it starts"):
+        PolicyResolver(
+            MemoryCorpus(
+                {
+                    "CARD-PROCEDURE-01": procedure,
+                    "CARD-POLICY-A": "Source ID: CARD-POLICY-A\n" + _policy_body(start="2026-12-31", end="2026-01-01"),
+                }
+            )
+        )
+    with pytest.raises(ValueError, match="non-numeric"):
+        PolicyResolver(
+            MemoryCorpus(
+                {
+                    "CARD-PROCEDURE-01": procedure,
+                    "CARD-POLICY-A": "Source ID: CARD-POLICY-A\n" + _policy_body(unauthorized="nope"),
+                }
+            )
+        )
+    with pytest.raises(ValueError, match="negative"):
+        PolicyResolver(
+            MemoryCorpus(
+                {
+                    "CARD-PROCEDURE-01": procedure,
+                    "CARD-POLICY-A": "Source ID: CARD-POLICY-A\n" + _policy_body(unauthorized="-1"),
+                }
+            )
+        )
+    with pytest.raises(ValueError, match="has no Service deadline days"):
+        PolicyResolver(
+            MemoryCorpus(
+                {
+                    "CARD-PROCEDURE-01": procedure,
+                    "CARD-POLICY-A": "\n".join(
+                        [
+                            "Source ID: CARD-POLICY-A",
+                            "Effective from: 2026-01-01",
+                            "Effective through: 2026-12-31",
+                            "Unauthorized deadline days: 1",
+                            "Duplicate deadline days: 1",
+                        ]
+                    ),
+                }
+            )
+        )
+    with pytest.raises(ValueError, match="has no Unauthorized deadline days"):
+        deadline_line("no deadline lines", Classification.UNAUTHORIZED)
 
 
 def test_deadline_rejects_a_negative_count():
