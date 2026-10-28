@@ -50,7 +50,7 @@ export LLM_PROVIDER=null
 export FEATURE_LLM_REVIEW=off
 ```
 
-The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. Prices come from `config/rules/cost.yaml`. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. Prompts over 100K tokens are not modelled. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
+The checklist judge and the classifier read the model id from `LLM_MODEL` in `.env`. The id in use is `claude-haiku-5-5`. Prices come from `config/rules/cost.yaml`. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. Prompts over 100K tokens are not modelled. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. Cached input, long-context rates, and Data Zone premiums are not modelled. The call can only fail a checklist that already passed. It does not approve. Leave `LLM_PROVIDER` unset so `LLM_API_KEY` selects that client. Put the real key and the host in `.env`. Do not write the host in a committed file.
 
 ```sh
 export FEATURE_LLM_REVIEW=block
@@ -374,7 +374,7 @@ export FEATURE_LLM_REVIEW=off
 | `LLM_PROVIDER` | drafter and checklist | `null` (also `template`, `templates`, `off`) keeps template text. |
 | `FEATURE_LLM_REVIEW` | checklist | `off` (default) skips the critic. `block` may turn a pass into a fail. It cannot turn a fail into a pass. |
 | `LLM_API_KEY` | model client | Key for the configured model. Empty means no model call. |
-| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. `claude-haiku-5-5` is priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. An id missing from `config/rules/cost.yaml` is recorded as `no price configured for <model>` with no USD figure. |
+| `LLM_MODEL`, `AZURE_BASE_URL`, `LLM_API_STYLE`, `LLM_TIMEOUT_S` | model client | Set in `.env`. Unused when the provider is `null`. `LLM_MODEL` is the model id. An empty `LLM_MODEL` falls back to `claude-haiku-4-5`. Leave `AZURE_BASE_URL` empty when the run does not call a model. The host is not written in this file. `claude-haiku-5-5` and `gpt-6-luna` are priced from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `gpt-6-luna` uses the Azure Global Standard short-context list. An id missing from `config/rules/cost.yaml` is recorded as `no price configured for <model>` with no USD figure. |
 | `LLM_FALLBACK_API_KEY` | fallback model | Optional. Empty means the configured model has no fallback. |
 | `LLM_FALLBACK_BASE_URL` | fallback model | Optional host for that fallback. Empty means no fallback. Leave it empty in git. |
 | `LLM_FALLBACK_MODEL` | fallback model | Optional. Empty uses `claude-haiku-5-5` only when the fallback key and host are set. |

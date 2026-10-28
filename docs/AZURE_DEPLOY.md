@@ -14,7 +14,7 @@ This session could not sign in to `<subscription>`, so it did not query these re
 | Shares | `mock-data` (only `dataset.json`) and `app-data` (`documents/` and `policies/`) |
 | Environment | `card-disputes-env` |
 | App | `card-disputes`, one replica, no public ingress |
-| Model | Model id from `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`), secret `llm-api-key` (not in git). The host is Container App secret `azure-base-url`, read as `AZURE_BASE_URL` from `.env`. The template does not store the host. The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. `claude-haiku-5-5` is priced from list in `config/rules/cost.yaml` at 0.10 USD per million input tokens and 0.50 USD per million output tokens. |
+| Model | Model id from `LLM_MODEL` in `.env` (currently `claude-haiku-5-5`), secret `llm-api-key` (not in git). The host is Container App secret `azure-base-url`, read as `AZURE_BASE_URL` from `.env`. The template does not store the host. The checklist judge checks a finished draft when `FEATURE_LLM_REVIEW=block`. Approaches 2 and 3 may call the same model on an eligible case. It does not approve. `claude-haiku-5-5` and `gpt-6-luna` are priced from list in `config/rules/cost.yaml` at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `gpt-6-luna` is the Azure Global Standard short-context list. |
 | Fallback | Optional. `LLM_FALLBACK_API_KEY`, `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, and `LLM_FALLBACK_API_STYLE`. An empty key or host means no fallback. An empty model uses `claude-haiku-5-5` only when the key and host are set. The container template does not set these. Do not write the host in this file. |
 | Ranker | Optional. `JEV_BASE_URL`, `JEV_API_KEY`, and `JEV_MODEL`. An empty url or key skips it. The container template does not set these. Cost is unpriced. The threshold placeholder `0.70` is in `config/rules/classifier.yaml`, not a secret. |
 
@@ -344,7 +344,7 @@ Approach 1 is the default and does not call a model. It does not read `AZURE_BAS
 
 A duplicate stands only when the fetched transactions contain two charges with the same merchant id, amount, and currency. Without that pair the class does not stand. Classification audits do not store the complaint. The review page is the only page that shows it. Reviewer login is phase 2.
 
-`config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. `claude-haiku-4-5` stays at 1.00 in and 5.00 out.
+`config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. Cached input, long-context rates, and Data Zone premiums are not modelled.
 
 ## What was left out on purpose
 

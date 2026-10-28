@@ -11,7 +11,7 @@
 
 ## Classification latency
 
-`good_case_rate` is the SLO above. It is not the classification latency on the comparison page. That page reports p95 of `latency_ms` on each approach's audit records. Approach 1 does not call a model. Approach 2 and approach 3 can add a model call on an eligible case. Configured-model cost on that page is list-price USD divided by cases run. `config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. A case with no priced call adds zero. Jev is unpriced. Those figures do not replace `good_case_rate` or the error budget.
+`good_case_rate` is the SLO above. It is not the classification latency on the comparison page. That page reports p95 of `latency_ms` on each approach's audit records. Approach 1 does not call a model. Approach 2 and approach 3 can add a model call on an eligible case. Configured-model cost on that page is list-price USD divided by cases run. `config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `claude-haiku-4-5` stays at 1.00 in and 5.00 out. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. A case with no priced call adds zero. Jev is unpriced. Those figures do not replace `good_case_rate` or the error budget.
 
 ## Why 2 seconds
 
