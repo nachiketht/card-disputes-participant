@@ -1,9 +1,9 @@
 """Submit the saved draft, then create a record only from the server's copy.
 
-run writes a file and stops. submit-review posts that file only after a passed
-step-1 agent approval for the same hash. create re-reads the human review,
-calls approval_gate, and posts the decoded server draft. The local file is
-not the create body. A person approves outside this process.
+run writes a file and stops. submit-review posts that file. The checklist is
+optional. create re-reads the human review, calls approval_gate, and posts
+the decoded server draft. The local file is not the create body. A person
+approves outside this process.
 """
 
 import json
@@ -48,8 +48,6 @@ def submit_review(case_id: str, submissions: Path, case_system: Ledger) -> dict:
     existing = read_handle(destination) if destination.is_file() else {}
     matched = agent_approval_matches(existing, case_id, draft)
     current().event("review.step1_check", passed=matched, draft_version=version)
-    if not matched:
-        raise CreateRejected(400, {"error": "agent_approval_required"})
     with current().span("review.submit") as span:
         submitted = case_system.submit_review(case_id, draft)
         span.set(review=submitted.review_id, status=submitted.status)

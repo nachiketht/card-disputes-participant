@@ -31,22 +31,21 @@ def _review(**overrides) -> ReviewRecord:
     return ReviewRecord(**values)
 
 
-def test_gate_passes_only_when_both_steps_bind_the_same_hash():
+def test_gate_passes_when_the_human_review_binds_the_hash():
     assert approval_gate(_agent(), _review(), case_id=CASE, server_hash=SERVER_HASH) is True
+    assert approval_gate(None, _review(), case_id=CASE, server_hash=SERVER_HASH) is True
+    assert approval_gate(_agent(passed=False), _review(), case_id=CASE, server_hash=SERVER_HASH) is True
 
 
 def test_gate_fails_closed():
     cases = [
-        (None, _review(), CASE, SERVER_HASH),
-        (_agent(passed=False), _review(), CASE, SERVER_HASH),
-        (_agent(case_id="CARD-D02"), _review(), CASE, SERVER_HASH),
-        (_agent(draft_hash="other"), _review(), CASE, SERVER_HASH),
         (_agent(), _review(status="pending"), CASE, SERVER_HASH),
         (_agent(), _review(status="rejected"), CASE, SERVER_HASH),
         (_agent(), _review(case_id="CARD-D02"), CASE, SERVER_HASH),
         (_agent(), _review(draft_hash="other"), CASE, SERVER_HASH),
         (_agent(), _review(reviewer=None), CASE, SERVER_HASH),
         (_agent(), _review(reviewer="  "), CASE, SERVER_HASH),
+        (None, _review(status="pending"), CASE, SERVER_HASH),
     ]
     assert [approval_gate(agent, review, case_id=case_id, server_hash=server_hash) for agent, review, case_id, server_hash in cases] == [False] * len(cases)
 

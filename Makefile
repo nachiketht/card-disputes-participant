@@ -1,4 +1,4 @@
-.PHONY: sync lint test check cov daily mock regen-gold metrics dashboard review-page secrets evals week10 week10-duplicate mcp compare synthetic
+.PHONY: sync lint test check cov daily mock reset regen-gold metrics dashboard review-page secrets evals week10 week10-duplicate mcp compare synthetic
 
 sync:
 	uv sync --locked
@@ -19,6 +19,9 @@ daily: check
 
 mock:
 	uv run --locked python tools/runtime.py serve --port 8765 --state .state/run.sqlite
+
+reset:
+	uv run --locked python tools/runtime.py reset --confirm --state .state/run.sqlite
 
 mcp:
 	uv run --locked --extra mcp python -m dispute_copilot.mcp_server

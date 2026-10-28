@@ -58,7 +58,7 @@
       }
     ],
     "follow_up_questions": [],
-    "narrative": "Case summary: unauthorized complaint for TX-D01, reported 2026-10-01. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-10-31. Uncertainty and limitations: generated from templates after the model was unavailable. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+    "narrative": "Case summary: unauthorized complaint for TX-D01, reported 2026-10-01. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-10-31. Uncertainty and limitations: template text only, with no model. Ledger at run time already has record dispute-d01. That lookup is not the authoritative create check. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
   },
   {
     "case_id": "CARD-D02",
@@ -124,7 +124,7 @@
       }
     ],
     "follow_up_questions": [],
-    "narrative": "Case summary: duplicate_charge complaint for TX-D02, reported 2026-10-02. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-16. Uncertainty and limitations: generated from templates after the model was unavailable. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+    "narrative": "Case summary: duplicate_charge complaint for TX-D02, reported 2026-10-02. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-16. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
   },
   {
     "case_id": "CARD-D03",
@@ -263,7 +263,7 @@
         "question": "Please confirm whether you authorized this card purchase."
       }
     ],
-    "narrative": "Case summary: unauthorized complaint for TX-D04, reported 2026-10-01. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-10-31. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+    "narrative": "Case summary: unauthorized complaint for TX-D04, reported 2026-10-01. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-10-31. Uncertainty and limitations: template text only, with no model. Ledger at run time already has record dispute-d04. That lookup is not the authoritative create check. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
   },
   {
     "case_id": "CARD-D05",
@@ -385,7 +385,7 @@
       }
     ],
     "follow_up_questions": [],
-    "narrative": "Case summary: unsupported complaint for TX-D06, reported 2026-10-03. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+    "narrative": "Case summary: unsupported complaint for TX-D06, reported 2026-10-03. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time already has record dispute-d06. That lookup is not the authoritative create check. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
   },
   {
     "case_id": "CARD-D07",
@@ -578,7 +578,7 @@
       }
     ],
     "follow_up_questions": [],
-    "narrative": "Case summary: service_not_received complaint for TX-D10, reported 2026-10-03. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 2; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-12-02. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+    "narrative": "Case summary: service_not_received complaint for TX-D10, reported 2026-10-03. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-12-02. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
   },
   {
     "case_id": "CARD-D12",
@@ -672,5 +672,132 @@
       }
     ],
     "narrative": "Case summary: service_not_received complaint for TX-D12, reported 2026-10-04. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: promised_service_date, purchase_receipt. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-12-03. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-D08",
+    "classification": "duplicate_charge",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V2",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-D08",
+      "amount": 236,
+      "currency": "XCR",
+      "reported_date": "2026-10-02"
+    },
+    "missing_information": [],
+    "deadline": "2026-11-16",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Effective from: 2026-09-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V2",
+        "quote": "Duplicate deadline days: 45"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use duplicate_charge for a report of two charges for one purchase; retrieve both transaction records."
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-D08-INTAKE",
+        "quote": "Morrow Supplies charged me 236 crowns twice for one purchase. My statement shows TX-D08 and TX-D08-B. Please investigate the extra charge."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-D08-INTAKE",
+        "quote": "Reported date: 2026-10-02"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-D08-INTAKE",
+        "quote": "Transaction ID: TX-D08"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-D08-TRANSACTIONS",
+        "quote": "\"amount\": 236"
+      },
+      {
+        "claim": "duplicate_transaction",
+        "source_id": "CARD-D08-TRANSACTIONS",
+        "quote": "\"transaction_id\": \"TX-D08-B\""
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: duplicate_charge complaint for TX-D08, reported 2026-10-02. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-16. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. The transaction posted date 2026-08-19 falls under CARD-POLICY-V1. Selection stays CARD-POLICY-V2 because policy text selects by the reported date. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+  },
+  {
+    "case_id": "CARD-D11",
+    "classification": "unauthorized",
+    "routing": "ready_for_review",
+    "policy_ids": [
+      "CARD-POLICY-V1",
+      "CARD-PROCEDURE-01"
+    ],
+    "facts": {
+      "transaction_id": "TX-D11",
+      "amount": 287,
+      "currency": "XCR",
+      "reported_date": "2026-08-31"
+    },
+    "missing_information": [],
+    "deadline": "2026-09-20",
+    "citations": [
+      {
+        "claim": "policy_selection",
+        "source_id": "CARD-POLICY-V1",
+        "quote": "Effective from: 2026-01-01"
+      },
+      {
+        "claim": "deadline",
+        "source_id": "CARD-POLICY-V1",
+        "quote": "Unauthorized deadline days: 20"
+      },
+      {
+        "claim": "classification",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+      },
+      {
+        "claim": "routing",
+        "source_id": "CARD-PROCEDURE-01",
+        "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-D11-INTAKE",
+        "quote": "I found a card purchase at Morrow Supplies for 287 crowns. I do not recognize it and need help checking it."
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-D11-INTAKE",
+        "quote": "Reported date: 2026-08-31"
+      },
+      {
+        "claim": "customer_evidence",
+        "source_id": "CARD-D11-INTAKE",
+        "quote": "Transaction ID: TX-D11"
+      },
+      {
+        "claim": "transaction_amount",
+        "source_id": "CARD-D11-TRANSACTIONS",
+        "quote": "\"amount\": 287"
+      }
+    ],
+    "follow_up_questions": [],
+    "narrative": "Case summary: unauthorized complaint for TX-D11, reported 2026-08-31. Policy CARD-POLICY-V1 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-09-20. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
   }
 ]

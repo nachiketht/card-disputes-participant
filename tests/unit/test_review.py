@@ -49,16 +49,14 @@ def test_submit_posts_the_saved_draft(tmp_path: Path):
     assert json.loads((tmp_path / "reviews" / "CARD-D01.json").read_text(encoding="utf-8"))["draft_version"] == 1
 
 
-def test_submit_refuses_without_a_passed_agent_approval(tmp_path: Path):
-    write_draft(tmp_path, "CARD-D01", _draft("LOCAL"))
+def test_submit_posts_without_agent_approval(tmp_path: Path):
+    saved = _draft("LOCAL")
+    write_draft(tmp_path, "CARD-D01", saved)
     ledger = FakeCaseSystem()
-    try:
-        submit_review("CARD-D01", tmp_path, ledger)
-    except CreateRejected as exc:
-        assert exc.payload["error"] == "agent_approval_required"
-    else:
-        raise AssertionError("submit posted without a step-1 approval")
-    assert ledger.submitted == []
+    handle = submit_review("CARD-D01", tmp_path, ledger)
+    assert ledger.submitted == [saved]
+    assert handle["review_id"] == "rev_1"
+    assert handle.get("agent_approval") is None
 
 
 def test_create_posts_the_server_draft_only_after_approval(tmp_path: Path):
@@ -162,6 +160,21 @@ def test_agent_approval_must_name_the_same_case_and_hash():
         )
         is True
     )
+
+
+def test_create_posts_after_human_approval_without_agent_approval(tmp_path: Path):
+    server = _draft("FROM-SERVER")
+    raw = hash_canonical(server)
+    ledger = FakeCaseSystem()
+    ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "approved", digest(server), raw, "person")
+    (tmp_path / "reviews").mkdir()
+    (tmp_path / "reviews" / "CARD-D01.json").write_text(
+        json.dumps({"review_id": "rev_1", "draft_hash": digest(server)}),
+        encoding="utf-8",
+    )
+    first = create_record("CARD-D01", tmp_path, ledger)
+    assert first["posted"] is True
+    assert ledger.posts[0]["draft"]["marker"] == "FROM-SERVER"
 
 
 def test_create_refuses_when_the_server_hash_does_not_match_the_body(tmp_path: Path):

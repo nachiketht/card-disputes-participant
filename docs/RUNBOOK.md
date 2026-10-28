@@ -15,7 +15,7 @@ uv run --locked dispute-copilot submit-review CASE
 uv run --locked dispute-copilot metrics     # recompute metrics and alerts from traces
 ```
 
-`submit-review` before a passing `agent-review` for that draft exits 2 and does not post. Approval is the human command at the bottom of this page. The app never approves. Command order and exits are in `docs/COMMANDS.md`.
+`submit-review` posts the saved draft. `agent-review` is optional and does not block that post. Approval is the human command at the bottom of this page. The app never approves. Command order and exits are in `docs/COMMANDS.md`.
 
 The model host is `AZURE_BASE_URL` in `.env`. Leave it empty for approach 1, tests, and evals. A model call fails with `AZURE_BASE_URL is empty` when the variable is empty. Do not write the value in a committed file.
 

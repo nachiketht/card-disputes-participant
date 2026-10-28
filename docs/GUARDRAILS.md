@@ -9,7 +9,7 @@ Each firing writes an event named `guardrail.input`, `guardrail.output`, `guardr
 | input | instruction-like text was marked and kept as data | it does not change classification, routing, facts, or the deadline |
 | output | the phrase list rejected a customer sentence, a restricted value was found, or the draft failed contract validation | it does not rewrite a scored field; a rejected customer sentence falls back to the template |
 | boundary | the mock URL is not `127.0.0.1`, `localhost`, or `::1` | it does not open a listen socket; the process exits 1 before the health check |
-| approval | the two-stage gate returned false | it does not approve, and it does not post the record; create still fails closed |
+| approval | the human-review gate returned false | it does not approve, and it does not post the record; create still fails closed |
 
 The input mark is the existing untrusted-text scan. The output checks are the existing phrase list, redactor, and contract validator, including the checklist step. The boundary check is the loopback rule on the mock URL. The approval check is `approval_gate` before a record is posted. A passing gate does not emit `guardrail.approval`.
 

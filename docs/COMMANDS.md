@@ -102,7 +102,7 @@ uv run --locked dispute-copilot agent-review CARD-D01
 
 ### 7. Submit
 
-Posts the saved draft only after that checklist passed for the same draft. Skipping the checklist exits 2 and posts nothing.
+Posts the saved draft. The checklist is optional and does not block this step.
 
 ```sh
 uv run --locked dispute-copilot submit-review CARD-D01
@@ -533,12 +533,12 @@ STATE=.state/run.sqlite
 
 1. Start the mock (terminal 1) with that `STATE` and port `8765`.
 2. Draft. `run` writes one case. `run-all` writes every case the mock lists.
-3. Checklist: `dispute-copilot agent-review CASE`. This step is required. It does not post.
-4. `submit-review CASE`. This posts `POST /v1/reviews` only after a passing checklist for the same draft hash.
+3. Checklist (optional): `dispute-copilot agent-review CASE`. It does not post.
+4. `submit-review CASE`. This posts `POST /v1/reviews`. A missing checklist does not block it.
 5. Human approval: `tools/runtime.py approve REVIEW_ID --reviewer NAME --state "$STATE"`. The app does not run this.
 6. `create-record CASE`.
 
-`submit-review` immediately after `run`, with no checklist, fails. Nothing is posted. Stderr is `record was not created (status 400)` and the exit code is 2. That refusal is `agent_approval_required`. The name is not printed. The audit has no `review_requested` row for that attempt.
+`submit-review` immediately after `run`, with no checklist, posts. The audit gains `review_requested`.
 
 ### Draft one case
 
@@ -612,7 +612,7 @@ A pass does not approve the case.
 }
 ```
 
-This writes `submissions/reviews/CARD-D01.json` with an `agent_approval` object and does not call the mock. With `FEATURE_LLM_REVIEW=block` and no usable model reply, `passed` is false, `checks.llm_critic` is false, the note says `Verdict: block` and `Reason: The model reply was not usable.`, and the exit code is 2. `submit-review` then returns status 400.
+This writes `submissions/reviews/CARD-D01.json` with an `agent_approval` object and does not call the mock. With `FEATURE_LLM_REVIEW=block` and no usable model reply, `passed` is false, `checks.llm_critic` is false, the note says `Verdict: block` and `Reason: The model reply was not usable.`, and the exit code is 2. `submit-review` still posts.
 
 ### Submit the review
 
@@ -680,7 +680,7 @@ Exit 0. Nothing is posted. The pre-check finds the row:
 }
 ```
 
-The audit still has one `record_created` for that case. A later `run` writes `v2` and refreshes `results.json`, but `create-record` still returns the existing row and does not post the new draft. A new draft that should be submitted needs a new checklist and a new `submit-review` before any later create, and only if no record exists yet.
+The audit still has one `record_created` for that case. A later `run` writes `v2` and refreshes `results.json`, but `create-record` still returns the existing row and does not post the new draft. A new draft that should be submitted needs a new `submit-review` before any later create, and only if no record exists yet.
 
 ### Draft every development case
 
@@ -734,7 +734,7 @@ Global flags (also accepted on each subcommand): `--mock-url`, `--data-dir`, `--
 | `run-all` | `--approach 1\|2\|3\|ab`, `--shadow` | yes | every case written | 1 health; 2 any case skipped |
 | `compare` | `--case CASE`, `--approaches 1,2,3` | yes | one row per approach, no draft | 1 health; 2 a case was not read |
 | `agent-review CASE` | one case id | yes (health is checked) | `passed` true | 2 checklist failed, or no draft |
-| `submit-review CASE` | one case id | yes | review posted | 2 refused or no draft |
+| `submit-review CASE` | one case id | yes | review posted | 2 no draft |
 | `create-record CASE` | one case id | yes | created, or existing row reported | 2 gate or missing handle |
 | `metrics` | none | no | report printed | |
 | `evals` | `--submission PATH`, `--report PATH` | no, when a submission file is already written | scorecard printed and `passed` | 1 when a minimum is missed |
@@ -752,13 +752,12 @@ Other stderr lines seen from this tree:
 | Situation | Stderr | Exit |
 |---|---|---|
 | `submit-review` with no draft file | `no draft has been written for CASE` | 2 |
-| `submit-review` without a passing checklist for this hash | `record was not created (status 400)` | 2 |
 | `create-record` with no review file | `record was not created (status 400)` | 2 |
 | `create-record` while pending or rejected | `record was not created (status 403)` | 2 |
 | Case id not listed by the mock | `CASE is not in the mock case list` | 2 |
 | Data dir has no matching markdown | `CASE document SOURCE is not in the corpus` | 2 |
 
-The status 400 and 403 lines do not include the inner reason. For `submit-review` before a passing checklist, that reason is `agent_approval_required`.
+The status 400 and 403 lines do not include the inner reason. For `create-record` while the review is pending, that reason is `approval_gate`.
 
 `metrics` reads `reports/traces/*.jsonl` (or `$REPORTS_DIR/traces`), rewrites `metrics.json`, and prints `metrics` plus `alerts_fired`. It does not contact the mock. Every trace file in that directory is included, so a directory left over from a partial run can fire alerts even when the last full `run-all` was clean. `run` replaces `CASE.jsonl`. Checklist, submit, and create traces are separate files: `CASE.agent-review.jsonl`, `CASE.submit-review.jsonl`, `CASE.create-record.jsonl`.
 
@@ -1075,13 +1074,12 @@ Review REVIEW_ID is pending. Nothing was written. Ask a person to approve that e
 
 After `tools/runtime.py approve` on that id, `create` prints HTTP 201 and `record_id` `dispute-d01`. A second `create` prints HTTP 200 and `existing_record_id` `dispute-d01` (this script's JSON shape, not the `posted` field from `dispute-copilot`). The script never approves.
 
-Do not mix the two writers in one submissions directory. The installed command's `create-record` still requires `agent_approval` for the server hash. The one-file script does not write that object.
+Do not mix the two writers in one submissions directory. `create-record` requires a human-approved review for the server hash. The checklist is optional.
 
 ## Troubleshooting
 
 | What you see | What it means | What to do |
 |---|---|---|
-| `record was not created (status 400)` on `submit-review` | Checklist missing, failed, or for a different draft hash (`agent_approval_required`). No review was posted. | Run `agent-review` on the latest draft. If you set `FEATURE_LLM_REVIEW=block`, set it to `off` or provide a key that returns a usable pass. |
 | `no draft has been written for CASE` | `submit-review` or `agent-review` before `run`, or a different `--submissions`. | `run` that case into the same submissions directory. |
 | `mock health check failed`, exit 1 | Nothing is listening on `--mock-url`, or it is not this mock. | Start `serve` on `127.0.0.1` and pass that port as `--mock-url`. Fix this before looking at draft errors: health is checked first. |
 | `record was not created (status 403)` | Review pending or rejected, or the gate failed. The program did not post. | `pending` with the same `--state`. `approve` that `review_id`. Then `create-record`. |
@@ -1096,4 +1094,4 @@ Do not mix the two writers in one submissions directory. The installed command's
 | `make bakeoff` or `dispute-copilot bakeoff` | Not implemented. | Use the commands in this file. |
 | Port already in use | Another `serve` is still bound. | Ctrl-C that process, or pick `--port` and the matching `--mock-url`. |
 
-Order that works on a fresh machine: sync, validate, export `LLM_PROVIDER=null` and `FEATURE_LLM_REVIEW=off`, start the mock on `127.0.0.1` with a state file you will reuse, `run` or `run-all`, `agent-review`, `submit-review`, human `approve`, `create-record`. The app never approves. The mock stays on loopback. Code under `src/` never reads `dataset.json`.
+Order that works on a fresh machine: sync, validate, export `LLM_PROVIDER=null` and `FEATURE_LLM_REVIEW=off`, start the mock on `127.0.0.1` with a state file you will reuse, `run` or `run-all`, `submit-review`, human `approve`, `create-record`. `agent-review` is optional. The app never approves. The mock stays on loopback. Code under `src/` never reads `dataset.json`.

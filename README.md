@@ -71,7 +71,7 @@ Development answers are deliberately supplied for feedback; hardcoding case IDs 
 
 ## Human approval and recovery
 
-Draft with `dispute-copilot run` or `run-all`. Before `submit-review`, run `dispute-copilot agent-review CASE`. That checklist does not post and does not approve. `submit-review` then posts `POST /v1/reviews`. Skipping the checklist exits 2 and posts nothing. A person reads the draft and runs the approval command in a separate terminal. The app never runs that command.
+Draft with `dispute-copilot run` or `run-all`. `dispute-copilot agent-review CASE` is an optional checklist. It does not post and does not approve. `submit-review` posts `POST /v1/reviews` whether or not that checklist ran. A person reads the draft and runs the approval command in a separate terminal. The app never runs that command.
 
 ```sh
 uv run --locked python tools/runtime.py pending --state .state/run.sqlite

@@ -1,0 +1,61 @@
+{
+  "case_id": "CARD-D11",
+  "classification": "unauthorized",
+  "routing": "ready_for_review",
+  "policy_ids": [
+    "CARD-POLICY-V1",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-D11",
+    "amount": 287,
+    "currency": "XCR",
+    "reported_date": "2026-08-31"
+  },
+  "missing_information": [],
+  "deadline": "2026-09-20",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V1",
+      "quote": "Effective from: 2026-01-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V1",
+      "quote": "Unauthorized deadline days: 20"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D11-INTAKE",
+      "quote": "I found a card purchase at Morrow Supplies for 287 crowns. I do not recognize it and need help checking it."
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D11-INTAKE",
+      "quote": "Reported date: 2026-08-31"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-D11-INTAKE",
+      "quote": "Transaction ID: TX-D11"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-D11-TRANSACTIONS",
+      "quote": "\"amount\": 287"
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: unauthorized complaint for TX-D11, reported 2026-08-31. Policy CARD-POLICY-V1 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Morrow Supplies. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-09-20. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

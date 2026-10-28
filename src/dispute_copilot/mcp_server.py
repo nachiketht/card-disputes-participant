@@ -402,7 +402,7 @@ def build_server():
     )
     server.add_tool(
         submit_review,
-        description="Post the saved draft to the mock review queue after a passing checklist for the same hash.",
+        description="Post the saved draft to the mock review queue. The checklist is optional.",
         structured_output=False,
     )
     server.add_tool(

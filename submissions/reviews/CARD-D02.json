@@ -1,18 +1,30 @@
 {
   "agent_approval": {
     "case_id": "CARD-D02",
-    "draft_version": 1,
-    "draft_hash": "cab488f711a83e3de1bf6ae21ea243a007a93cccd657962acf9b820ef04ae5b1",
+    "draft_version": 2,
+    "draft_hash": "d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3",
     "passed": true,
     "checks": {
       "contract_valid": true,
       "redaction_clean": true,
       "commitment_guard": true,
       "citations_present": true,
-      "narrative_marked_draft": true
+      "narrative_marked_draft": true,
+      "llm_critic": true
     },
-    "run_id": "09fe98f8957e44ac9fb3f1631397b70b",
-    "llm_review": null,
-    "contract_version": "1.0"
-  }
+    "run_id": "7c63f23ae7e24c029883637347866d36",
+    "llm_review": {
+      "mode": "block",
+      "verdict": "pass",
+      "reason": "This is a duplicate_charge complaint about the returned Morrow Supplies purchase for 134 XCR, reported 2026-10-02; the route is ready_for_review, the deadline is 2026-11-16, and no required field is missing. The customer message makes no promise or outcome commitment, and the draft does not claim a case has been created. The reviewer still has to read the draft.",
+      "model": "gpt-6-luna",
+      "fallback_used": false,
+      "primary_failure": ""
+    },
+    "contract_version": "1.0",
+    "injection_note": null
+  },
+  "review_id": "rev_0f19a1bdb57a",
+  "draft_hash": "d7bb015dca97cbdd40ad55bcf3c919547744596c4e30e39f8270d04a38aaf6c3",
+  "draft_version": 2
 }

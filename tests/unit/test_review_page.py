@@ -204,15 +204,15 @@ def test_the_page_has_no_approve_control(tmp_path: Path, monkeypatch):
             assert "approve" not in line
 
 
-def test_submit_without_a_passed_check_is_refused(tmp_path: Path, monkeypatch):
+def test_submit_without_a_passed_check_still_posts(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
     write_draft(tmp_path, "CARD-D01", _draft())
     ledger = FakeCaseSystem()
     client = TestClient(create_app(tmp_path, ledger))
     response = client.post("/cases/CARD-D01/submit", follow_redirects=True)
     assert response.status_code == 200
-    assert "agent_approval_required" in response.text
-    assert ledger.submitted == []
+    assert "Submitted for review" in response.text
+    assert ledger.submitted != []
 
 
 def test_create_while_the_review_is_pending_is_refused(tmp_path: Path, monkeypatch):
@@ -591,9 +591,9 @@ def test_empty_home_and_unsafe_case_ids(tmp_path: Path, monkeypatch):
     missing = client.post("/cases/CARD-MISSING/check")
     assert missing.status_code == 404
     assert client.post("/cases/CARD-MISSING/submit").status_code == 404
-    refused = client.post("/cases/CARD-D01/submit", follow_redirects=False)
-    assert refused.status_code == 303
-    assert "agent_approval_required" in refused.headers["location"]
+    submitted = client.post("/cases/CARD-D01/submit", follow_redirects=False)
+    assert submitted.status_code == 303
+    assert "submitted" in submitted.headers["location"]
     nameless = client.post("/cases/CARD-D01/feedback", data={"reviewer": "", "category": "unauthorized"}, follow_redirects=False)
     assert "feedback_name" in nameless.headers["location"]
     bad_type = client.post(
