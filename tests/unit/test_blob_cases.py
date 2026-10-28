@@ -56,3 +56,66 @@ def test_blob_client_fails_closed_without_a_driver(monkeypatch):
     monkeypatch.delenv("AZURE_STORAGE_ACCOUNT", raising=False)
     with pytest.raises(RuntimeError):
         azure_container("cases")
+
+
+class _CountingBlob:
+    def __init__(self, inner: MemoryBlob) -> None:
+        self.inner = inner
+        self.gets: list[str] = []
+
+    def get(self, name: str):
+        self.gets.append(name)
+        return self.inner.get(name)
+
+    def list_stats(self, prefix: str):
+        return self.inner.list_stats(prefix)
+
+    def list(self, prefix: str):
+        return self.inner.list(prefix)
+
+
+def test_refresh_downloads_only_changed_markdown():
+    client = MemoryBlob()
+    original = _markdown("A")
+    same_length = b"Source ID: A\n\nText for A.\n"
+    assert len(original) == len(same_length)
+    client.put("documents/a.md", original)
+    client.put("policies/b.md", _markdown("B"))
+    client.put("notes/ignore.txt", b"nope")
+    assert client.list("documents/") == ["documents/a.md"]
+    name, size, etag = client.list_stats("documents/")[0]
+    assert (name, size) == ("documents/a.md", len(original))
+    corpus = BlobCorpus(client)
+    counter = _CountingBlob(client)
+    corpus._client = counter
+
+    assert corpus.refresh() is None
+    assert counter.gets == []
+
+    client.put("policies/b.md", _markdown("B") + b"\nMore.\n")
+    assert corpus.refresh() is None
+    assert counter.gets == ["policies/b.md"]
+    assert "More." in corpus.get("B")
+    counter.gets.clear()
+
+    client.put("documents/a.md", same_length)
+    assert client.list_stats("documents/")[0][2] != etag
+    assert corpus.refresh() is None
+    assert counter.gets == ["documents/a.md"]
+    assert corpus.get("A").startswith("Source ID: A")
+    assert "Text for A." in corpus.get("A")
+    counter.gets.clear()
+
+    del client.objects["documents/a.md"]
+    assert corpus.refresh() is None
+    assert counter.gets == []
+    assert corpus.ids() == ["B"]
+    with pytest.raises(KeyError):
+        corpus.get("A")
+
+    client.put("documents/extra.md", _markdown("B"))
+    message = corpus.refresh()
+    assert message is not None
+    assert "duplicate Source ID" in message
+    assert corpus.ids() == ["B"]
+    assert "More." in corpus.get("B")

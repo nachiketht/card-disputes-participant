@@ -35,42 +35,77 @@ def read_blob_dataset(client=None) -> dict:
     return loaded
 
 
-def _read_markdown(client) -> tuple[dict[str, str], tuple[tuple[str, int], ...]]:
-    texts: dict[str, str] = {}
-    signature: list[tuple[str, int]] = []
+def _markdown_stats(client) -> tuple[tuple[str, int, str], ...]:
+    rows: list[tuple[str, int, str]] = []
     for prefix in _FOLDERS:
-        for name in client.list(prefix):
-            if not name.endswith(".md"):
-                continue
-            raw = client.get(name)
-            if raw is None:
-                continue
-            signature.append((name, len(raw)))
-            text = raw.decode("utf-8")
-            source_id = source_id_of(text)
-            if source_id in texts:
-                raise ValueError(f"duplicate Source ID {source_id}")
-            texts[source_id] = text
-    return texts, tuple(signature)
+        for name, size, etag in client.list_stats(prefix):
+            if name.endswith(".md"):
+                rows.append((name, int(size), str(etag)))
+    return tuple(sorted(rows))
+
+
+def _text_for(client, name: str) -> str:
+    raw = client.get(name)
+    if raw is None:
+        raise FileNotFoundError(name)
+    return raw.decode("utf-8")
+
+
+def _load_markdown(client) -> tuple[dict[str, str], dict[str, str], tuple[tuple[str, int, str], ...]]:
+    """Download every markdown file. Startup uses this once."""
+    signature = _markdown_stats(client)
+    texts: dict[str, str] = {}
+    names: dict[str, str] = {}
+    for name, _size, _etag in signature:
+        text = _text_for(client, name)
+        source_id = source_id_of(text)
+        if source_id in texts:
+            raise ValueError(f"duplicate Source ID {source_id}")
+        texts[source_id] = text
+        names[name] = source_id
+    return texts, names, signature
 
 
 class BlobCorpus:
     def __init__(self, client) -> None:
         self._client = client
-        self._texts, self._signature = _read_markdown(client)
+        self._texts, self._names, self._signature = _load_markdown(client)
 
     @classmethod
     def from_env(cls) -> "BlobCorpus":
         return cls(_client())
 
     def refresh(self) -> str | None:
+        """Re-download markdown whose name, size, or etag changed.
+
+        An unchanged list leaves the loaded text in place and does not call get.
+        A bad file keeps the previous texts and returns the error.
+        """
         try:
-            texts, signature = _read_markdown(self._client)
+            signature = _markdown_stats(self._client)
+            if signature == self._signature:
+                return None
+            previous = {name: (size, etag) for name, size, etag in self._signature}
+            live = {name for name, _size, _etag in signature}
+            names = {name: source_id for name, source_id in self._names.items() if name in live}
+            changed: dict[str, str] = {}
+            for name, size, etag in signature:
+                if previous.get(name) == (size, etag) and name in self._names:
+                    continue
+                changed[name] = _text_for(self._client, name)
+                names[name] = source_id_of(changed[name])
+            texts: dict[str, str] = {}
+            for name, source_id in names.items():
+                if source_id in texts:
+                    raise ValueError(f"duplicate Source ID {source_id}")
+                if name in changed:
+                    texts[source_id] = changed[name]
+                else:
+                    texts[source_id] = self._texts[self._names[name]]
         except (OSError, ValueError) as exc:
             return str(exc)
-        if signature == self._signature:
-            return None
         self._texts = texts
+        self._names = names
         self._signature = signature
         return None
 

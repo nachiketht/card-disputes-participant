@@ -6,7 +6,7 @@ Postgres is used only when REVIEW_BACKEND=postgres. It shares the ledger databas
 import os
 
 from dispute_copilot.adapters.ledger_postgres import connect_postgres, ensure_schema
-from dispute_copilot.fields import CASE_ID
+from dispute_copilot.fields import CASE_ID, CLASSIFICATION
 
 
 def postgres_review_store():
@@ -140,6 +140,48 @@ class PostgresReviewStore:
         finally:
             conn.close()
         return [row[CASE_ID] for row in rows]
+
+    def open_cases(self) -> list[dict]:
+        """Sidebar rows: latest classification, without created or declined cases.
+
+        Both reads use one connection. review_results holds the latest draft body.
+        """
+        conn = self._conn()
+        try:
+            drafts = conn.execute(
+                """
+                SELECT case_id, body->>%s AS type_value
+                FROM review_results
+                ORDER BY case_id
+                """,
+                (CLASSIFICATION,),
+            ).fetchall()
+            finished = conn.execute(
+                """
+                SELECT case_id FROM records
+                UNION
+                SELECT case_id FROM reviews
+                GROUP BY case_id
+                HAVING BOOL_AND(status = 'rejected')
+                UNION
+                SELECT h.case_id
+                FROM review_handles AS h
+                JOIN reviews AS rv ON rv.id = h.body->>%s
+                WHERE rv.status = 'rejected'
+                """,
+                ("review_id",),
+            ).fetchall()
+        finally:
+            conn.close()
+        done = {row[CASE_ID] for row in finished if isinstance(row[CASE_ID], str)}
+        rows = []
+        for row in drafts:
+            case_id = row[CASE_ID]
+            if not isinstance(case_id, str) or case_id in done:
+                continue
+            type_value = row["type_value"]
+            rows.append({"id": case_id, "type_value": type_value if isinstance(type_value, str) else ""})
+        return rows
 
     def clear(self) -> None:
         """Remove review rows. Tests use this on a disposable database."""

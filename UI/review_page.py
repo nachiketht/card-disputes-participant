@@ -322,33 +322,69 @@ def _render_decisions(
     return HTMLResponse(html)
 
 
+_drafted: dict[str, set[str]] = {}
+_mock_cases: dict[str, list[dict]] = {}
+
+
 def sync_missing_drafts(
     submissions: Path,
     case_system: Ledger,
     corpus: Corpus | None,
     tools: HttpToolClient | FakeToolClient | None,
 ) -> None:
-    """Write a draft for each mock case that does not have one yet."""
+    """Write a draft for each mock case that does not have one yet.
+
+    Once every listed case is known to have a draft, later calls in this
+    process skip the corpus refresh and the per-case draft read.
+    """
     if corpus is None or tools is None:
         return
-    corpus.refresh()
     try:
         cases = tools.list_cases()
     except (MockUnavailable, OSError, TypeError, ValueError):
         return
+    key = str(submissions)
+    _mock_cases[key] = [case for case in cases if isinstance(case, dict)]
+    wanted = _safe_ids(cases)
+    known = _drafted.setdefault(key, set())
+    if set(wanted) <= known:
+        return
+    corpus.refresh()
+    if os.environ.get("REVIEW_BACKEND") == "postgres":
+        from dispute_copilot.adapters.review_state import PostgresReviewStore
+
+        for case_id in PostgresReviewStore.from_env().draft_case_ids():
+            if isinstance(case_id, str) and _safe_case(case_id):
+                known.add(case_id)
     for case in cases:
         if not isinstance(case, dict):
             continue
         case_id = case.get(CASE_ID)
-        if not isinstance(case_id, str) or not _safe_case(case_id) or _has_draft(submissions, case_id):
+        if not isinstance(case_id, str) or not _safe_case(case_id) or case_id in known:
+            continue
+        if _has_draft(submissions, case_id):
+            known.add(case_id)
             continue
         try:
             draft = prepare(case_id, corpus=corpus, tools=tools, case_system=case_system, case=case)
         except (CopilotError, OSError, ValueError, TypeError, KeyError):
             continue
         if _has_draft(submissions, case_id):
+            known.add(case_id)
             continue
         write_draft(submissions, case_id, draft)
+        known.add(case_id)
+
+
+def _safe_ids(cases: list) -> list[str]:
+    ids = []
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        case_id = case.get(CASE_ID)
+        if isinstance(case_id, str) and _safe_case(case_id):
+            ids.append(case_id)
+    return ids
 
 
 def _has_draft(submissions: Path, case_id: str) -> bool:
@@ -364,12 +400,11 @@ def list_cases(submissions: Path, case_system: Ledger | None = None, state_path:
     if os.environ.get("REVIEW_BACKEND") == "postgres":
         from dispute_copilot.adapters.review_state import PostgresReviewStore
 
-        return _list_case_ids(
-            PostgresReviewStore.from_env().draft_case_ids(),
-            submissions,
-            case_system,
-            state_path,
-        )
+        return [
+            row
+            for row in PostgresReviewStore.from_env().open_cases()
+            if isinstance(row.get("id"), str) and _safe_case(row["id"])
+        ]
     root = submissions / "drafts"
     if not root.is_dir():
         return []
@@ -386,23 +421,6 @@ def list_cases(submissions: Path, case_system: Ledger | None = None, state_path:
             continue
         type_value = draft.get(CLASSIFICATION)
         rows.append({"id": path.name, "type_value": type_value if isinstance(type_value, str) else ""})
-    return rows
-
-
-def _list_case_ids(case_ids: list[str], submissions: Path, case_system: Ledger | None, state_path: Path | None) -> list[dict]:
-    rows = []
-    for case_id in case_ids:
-        if not _safe_case(case_id):
-            continue
-        if case_outcome(submissions, case_system, state_path, case_id):
-            continue
-        try:
-            _draft_path, draft, _version = latest_draft(submissions, case_id)
-        except (OSError, ValueError):
-            rows.append({"id": case_id, "type_value": "unreadable"})
-            continue
-        type_value = draft.get(CLASSIFICATION)
-        rows.append({"id": case_id, "type_value": type_value if isinstance(type_value, str) else ""})
     return rows
 
 
@@ -432,7 +450,7 @@ def _render(
     state_path: Path | None = None,
 ) -> HTMLResponse:
     context = _context(submissions, case_system, case_id, notice, state_path)
-    complaint = _complaint_text(corpus, tools, case_id)
+    complaint = _complaint_text(corpus, tools, case_id, submissions)
     slot = "<!-- complaint-slot -->"
     context["complaint_slot"] = slot
     context["has_complaint"] = bool(complaint.strip())
@@ -849,24 +867,39 @@ def _with_outcomes(reviews: list[dict], case_system: Ledger) -> list[dict]:
     return listed
 
 
+def _stored_case(submissions: Path | None, case_id: str) -> dict | None:
+    if submissions is None:
+        return None
+    return _case_row(_mock_cases.get(str(submissions), []), case_id)
+
+
+def _case_row(cases: list, case_id: str) -> dict | None:
+    for case in cases:
+        if isinstance(case, dict) and case.get(CASE_ID) == case_id:
+            return case
+    return None
+
+
 def _complaint_text(
     corpus: Corpus | None,
     tools: HttpToolClient | FakeToolClient | None,
     case_id: str | None,
+    submissions: Path | None = None,
 ) -> str:
     """Customer complaint for the open case. Empty when the intake is not loaded."""
     if corpus is None or tools is None or not case_id:
         return ""
-    try:
-        cases = tools.list_cases()
-    except (MockUnavailable, OSError, TypeError, ValueError):
+    stored = _stored_case(submissions, case_id)
+    if stored is None:
+        try:
+            cases = tools.list_cases()
+        except (MockUnavailable, OSError, TypeError, ValueError):
+            return ""
+        stored = _case_row(cases, case_id)
+    if stored is None:
         return ""
-    intake_id = ""
-    for case in cases:
-        if isinstance(case, dict) and case.get(CASE_ID) == case_id:
-            source = case.get("intake_source")
-            intake_id = source if isinstance(source, str) else ""
-            break
+    source = stored.get("intake_source")
+    intake_id = source if isinstance(source, str) else ""
     if not intake_id:
         return ""
     try:

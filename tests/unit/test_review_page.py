@@ -913,6 +913,68 @@ def test_complaint_text_and_sync_skip_unusable_inputs(tmp_path: Path, monkeypatc
     assert (tmp_path / "drafts" / "CARD-NEW" / "v1.json").is_file()
 
 
+def test_sync_skips_covered_cases_and_complaint_uses_the_stored_list(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    write_draft(tmp_path, "CARD-D01", _draft())
+    refreshes = {"n": 0}
+
+    class Corpus:
+        def refresh(self):
+            refreshes["n"] += 1
+            return None
+
+    class Listed:
+        def __init__(self, cases: list[dict]) -> None:
+            self.cases = cases
+            self.calls = 0
+
+        def list_cases(self):
+            self.calls += 1
+            return self.cases
+
+    reads = {"n": 0}
+    from dispute_copilot.storage import latest_draft as real_latest
+
+    def counting(submissions: Path, case_id: str):
+        reads["n"] += 1
+        return real_latest(submissions, case_id)
+
+    monkeypatch.setattr("UI.review_page.latest_draft", counting)
+    tools = Listed([{"case_id": "CARD-D01", "intake_source": "CARD-D01-INTAKE"}])
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), Corpus(), tools)
+    assert refreshes["n"] == 1
+    assert reads["n"] >= 1
+    seen_refresh = refreshes["n"]
+    seen_reads = reads["n"]
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), Corpus(), tools)
+    assert refreshes["n"] == seen_refresh
+    assert reads["n"] == seen_reads
+
+    data = Path(__file__).resolve().parents[2] / "data" / "dev"
+    tools.calls = 0
+    text = _complaint_text(FileCorpus(data), tools, "CARD-D01", tmp_path)
+    assert tools.calls == 0
+    assert "Morrow Supplies" in text
+    other = tmp_path / "other"
+    fallback = Listed([])
+    assert _complaint_text(FileCorpus(data), fallback, "CARD-D01", other) == ""
+    assert fallback.calls == 1
+    direct = Listed([{"case_id": "CARD-OTHER"}])
+    assert _complaint_text(FileCorpus(data), direct, "CARD-D01") == ""
+    assert direct.calls == 1
+
+    monkeypatch.setattr("UI.review_page.prepare", lambda *args, **kwargs: _draft())
+    added = Listed(
+        [
+            {"case_id": "CARD-D01", "intake_source": "CARD-D01-INTAKE"},
+            {"case_id": "CARD-NEW", "intake_source": "CARD-D01-INTAKE"},
+        ]
+    )
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), Corpus(), added)
+    assert (tmp_path / "drafts" / "CARD-NEW" / "v1.json").is_file()
+    assert refreshes["n"] == seen_refresh + 1
+
+
 def test_decisions_page_maps_state_failures_and_withholds_restricted_html(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
     monkeypatch.setattr(

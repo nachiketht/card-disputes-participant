@@ -1,5 +1,8 @@
 """Blob client protocol. Tests use MemoryBlob. Azure is imported only when selected."""
 
+from __future__ import annotations
+
+import hashlib
 import os
 
 
@@ -24,6 +27,13 @@ class MemoryBlob:
     def list(self, prefix: str) -> list[str]:
         return sorted(name for name in self.objects if name.startswith(prefix))
 
+    def list_stats(self, prefix: str) -> list[tuple[str, int, str]]:
+        rows = []
+        for name in self.list(prefix):
+            data = self.objects[name]
+            rows.append((name, len(data), hashlib.sha256(data).hexdigest()))
+        return rows
+
 
 class AzureBlob:
     def __init__(self, container) -> None:
@@ -47,6 +57,12 @@ class AzureBlob:
 
     def list(self, prefix: str) -> list[str]:
         return [blob.name for blob in self._container.list_blobs(name_starts_with=prefix)]
+
+    def list_stats(self, prefix: str) -> list[tuple[str, int, str]]:
+        rows = []
+        for blob in self._container.list_blobs(name_starts_with=prefix):
+            rows.append((blob.name, int(blob.size or 0), str(blob.etag or "")))
+        return rows
 
 
 def azure_container(container: str) -> AzureBlob:

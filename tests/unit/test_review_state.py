@@ -38,4 +38,37 @@ def test_postgres_review_round_trip():
     assert store.draft_case_ids() == ["CARD-D01", "CARD-D02"]
     with pytest.raises(FileNotFoundError):
         store.latest("CARD-MISSING")
+    store.write_draft("CARD-OPEN", {"case_id": "CARD-OPEN", "classification": "unauthorized"})
+    store.write_draft("CARD-CREATED", {"case_id": "CARD-CREATED", "classification": "duplicate_charge"})
+    store.write_draft("CARD-DECLINED", {"case_id": "CARD-DECLINED", "classification": "unauthorized"})
+    listed = {row["id"]: row["type_value"] for row in store.open_cases()}
+    assert listed["CARD-OPEN"] == "unauthorized"
+    assert listed["CARD-CREATED"] == "duplicate_charge"
+    assert listed["CARD-D01"] == ""
+    conn = store._conn()
+    try:
+        conn.execute(
+            "INSERT INTO records (id, case_id, draft, review_id) VALUES (%s, %s, %s, %s)",
+            ("rec-created", "CARD-CREATED", "{}", "rev-created"),
+        )
+        conn.execute(
+            "INSERT INTO reviews (id, case_id, draft, hash, status, reviewer) VALUES (%s, %s, %s, %s, %s, %s)",
+            ("rev-declined", "CARD-DECLINED", "{}", "hash", "rejected", "Ada"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    try:
+        left = {row["id"] for row in store.open_cases()}
+        assert "CARD-CREATED" not in left
+        assert "CARD-DECLINED" not in left
+        assert "CARD-OPEN" in left
+    finally:
+        conn = store._conn()
+        try:
+            conn.execute("DELETE FROM records WHERE id=%s", ("rec-created",))
+            conn.execute("DELETE FROM reviews WHERE id=%s", ("rev-declined",))
+            conn.commit()
+        finally:
+            conn.close()
     store.clear()
