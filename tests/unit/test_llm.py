@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import httpx
+import pytest
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus
@@ -430,3 +431,80 @@ def test_prompt_registry_rejects_broken_pins_and_files(tmp_path: Path):
     except ValueError:
         return
     raise AssertionError("a non-string variable was accepted")
+
+
+def test_empty_completion_retries_then_falls_back():
+    class EmptyThenText:
+        model = "fake"
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system
+            self.calls += 1
+            if self.calls == 1:
+                return Completion("  ", 1, 1, "fake")
+            assert "Reply with the customer message only." in user
+            return Completion("hello there customer", 1, 1, "fake")
+
+    client = EmptyThenText()
+    message = Drafter(client, NullProvider()).customer_message(_variables())
+    assert message.downgraded is False
+    assert "hello there customer" in message.text
+    assert client.calls == 2
+
+    class AlwaysEmpty:
+        model = "fake"
+
+        def complete(self, *, system: str, user: str) -> Completion:
+            del system, user
+            return Completion(" ", 1, 1, "fake")
+
+    fallback = Drafter(AlwaysEmpty(), NullProvider()).customer_message(_variables())
+    assert fallback.downgraded is True
+
+
+def test_failure_kind_labels_known_errors():
+    from dispute_copilot.llm.base import failure_kind
+
+    assert failure_kind(RuntimeError("x")) == "unusable"
+    assert failure_kind(LLMError("timeout")) == "timeout"
+    assert failure_kind(LLMError("connection failed")) == "connection failed"
+    assert failure_kind(LLMError("503")) == "503"
+    assert failure_kind(LLMError("provider status 429: slow")) == "429"
+    assert failure_kind(LLMError("non-json body")) == "non-json"
+
+
+def test_prompt_registry_rejects_a_missing_pin_file(tmp_path: Path):
+    registry = PromptRegistry(root=tmp_path, rules_path=tmp_path / "missing.yaml")
+    with pytest.raises(ValueError, match="pin file is missing"):
+        registry.render("drafter", _variables())
+    from dispute_copilot.drafting import drafter_variables
+
+    assert drafter_variables(
+        classification="unauthorized",
+        routing="ready_for_review",
+        transaction_id="TX-1",
+        reported_date="2026-10-01",
+        deadline=None,
+        policy_id="CARD-POLICY-V2",
+        missing_fields="",
+        transaction_attempts=1,
+        quotes="[]",
+    )["deadline"] == "null"
+
+
+def test_provider_name_and_null_drafter(monkeypatch):
+    from dispute_copilot.llm.factory import build_drafter, provider_name
+
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    assert provider_name() == "null"
+    monkeypatch.setenv("LLM_PROVIDER", "null")
+    assert build_drafter() is None
+    monkeypatch.setenv("LLM_PROVIDER", "azure")
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    drafter = build_drafter()
+    assert drafter is not None
+    assert type(drafter.primary).__name__ == "NullProvider"

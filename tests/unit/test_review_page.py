@@ -11,7 +11,24 @@ from dispute_copilot.adapters.tools import FakeToolClient
 from dispute_copilot.llm.base import Completion, LLMError
 from dispute_copilot.review_flow.handles import handle_path
 from dispute_copilot.workflow import prepare
-from UI.review_page import create_app
+from UI.review_page import (
+    _check_notice,
+    _citations,
+    _complaint_text,
+    _customer_message,
+    _judge_for_check,
+    _model_note,
+    _notice_code,
+    _questions,
+    _route_tone,
+    _status_tone,
+    _store_feedback,
+    _strings,
+    _text,
+    create_app,
+    list_cases,
+    sync_missing_drafts,
+)
 from dispute_copilot.serialization import digest, hash_canonical
 from dispute_copilot.storage import write_draft
 
@@ -546,3 +563,89 @@ def test_an_approved_case_stays_in_drafts_until_the_record_exists(tmp_path: Path
     assert client.get("/draft-ids").json()["ids"] == ["CARD-D01"]
     assert "Check draft" in client.get("/cases/CARD-D01").text
     assert "Create record" in client.get("/decisions").text
+
+
+def test_empty_home_and_unsafe_case_ids(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    client = TestClient(create_app(tmp_path, FakeCaseSystem()))
+    home = client.get("/", follow_redirects=True)
+    assert home.status_code == 200
+    assert "No open drafts" in home.text
+    write_draft(tmp_path, "CARD-D01", _draft())
+    redirected = client.get("/", follow_redirects=False)
+    assert redirected.status_code == 303
+    assert "/cases/CARD-D01" in redirected.headers["location"]
+    assert client.get("/cases/CARD..D01").status_code == 404
+    note = client.get("/cases/CARD..D01/model-note")
+    assert note.status_code == 404
+    assert note.json() == {"error": "not_found"}
+    missing = client.post("/cases/CARD-MISSING/check")
+    assert missing.status_code == 404
+    assert client.post("/cases/CARD-MISSING/submit").status_code == 404
+    refused = client.post("/cases/CARD-D01/submit", follow_redirects=False)
+    assert refused.status_code == 303
+    assert "agent_approval_required" in refused.headers["location"]
+    nameless = client.post("/cases/CARD-D01/feedback", data={"reviewer": "", "category": "unauthorized"}, follow_redirects=False)
+    assert "feedback_name" in nameless.headers["location"]
+    bad_type = client.post(
+        "/cases/CARD-D01/feedback",
+        data={"reviewer": "N", "category": "nope"},
+        follow_redirects=False,
+    )
+    assert "feedback_category" in bad_type.headers["location"]
+
+
+def test_review_page_helpers_cover_empty_and_skip_paths(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("FEATURE_LLM_REVIEW", "off")
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    assert _status_tone("Check passed") == "ready"
+    assert _status_tone("Check blocked") == "hold"
+    assert _status_tone("Review pending") == "ask"
+    assert _status_tone("other") == ""
+    assert _route_tone("ready_for_review") == "ready"
+    assert _route_tone("request_information") == "ask"
+    assert _route_tone("manual_review") == "hold"
+    assert _route_tone("other") == "plain"
+    assert _text(None) == "null"
+    assert _strings("nope") == []
+    assert _questions(["skip", {"field": "authorization_confirmation", "question": "Q"}]) == [
+        {"field_id": "authorization_confirmation", "prompt": "Q"}
+    ]
+    assert _citations("nope") == []
+    assert _customer_message("no marker") == ""
+    assert _check_notice({"llm_review": {"mode": "skipped", "reason": "LLM_API_KEY is empty"}}, None) == "judge_key"
+    assert _check_notice({"llm_review": {"mode": "skipped", "reason": "AZURE_BASE_URL missing"}}, None) == "judge_url"
+    assert _check_notice({"llm_review": {"mode": "skipped", "reason": "model call failed"}}, None) == "judge_model"
+    assert _check_notice({"llm_review": {"mode": "skipped", "reason": "no client"}}, None) == "judge_client"
+    assert _check_notice({}, None) == "checked"
+    from dispute_copilot.errors import CreateRejected
+
+    assert _notice_code(CreateRejected(400, {"error": "approval_gate"})) == "approval_gate"
+    assert _notice_code(CreateRejected(400, {"error": "other"})) == "refused"
+    critic, skip = _judge_for_check()
+    assert critic is None
+    assert "LLM_API_KEY" in (skip or "")
+    assert list_cases(tmp_path) == []
+    (tmp_path / "drafts" / "not-a-dir").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "drafts" / "..bad").mkdir(parents=True, exist_ok=True)
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), None, None)
+    class Down:
+        def list_cases(self):
+            from dispute_copilot.errors import MockUnavailable
+
+            raise MockUnavailable("down")
+
+    sync_missing_drafts(tmp_path, FakeCaseSystem(), FileCorpus(Path(__file__).resolve().parents[2] / "data" / "dev"), Down())
+    assert _complaint_text(None, None, "CARD-D01") == ""
+    assert _model_note(tmp_path, "CARD-D01")["haiku_called"] is False
+    (tmp_path / "classification" / "applied").mkdir(parents=True)
+    (tmp_path / "classification" / "applied" / "CARD-D01.json").write_text("[]", encoding="utf-8")
+    assert _model_note(tmp_path, "CARD-D01")["haiku_called"] is False
+    (tmp_path / "classification" / "applied" / "CARD-D01.json").write_text(
+        json.dumps({"haiku_called": True, "haiku_class": "unauthorized", "haiku_reason": "ok", "haiku_unusable": False, "haiku_quote_missing": True}),
+        encoding="utf-8",
+    )
+    note = _model_note(tmp_path, "CARD-D01")
+    assert note["haiku_called"] is True
+    assert note["haiku_quote_missing"] is True
+    assert _store_feedback(tmp_path, None, "CARD-D01", {"reviewer": [""], "category": ["unauthorized"]}) == "feedback_name"

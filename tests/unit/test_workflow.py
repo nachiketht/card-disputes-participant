@@ -8,12 +8,27 @@ from dispute_copilot.adapters.case_system import FakeCaseSystem
 from dispute_copilot.adapters.corpus import FileCorpus, MemoryCorpus
 from dispute_copilot.adapters.tools import FakeToolClient
 from dispute_copilot.contract import validate_draft
-from dispute_copilot.errors import ContractError, ToolFailed
+from datetime import date
+
+from dispute_copilot.drafting import DraftedMessage
+from dispute_copilot.errors import ContractError, OutsideCheckpoint, ToolFailed
 from dispute_copilot.evidence.redaction import Redactor
-from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CONTRACT_VERSION, Classification, Routing
+from dispute_copilot.fields import AUTH_NOT_SUPPLIED, CASE_ID, CONTRACT_VERSION, Classification, Routing
+from dispute_copilot.retrieval.policy import PolicyResolver
 from dispute_copilot.rules.documents import parse_attachment, parse_followup, parse_intake
 from dispute_copilot.serialization import citation_source_text
-from dispute_copilot.workflow import prepare
+from dispute_copilot.workflow import (
+    _find_case,
+    _find_named,
+    _merchant as merchant_note,
+    _named_facts,
+    _posted_split,
+    _reported_date,
+    _require_case_shape,
+    _with_customer_message,
+    compare_approaches,
+    prepare,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data" / "dev"
@@ -515,6 +530,14 @@ def test_contract_rejects_an_unknown_type_and_a_boolean_amount():
     payload["facts"]["amount"] = True
     with pytest.raises(ContractError):
         validate_draft(payload)
+    payload["facts"]["amount"] = 117
+    payload["narrative"] = "too short"
+    with pytest.raises(ContractError):
+        validate_draft(payload)
+    payload["narrative"] = "This narrative is long enough for a reviewer to read."
+    payload["policy_ids"] = [" "]
+    with pytest.raises(ContractError):
+        validate_draft(payload)
 
 
 def test_redactor_catches_restricted_markers():
@@ -541,6 +564,153 @@ def test_http_client_stops_after_three_503s():
     assert caught.value.attempts == 3
 
 
+def test_complaint_stops_at_the_first_form_label():
+    text = "I do not recognize this purchase.\nReported date: 2026-10-01\n"
+    from dispute_copilot.rules.documents import complaint_text
+
+    assert complaint_text(text) == "I do not recognize this purchase."
+
+
 def test_more_than_three_attempts_is_rejected():
     with pytest.raises(ValueError):
         FakeToolClient(cases=[], transactions={}, merchants={}, max_attempts=4)
+
+
+def test_compare_approaches_writes_a_row_per_name(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LLM_PROVIDER", "null")
+    case_id = "CARD-D01"
+    rows = compare_approaches(
+        case_id,
+        corpus=FileCorpus(DATA),
+        tools=_tools(case_id, _tx(case_id, "TX-D01", 117, "XCR", "2026-08-19"), _merchant("Morrow Supplies")),
+        case=_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+        approaches=("1", "2", "3"),
+        submissions_dir=tmp_path,
+        reports_dir=tmp_path / "reports",
+    )
+    assert [row["approach"] for row in rows] == ["1", "2", "3"]
+    assert all(row[CASE_ID] == case_id for row in rows)
+    assert all(row["path"] == "rules_only" for row in rows)
+    assert (tmp_path / "classification" / "1" / "CARD-D01.json").is_file()
+    with pytest.raises(ValueError):
+        compare_approaches(
+            case_id,
+            corpus=FileCorpus(DATA),
+            tools=_tools(case_id, _tx(case_id, "TX-D01", 117, "XCR", "2026-08-19"), _merchant("Morrow Supplies")),
+            case=_case(case_id, ["CARD-D01-INTAKE", "CARD-D01-ATTACHMENT"]),
+            approaches=("9",),
+        )
+
+
+def test_compare_approaches_loads_the_listed_case():
+    with pytest.raises(OutsideCheckpoint):
+        compare_approaches(
+            "NOPE",
+            corpus=FileCorpus(DATA),
+            tools=FakeToolClient(cases=[], transactions={}, merchants={}),
+        )
+
+
+def test_prepare_rejects_a_case_that_cannot_be_read():
+    case_id = "CARD-X"
+    intake = (
+        "I do not recognize this purchase.\n\n"
+        f"Source ID: {case_id}-INTAKE\n"
+        "Reported date: 2026-10-01\n"
+        "Authorization: not supplied\n"
+    )
+    corpus = MemoryCorpus({f"{case_id}-INTAKE": intake, "CARD-PROCEDURE-01": "Routing precedence: manual first.\n"})
+    tools = FakeToolClient(
+        cases=[_case(case_id, [f"{case_id}-INTAKE"])],
+        transactions={},
+        merchants={},
+    )
+    with pytest.raises(OutsideCheckpoint, match="no transaction id"):
+        prepare(case_id, corpus=corpus, tools=tools, case_system=FakeCaseSystem(), case=_case(case_id, [f"{case_id}-INTAKE"]))
+    with pytest.raises(OutsideCheckpoint, match="could not be read"):
+        prepare(
+            case_id,
+            corpus=MemoryCorpus({f"{case_id}-INTAKE": "Source ID: x\n"}),
+            tools=tools,
+            case_system=FakeCaseSystem(),
+            case=_case(case_id, [f"{case_id}-INTAKE"]),
+        )
+    with pytest.raises(OutsideCheckpoint, match="policy lookup failed"):
+        prepare(
+            case_id,
+            corpus=MemoryCorpus(
+                {
+                    f"{case_id}-INTAKE": intake + "Transaction ID: TX-1\n",
+                }
+            ),
+            tools=FakeToolClient(
+                cases=[_case(case_id, [f"{case_id}-INTAKE"])],
+                transactions={case_id: [(200, {"source_id": "T", "transactions": [{"transaction_id": "TX-1", "amount": 1, "currency": "XCR"}]})]},
+                merchants={case_id: [(200, {"source_id": "M", "display_name": "Shop"})]},
+            ),
+            case_system=FakeCaseSystem(),
+            case=_case(case_id, [f"{case_id}-INTAKE"]),
+        )
+
+
+def test_case_listing_helpers_fail_closed():
+    with pytest.raises(OutsideCheckpoint):
+        _find_case([], "CARD-D01")
+    with pytest.raises(OutsideCheckpoint):
+        _require_case_shape("CARD-D01", {"case_id": "CARD-D01", "intake_source": "X", "documents": []})
+    assert _find_case([{"case_id": "CARD-D01", "intake_source": "X", "documents": ["X"]}], "CARD-D01")["intake_source"] == "X"
+
+
+def test_reported_date_and_named_facts_reject_unusable_values():
+    with pytest.raises(OutsideCheckpoint):
+        _reported_date("C", None)
+    with pytest.raises(OutsideCheckpoint):
+        _reported_date("C", "10/01/2026")
+    assert _reported_date("C", "2026-10-01") == date(2026, 10, 1)
+    assert _named_facts(None, "TX", True) == (None, None, None, True)
+    assert _named_facts({"transactions": []}, "TX", False) == (None, None, None, True)
+    assert _find_named({"transactions": "nope"}, "TX") is None
+    assert _named_facts({"transactions": [{"transaction_id": "TX", "amount": True, "currency": "XCR"}]}, "TX", False) == (
+        None,
+        None,
+        None,
+        True,
+    )
+    named, amount, currency, unavailable = _named_facts(
+        {"transactions": [{"transaction_id": "TX", "amount": 12, "currency": "XCR"}]},
+        "TX",
+        False,
+    )
+    assert unavailable is False
+    assert amount == 12
+    assert currency == "XCR"
+    assert named["transaction_id"] == "TX"
+
+
+def test_merchant_note_and_posted_split_cover_the_edges():
+    down = FakeToolClient(cases=[], transactions={}, merchants={"C": []})
+    note, attempts = merchant_note(down, "C")
+    assert "unavailable" in note
+    assert attempts == 1
+    blank = FakeToolClient(cases=[], transactions={}, merchants={"C": [(200, {"source_id": "M", "display_name": "  "})]})
+    note, _attempts = merchant_note(blank, "C")
+    assert "unavailable" in note
+    named = FakeToolClient(cases=[], transactions={}, merchants={"C": [(200, {"source_id": "M", "display_name": "Shop"})]})
+    note, attempts = merchant_note(named, "C")
+    assert "Shop" in note
+    assert attempts == 1
+    resolver = PolicyResolver(FileCorpus(DATA))
+    assert _posted_split(None, resolver, "CARD-POLICY-V2") == ""
+    assert _posted_split({"posted_date": 1}, resolver, "CARD-POLICY-V2") == ""
+    assert _posted_split({"posted_date": "not-a-date"}, resolver, "CARD-POLICY-V2") == ""
+    assert "CARD-POLICY-V1" in _posted_split({"posted_date": "2026-08-19"}, resolver, "CARD-POLICY-V2")
+    assert _posted_split({"posted_date": "2026-10-01"}, resolver, "CARD-POLICY-V2") == ""
+
+
+def test_customer_message_replacement_keeps_the_prefix():
+    base = "template text only, with no model. Customer message draft: old"
+    kept = DraftedMessage("new copy", False)
+    assert "the customer message used the configured model" in _with_customer_message(base, kept)
+    down = DraftedMessage("new copy", True)
+    assert "generated from templates after the model was unavailable" in _with_customer_message(base, down)
+    assert _with_customer_message("no marker here", kept) == "no marker here"

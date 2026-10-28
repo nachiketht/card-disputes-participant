@@ -39,7 +39,6 @@ const APPROACHES = [
     id: "1",
     name: "Rules only",
     subtitle: "No model. Keyword phrases plus duplicate pair check.",
-    classHits: 59,
     fullHits: 59,
     checks: [59, 69, 81, 67, 99, 81, 100, 100, 100, 100, 100],
     usdTotal: 0,
@@ -60,7 +59,6 @@ const APPROACHES = [
     id: "2",
     name: "Rules then gpt-6-luna",
     subtitle: "Model only on eligible cases.",
-    classHits: 97,
     fullHits: 97,
     checks: [97, 98, 100, 98, 99, 100, 100, 100, 100, 100, 100],
     usdTotal: 0.004632,
@@ -84,7 +82,6 @@ const APPROACHES = [
     id: "3",
     name: "Jev then model",
     subtitle: "Clef is a fallback if Jev is missing or fails. Unused on this run.",
-    classHits: 96,
     fullHits: 96,
     checks: [96, 97, 100, 97, 99, 100, 100, 100, 100, 100, 100],
     usdTotal: 0.005363,
@@ -128,15 +125,15 @@ export default function SyntheticApproachesCanvas() {
       </Stack>
 
       <Grid columns={5} gap={12}>
-        <Stat value="59 / 59" label="A1 class / full" />
-        <Stat value="97 / 97" label="A2 class / full" tone="success" />
-        <Stat value="96 / 96" label="A3 class / full" tone="success" />
+        <Stat value="59 / 100" label="A1 full eval" />
+        <Stat value="97 / 100" label="A2 full eval" tone="success" />
+        <Stat value="96 / 100" label="A3 full eval" tone="success" />
         <Stat value="$0.0046" label="A2 list-price USD (100 cases)" />
         <Stat value="$0.0054" label="A3 list-price USD (100 cases)" />
       </Grid>
 
       <Callout tone="success">
-        A2 is the accuracy winner at 97/100 class and full eval, $0.0046 list
+        A2 is the accuracy winner at 97/100 full eval, $0.0046 list
         for 100 cases. A3 is 96/100. Jev is priced: 55 ranker calls add
         $0.0017, so A3 totals $0.0054. Both beat the 2000 ms case SLO (A2
         0.98, A3 0.99, objective 0.95).
@@ -152,11 +149,14 @@ export default function SyntheticApproachesCanvas() {
               <Stack gap={12}>
                 <Text tone="secondary" size="small">
                   {a.subtitle}
+                  {a.id === "2" ? (
+                    <>
+                      <br />
+                      {"\u00a0"}
+                    </>
+                  ) : null}
                 </Text>
-                <Grid columns={2} gap={16}>
-                  <Stat value={`${a.classHits}/100`} label="Class match" />
-                  <Stat value={`${a.fullHits}/100`} label="Full eval" />
-                </Grid>
+                <Stat value={`${a.fullHits}/100`} label="Full eval" />
                 <Stat value={usd(a.usdTotal)} label="List-price USD" />
                 <Stat
                   value={`${Math.round(a.p95)} ms`}

@@ -276,3 +276,38 @@ def test_export_writes_a_sibling_comparison_page(tmp_path: Path):
     assert "http://" not in text.lower()
     status = dest.read_text(encoding="utf-8")
     assert 'href="compare.html"' in status
+
+
+def test_comparison_loader_skips_unreadable_rows(tmp_path: Path):
+    from dispute_copilot.observability.compare_page import load_comparison, render_comparison
+
+    root = tmp_path / "classification" / "1"
+    root.mkdir(parents=True)
+    (root / "bad.json").write_text("{", encoding="utf-8")
+    (root / "CARD-D01.json").write_text("[]", encoding="utf-8")
+    (root / "CARD-D02.json").write_text(json.dumps({"case_id": "OTHER"}), encoding="utf-8")
+    (root / "CARD-D05.json").write_text(
+        json.dumps(
+            {
+                "case_id": "CARD-D05",
+                "final_class": "unauthorized",
+                "route": "ready_for_review",
+                "called_model": True,
+                "latency_ms": 3,
+                "haiku": {"cost": {"status": "estimate from list price", "usd": True}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "feedback").mkdir()
+    (tmp_path / "feedback" / "nope.json").write_text("{", encoding="utf-8")
+    (tmp_path / "feedback" / "CARD-D03.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "feedback" / "CARD-D04.json").write_text(json.dumps({"category": "unauthorized"}), encoding="utf-8")
+    view = load_comparison(tmp_path)
+    ids = [row[CASE_ID] for row in view["cases"]]
+    assert "CARD-D05" in ids
+    assert "CARD-D01" not in ids
+    assert "CARD-D02" not in ids
+    page = render_comparison(view, back_href="index.html?q=4111111111111111")
+    assert "4111111111111111" not in page
+    assert "[redacted]" in page

@@ -707,3 +707,78 @@ def test_place_word_comes_from_the_label_or_the_host_class(tmp_path: Path, monke
     again = next(row for row in tracer.records if row["name"] == "case")
     assert again["attrs"]["where"] == "azure"
     assert "services.ai.azure.com" not in json.dumps(tracer.records)
+
+
+def test_headline_and_approach_folders(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    from dispute_copilot.observability.board import _approach_in_use, _headline, build_view, render
+
+    view = build_view([], [], cost_table={"models": {}, "compute": {}})
+    html = _headline(view)
+    assert "Cases run" in html
+    assert "Good-case rate" in html
+    monkeypatch.delenv("CLASSIFIER_APPROACH", raising=False)
+    assert _approach_in_use(tmp_path) == "1"
+    folder = tmp_path / "classification" / "2"
+    folder.mkdir(parents=True)
+    (folder / "CARD-D01.json").write_text("{}", encoding="utf-8")
+    assert _approach_in_use(tmp_path) == "2"
+    (tmp_path / "classification" / "3").mkdir()
+    (tmp_path / "classification" / "3" / "CARD-D02.json").write_text("{}", encoding="utf-8")
+    assert _approach_in_use(tmp_path) == "2, 3"
+    monkeypatch.setenv("CLASSIFIER_APPROACH", "ab")
+    empty = tmp_path / "other"
+    empty.mkdir()
+    assert _approach_in_use(empty) == "ab"
+    page = render(view)
+    assert "No cases have been run yet" in page
+    records = [
+        {
+            "kind": "span",
+            "name": "case",
+            CASE_ID: "C",
+            "run_id": "r",
+            "span_id": "s1",
+            "duration_ms": 1,
+            "status": "ok",
+            "attrs": {"route": "ready_for_review"},
+        },
+        {
+            "kind": "event",
+            "name": "review.agent_checklist",
+            CASE_ID: "C",
+            "run_id": "r",
+            "attrs": {"passed": False},
+        },
+        {
+            "kind": "span",
+            "name": "agent-review",
+            CASE_ID: "C",
+            "run_id": "r",
+            "span_id": "s2",
+            "duration_ms": 2,
+            "status": "ok",
+            "attrs": {},
+        },
+    ]
+    passed = [
+        {
+            "kind": "span",
+            "name": "case",
+            CASE_ID: "D",
+            "run_id": "r2",
+            "span_id": "t1",
+            "duration_ms": 1,
+            "status": "ok",
+            "attrs": {},
+        },
+        {
+            "kind": "event",
+            "name": "review.agent_checklist",
+            CASE_ID: "D",
+            "run_id": "r2",
+            "attrs": {"passed": True},
+        },
+    ]
+    paths = build_paths(records, []) + build_paths(passed, [])
+    assert paths
+    assert any(path["case"] in {"C", "D"} for path in paths)

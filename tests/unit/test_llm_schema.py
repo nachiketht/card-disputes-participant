@@ -277,3 +277,4 @@ def test_fenced_and_sliced_json_still_parse():
     assert parse_model(Box, "no object here") is None
     assert parse_model(Box, "[1, 2]") is None
     assert parse_model(Box, "{not json {") is None
+    assert parse_model(Box, "prefix {not json} trailing") is None

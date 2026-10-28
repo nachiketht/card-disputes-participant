@@ -6,7 +6,15 @@ from fastapi.testclient import TestClient
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem
 from dispute_copilot.serialization import digest, hash_canonical
-from UI.decisions import open_ledger, record_decision
+from UI.decisions import (
+    DecisionRefused,
+    _message,
+    _safe_id,
+    _status_label,
+    list_reviews,
+    open_ledger,
+    record_decision,
+)
 from UI.review_page import create_app
 
 
@@ -158,3 +166,24 @@ def test_sqlite_schema_matches_the_mock(tmp_path: Path):
         columns = [row[1] for row in db.execute("PRAGMA table_info(reviews)")]
     assert columns == ["id", "case_id", "draft", "hash", "status", "reviewer"]
     assert sqlite3.connect(state).execute("SELECT COUNT(*) FROM keys").fetchone()[0] == 0
+
+
+def test_decision_helpers_cover_empty_and_invalid_values(tmp_path: Path):
+    import pytest
+
+    assert list_reviews(None) == []
+    assert list_reviews(tmp_path / "missing.sqlite") == []
+    with pytest.raises(DecisionRefused):
+        record_decision(None, "rev_1", "Ada", accepted=True)  # type: ignore[arg-type]
+    with pytest.raises(DecisionRefused):
+        record_decision(tmp_path / "x.sqlite", "../rev", "Ada", accepted=True)
+    assert _status_label("pending")[0] == "Pending review"
+    assert _status_label("approved")[0] == "Approved"
+    assert _status_label("rejected")[0] == "Declined"
+    assert _status_label("other") == ("other", "")
+    assert _message(None) == ("", False)
+    assert _message("{") == ("", False)
+    assert _message("{}") == ("", False)
+    assert _safe_id("") is False
+    assert _safe_id("x" * 129) is False
+    assert _safe_id("rev_1") is True

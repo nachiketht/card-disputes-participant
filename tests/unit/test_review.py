@@ -3,7 +3,8 @@ from pathlib import Path
 
 from dispute_copilot.adapters.case_system import FakeCaseSystem, ReviewRecord
 from dispute_copilot.errors import CreateRejected
-from dispute_copilot.review import create_record, submit_review
+from dispute_copilot.review import create_record, load_handle, submit_review
+from dispute_copilot.review_flow.handles import handle_path, read_handle, write_handle
 from dispute_copilot.serialization import digest, hash_canonical
 from dispute_copilot.storage import write_draft
 
@@ -112,3 +113,29 @@ def test_an_existing_record_is_reported_without_a_post(tmp_path: Path):
     assert outcome["posted"] is False
     assert outcome["record_id"] == "already-there"
     assert ledger.posts == []
+
+
+def test_load_handle_and_create_reject_unusable_files(tmp_path: Path):
+    import pytest
+
+    path = handle_path(tmp_path, "CARD-D01")
+    with pytest.raises(CreateRejected) as missing:
+        load_handle(path)
+    assert missing.value.payload["error"] == "review_not_submitted"
+    write_handle(path, {"draft_hash": "abc"})
+    with pytest.raises(CreateRejected) as unusable:
+        load_handle(path)
+    assert unusable.value.payload["error"] == "review_handle_unusable"
+    path.write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError):
+        read_handle(path)
+    write_handle(path, {"review_id": "rev_1", "draft_hash": "abc"})
+    ledger = FakeCaseSystem()
+    ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "approved", "hash", "not-json", "person")
+    with pytest.raises(CreateRejected) as bad_json:
+        create_record("CARD-D01", tmp_path, ledger)
+    assert bad_json.value.payload["error"] == "draft_not_json"
+    ledger.reviews["rev_1"] = ReviewRecord("rev_1", "CARD-D01", "approved", "hash", '{"case_id":"OTHER"}', "person")
+    with pytest.raises(CreateRejected) as mismatch:
+        create_record("CARD-D01", tmp_path, ledger)
+    assert mismatch.value.payload["error"] == "draft_case_mismatch"

@@ -213,3 +213,34 @@ def test_an_open_breaker_takes_the_existing_degradation_path(tmp_path):
     assert "breaker.skip" in names and "degradation.applied" in names
     written = [json.loads(line) for line in (tmp_path / "CARD-D01.jsonl").read_text().splitlines()]
     assert written == tracer.records
+
+
+def test_retry_and_breaker_config_reject_bad_values(tmp_path: Path):
+    with pytest.raises(ValueError):
+        RetryPolicy(max_attempts=0)
+    with pytest.raises(ValueError):
+        RetryPolicy(base_delay_s=-1)
+    with pytest.raises(ValueError):
+        RetryPolicy(http_timeout_s=0)
+    with pytest.raises(ValueError):
+        BreakerConfig(failure_threshold=0)
+    with pytest.raises(ValueError):
+        BreakerConfig(cooldown_s=-1)
+    bad = tmp_path / "breaker.yaml"
+    bad.write_text("enabled: true\nnope: 1\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_breaker_config(bad)
+    unknown = tmp_path / "retry.yaml"
+    unknown.write_text("max_attempts: 3\nunknown: 1\n", encoding="utf-8")
+    from dispute_copilot.reliability.retry import load_policy as load_retry
+
+    with pytest.raises(ValueError):
+        load_retry(unknown)
+    with pytest.raises(ValueError):
+        read_with_retries(lambda: (200, {}), max_attempts=4)
+    loaded = load_policy(tmp_path / "missing.yaml", env={})
+    assert loaded.max_attempts == 3
+    mapping = tmp_path / "not-a-map.yaml"
+    mapping.write_text("- 1\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        load_policy(mapping, env={})

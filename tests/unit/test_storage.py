@@ -3,7 +3,7 @@ import threading
 from pathlib import Path
 
 from dispute_copilot.serialization import citation_source_text, digest, hash_canonical, idempotency_key
-from dispute_copilot.storage import upsert_results, write_draft
+from dispute_copilot.storage import _version_number, latest_draft, upsert_results, write_draft
 
 
 def test_hash_and_citation_serializers_stay_distinct():
@@ -53,3 +53,22 @@ def test_each_run_gets_the_next_draft_version(tmp_path: Path):
     assert (tmp_path / "drafts" / "CARD-D01" / "v2.json").is_file()
     rows = json.loads((tmp_path / "results.json").read_text(encoding="utf-8"))
     assert rows == [{"case_id": "CARD-D01", "n": 2}]
+
+
+def test_latest_draft_rejects_unreadable_versions(tmp_path: Path):
+    import pytest
+
+    assert _version_number(tmp_path / "note.txt") is None
+    assert _version_number(tmp_path / "v.json") is None
+    assert _version_number(tmp_path / "vX.json") is None
+    with pytest.raises(FileNotFoundError):
+        latest_draft(tmp_path, "CARD-D01")
+    case_dir = tmp_path / "drafts" / "CARD-D01"
+    case_dir.mkdir(parents=True)
+    (case_dir / "v1.json").write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError):
+        latest_draft(tmp_path, "CARD-D01")
+    results = tmp_path / "results.json"
+    results.write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError):
+        upsert_results(results, {"case_id": "A", "n": 1})

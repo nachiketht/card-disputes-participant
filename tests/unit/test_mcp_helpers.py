@@ -116,3 +116,65 @@ def test_get_draft_and_metrics_use_the_saved_files(tmp_path: Path, monkeypatch):
     assert "Read every file under data/dev/policies" in guide
     contract = mcp_server.read_output_contract()
     assert "Evaluation output contract" in contract
+
+
+def test_tool_and_resource_wrappers_fail_closed(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("REPORTS_DIR", str(tmp_path / "reports"))
+    with pytest.raises(mcp_server.ToolError):
+        mcp_server._tool_call("get_draft", "../nope", lambda _cid: {})
+    with pytest.raises(mcp_server.ToolError):
+        mcp_server._tool_call("ping", "CARD-D01", lambda _cid: "not-a-dict")
+    with pytest.raises(mcp_server.ToolError):
+        mcp_server._tool_call("boom", "CARD-D01", lambda _cid: (_ for _ in ()).throw(RuntimeError("x")))
+    assert mcp_server._tool_call("ok", "CARD-D01", lambda cid: {"case_id": cid}) == {"case_id": "CARD-D01"}
+    assert mcp_server._tool_call("metrics", None, lambda name: {"ok": True, "name": name})["ok"] is True
+    with pytest.raises(mcp_server.ResourceError):
+        mcp_server._resource_call("doc", lambda: {"nope": 1})
+    with pytest.raises(mcp_server.ResourceError):
+        mcp_server._resource_call("doc", lambda: (_ for _ in ()).throw(RuntimeError("x")))
+    assert mcp_server._resource_call("doc", lambda: "hello") == "hello"
+    failed = mcp_server.CallFailed("rejected", "nope")
+    mcp_server._fail_traced("CARD-D01", "get_draft", failed)
+    body = mcp_server._present({"narrative": 1, "citations": ["skip", {"quote": 1}]})
+    assert body["narrative"] == 1
+    assert body["citations"][0] == "skip"
+
+
+def test_build_server_registers_tools_and_resources():
+    pytest.importorskip("mcp")
+    server = mcp_server.build_server()
+    assert server is not None
+
+
+def test_mcp_main_starts_stdio(monkeypatch, tmp_path: Path):
+    pytest.importorskip("mcp")
+    monkeypatch.setenv("REPORTS_DIR", str(tmp_path))
+    monkeypatch.setattr(mcp_server.sys, "argv", ["mcp"])
+    ran = {"ok": False}
+
+    class Fake:
+        async def run_stdio_async(self):
+            return None
+
+    monkeypatch.setattr(mcp_server, "build_server", lambda: Fake())
+    import anyio
+
+    monkeypatch.setattr(anyio, "run", lambda fn: ran.__setitem__("ok", True))
+    assert mcp_server.main() == 0
+    assert ran["ok"] is True
+
+
+def test_read_doc_masks_restricted_text(monkeypatch, tmp_path: Path):
+    secret = "SYNTHETIC-" + "PRIVATE-X"
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "POLICY_GUIDE.md").write_text(f"guide {secret}\n", encoding="utf-8")
+    monkeypatch.setattr(mcp_server, "_ROOT", tmp_path)
+    monkeypatch.setattr(mcp_server, "_DOCS", {"POLICY_GUIDE.md": "guide://policy"})
+    text = mcp_server._read_doc("POLICY_GUIDE.md")
+    assert secret not in text
+    with pytest.raises(mcp_server.CallFailed):
+        mcp_server._read_doc("POLICY_GUIDE.md") if False else mcp_server._read_doc("missing.md")
+    (docs / "POLICY_GUIDE.md").unlink()
+    with pytest.raises(mcp_server.CallFailed):
+        mcp_server._read_doc("POLICY_GUIDE.md")

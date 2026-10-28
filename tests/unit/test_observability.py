@@ -89,6 +89,9 @@ def test_json_logs_mask_restricted_text_and_can_write_stderr(capsys, tmp_path):
     record = logging.LogRecord("dispute_copilot", logging.INFO, __file__, 1, "card %s", ("4111111111111111",), None)
     rendered = formatter.format(record)
     assert "4111111111111111" not in rendered
+    structured = logging.LogRecord("dispute_copilot", logging.INFO, __file__, 1, "ignored", (), None)
+    structured.record = {"name": "span", "case_id": "CARD-D01", "message": "ok"}
+    assert "CARD-D01" in formatter.format(structured)
     try:
         configure(None, to_stderr=True)
         LOGGER.info("stderr-ping")
@@ -96,3 +99,29 @@ def test_json_logs_mask_restricted_text_and_can_write_stderr(capsys, tmp_path):
         assert "stderr-ping" in captured.err
     finally:
         configure(None)
+
+
+def test_read_traces_and_slo_loader(tmp_path):
+    from dispute_copilot.observability.metrics import load_slo, read_traces
+    from dispute_copilot.observability.tracing import safe
+    from dispute_copilot.observability.cost import load_cost, price_call
+
+    assert read_traces(tmp_path / "missing") == []
+    traces = tmp_path / "traces"
+    traces.mkdir()
+    (traces / "C.jsonl").write_text("\n" + json.dumps({"kind": "span", "name": "case"}) + "\n", encoding="utf-8")
+    assert read_traces(traces)[0]["name"] == "case"
+    bad = tmp_path / "slo.yaml"
+    bad.write_text("slo: {}\n", encoding="utf-8")
+    try:
+        load_slo(bad)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("an incomplete slo file was accepted")
+    assert load_cost(tmp_path / "missing.yaml")["models"] == {}
+    assert price_call("claude-haiku-5-5", -1, 1)["usd"] is None
+    secret = "SYNTHETIC-" + "PRIVATE-X"
+    assert secret not in str(safe(secret))
+    assert safe(None) is None
+    assert safe(["ok"]) == ["ok"]

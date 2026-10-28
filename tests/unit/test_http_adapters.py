@@ -11,7 +11,7 @@ from dispute_copilot.adapters.case_system import (
     review_from_get,
     review_from_post,
 )
-from dispute_copilot.adapters.tools import HttpToolClient
+from dispute_copilot.adapters.tools import FakeToolClient, HttpToolClient, build_breakers
 from dispute_copilot.errors import CreateRejected, MockUnavailable
 
 
@@ -146,3 +146,48 @@ def test_fake_ledger_rejects_a_missing_review():
     ledger = FakeCaseSystem()
     with pytest.raises(CreateRejected):
         ledger.get_review("rev_missing")
+
+
+def test_http_tool_client_maps_timeout_and_non_json():
+    def timeout(request: httpx.Request) -> httpx.Response:
+        del request
+        raise httpx.ReadTimeout("slow")
+
+    def not_json(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, text="nope")
+
+    client = HttpToolClient(httpx.Client(base_url="https://mock.example", transport=httpx.MockTransport(timeout)))
+    status, body = client._read("/v1/cases/C/transactions")
+    assert status == 0
+    assert body == {"error": "timeout"}
+
+    def transport(request: httpx.Request) -> httpx.Response:
+        del request
+        raise httpx.ConnectError("down")
+
+    client = HttpToolClient(httpx.Client(base_url="https://mock.example", transport=httpx.MockTransport(transport)))
+    status, body = client._read("/v1/cases/C/transactions")
+    assert body == {"error": "transport"}
+    client = HttpToolClient(httpx.Client(base_url="https://mock.example", transport=httpx.MockTransport(not_json)))
+    status, body = client._read("/v1/cases/C/transactions")
+    assert body == {"error": "not_json"}
+    with pytest.raises(ValueError):
+        HttpToolClient(httpx.Client(base_url="https://mock.example"), max_attempts=0)
+    down = FakeToolClient(cases=[], transactions={}, merchants={}, healthy=False)
+    with pytest.raises(MockUnavailable):
+        down.health()
+    assert FakeToolClient(cases=[], transactions={}, merchants={}).health() == {"status": "ok"}
+    assert build_breakers()["transactions"].state == "closed"
+    assert build_breakers(clock=lambda: 1.5)["merchant"].clock() == 1.5
+
+    def ok(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/health":
+            return httpx.Response(200, json={"status": "ok"})
+        if request.url.path == "/v1/cases":
+            return httpx.Response(200, json={"cases": []})
+        return httpx.Response(404, json={"error": "not_found"})
+
+    client = HttpToolClient(httpx.Client(base_url="https://mock.example", transport=httpx.MockTransport(ok)))
+    assert client.health() == {"status": "ok"}
+    assert client.list_cases() == []
