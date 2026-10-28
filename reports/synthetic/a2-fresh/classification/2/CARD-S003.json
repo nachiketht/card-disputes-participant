@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S003",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000143
+    },
+    "evidence_end": 116,
+    "evidence_ok": true,
+    "evidence_sha256": "b519e713f96140c7bbebd86c77e0b031c126665e6446152c3f703fc54317edff",
+    "evidence_start": 72,
+    "fallback_used": false,
+    "latency_ms": 1188.436,
+    "model": "gpt-6-luna",
+    "reason": "The customer says one order was billed twice for the same amount.",
+    "tokens_in": 1072,
+    "tokens_out": 72,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1190.707,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

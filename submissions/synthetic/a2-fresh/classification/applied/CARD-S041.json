@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S041",
+  "haiku_called": true,
+  "haiku_class": "service_not_received",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer paid for a booking, but nobody showed up on the scheduled dates.",
+  "haiku_unusable": false
+}

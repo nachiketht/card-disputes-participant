@@ -27,14 +27,14 @@ Card Dispute Copilot. Each brief failure situation (`BRIEF.md`) is mapped to the
 | JSON-lines log, one line per span or event | `observability/logs.py`; `reports/logs/run.jsonl` (`LOG_STDERR=1` also prints to stderr) |
 | Metrics tied to the SLO | `observability/metrics.py`; `reports/metrics.json` |
 | Classification audit, one file per approach, no complaint text | `classifiers/audit.py`; `submissions/classification/<approach>/<case>.json` and the same path under `reports/` |
-| Comparison page: wrong-label rate, auto-routed-but-wrong rate, manual-review rate, configured-model cost per case, latency p95, agreement, disagreeing case ids | `observability/compare_page.py`; sibling `compare.html` from `dispute-copilot dashboard --export` |
+| Comparison page: wrong-label rate, auto-routed-but-wrong rate, manual-review rate, list-price cost per case (configured model and Jev), latency p95, agreement, disagreeing case ids | `observability/compare_page.py`; sibling `compare.html` from `dispute-copilot dashboard --export` |
 | Alert rules | `config/rules/slo.yaml` |
 
 ## Metrics and alerts
 
 Metrics: `good_case_rate` (the SLO), `valid_contract_rate`, `case_latency_ms` (median, p95, max), `tool_exhausted_rate`, `tool_retries`, `breaker_opens`, `breaker_skips`, `manual_review_rate`, `untrusted_instruction_cases`, `gate_blocked`, `error_budget`.
 
-Classification latency p95 on the comparison page comes from audit `latency_ms`. It does not replace `good_case_rate` or `case_latency_ms`. Configured-model cost there is list-price USD divided by cases run. `config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `claude-haiku-4-5` is not listed, so that id is `no price configured for claude-haiku-4-5`. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. Jev is priced from the vendor list in `config/rules/cost.yaml` (0.042 USD per million input tokens, output free). Approach 1 does not call a model.
+Classification latency p95 on the comparison page comes from audit `latency_ms`. It does not replace `good_case_rate` or `case_latency_ms`. Configured-model and Jev cost there is list-price USD divided by cases run. `config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens. `claude-haiku-4-5` is not listed, so that id is `no price configured for claude-haiku-4-5`. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. Jev is priced from the vendor list in `config/rules/cost.yaml` (0.042 USD per million input tokens, output free). The `clef-flash` input figure 0.038 has no verified public source yet and is unverified. Approach 1 does not call a model.
 
 | Alert | Condition | Severity |
 |---|---|---|

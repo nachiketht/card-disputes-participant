@@ -1,0 +1,56 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S100",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.4e-05
+    },
+    "evidence_end": 13,
+    "evidence_ok": true,
+    "evidence_sha256": "e1bd74fe3cec2d49700b70de4619efaa2f7740422a6b6ac368ae580f1e98fc16",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1939.774,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the charge was not theirs.",
+    "tokens_in": 418,
+    "tokens_out": 65,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unauthorized",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 75.841,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 1.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 2017.936,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

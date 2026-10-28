@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S021",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.3e-05
+    },
+    "evidence_end": 18,
+    "evidence_ok": true,
+    "evidence_sha256": "da4b165f90d0879b457f4d63e5026beea0ad8640991ce0b60e97e62ce550a388",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1151.789,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says payment was made, but nothing arrived.",
+    "tokens_in": 436,
+    "tokens_out": 79,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1154.241,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "case_id": "CARD-S046",
+  "classification": "service_not_received",
+  "routing": "request_information",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S046",
+    "amount": 933,
+    "currency": "XCR",
+    "reported_date": "2026-10-15"
+  },
+  "missing_information": [
+    "authorization_confirmation",
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "deadline": "2026-12-14",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Service deadline days: 60"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S046-INTAKE",
+      "quote": "Earlier this year I ordered a package from Driftglass Travel Desk worth XCR 933. They emailed more than once saying it was delayed, then sent a further email with a new date that was also missed. I do not mind a short delay but this has gone far past anything reasonable, and I want my money back rather than another new date. The order has not been delivered."
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S046-INTAKE",
+      "quote": "Reported date: 2026-10-15"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S046-INTAKE",
+      "quote": "Transaction ID: TX-S046"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-S046-INTAKE",
+      "quote": "Authorization: not supplied"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "If no promised date is supplied, request promised_service_date. If no purchase receipt is supplied,"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-S046-INTAKE",
+      "quote": "Promised service date: not supplied"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "request purchase_receipt. Required fields absent for the chosen type must all be requested."
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-S046-INTAKE",
+      "quote": "Purchase receipt: not supplied"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S046-TRANSACTIONS",
+      "quote": "\"amount\": 933"
+    }
+  ],
+  "follow_up_questions": [
+    {
+      "field": "authorization_confirmation",
+      "question": "Please confirm whether you authorized this card purchase."
+    },
+    {
+      "field": "promised_service_date",
+      "question": "What date was this service promised to you?"
+    },
+    {
+      "field": "purchase_receipt",
+      "question": "Please provide the purchase receipt for this service."
+    }
+  ],
+  "narrative": "Case summary: service_not_received complaint for TX-S046, reported 2026-10-15. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Driftglass Travel Desk. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation, promised_service_date, purchase_receipt. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-12-14. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

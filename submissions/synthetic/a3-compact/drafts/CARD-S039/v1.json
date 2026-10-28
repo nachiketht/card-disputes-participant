@@ -1,0 +1,83 @@
+{
+  "case_id": "CARD-S039",
+  "classification": "service_not_received",
+  "routing": "request_information",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S039",
+    "amount": 655,
+    "currency": "XCR",
+    "reported_date": "2026-09-21"
+  },
+  "missing_information": [
+    "authorization_confirmation",
+    "promised_service_date"
+  ],
+  "deadline": "2026-11-20",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Service deadline days: 60"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use service_not_received for an authorized purchase whose promised service was not supplied."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S039-INTAKE",
+      "quote": "ordred somthing from Verdance Plant Studio for 655 crowns and its been weeks, nothing arrived, thay wont reply"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S039-INTAKE",
+      "quote": "Reported date: 2026-09-21"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S039-INTAKE",
+      "quote": "Transaction ID: TX-S039"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "If no promised date is supplied, request promised_service_date. If no purchase receipt is supplied,"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S039-TRANSACTIONS",
+      "quote": "\"amount\": 655"
+    }
+  ],
+  "follow_up_questions": [
+    {
+      "field": "authorization_confirmation",
+      "question": "Please confirm whether you authorized this card purchase."
+    },
+    {
+      "field": "promised_service_date",
+      "question": "What date was this service promised to you?"
+    }
+  ],
+  "narrative": "Case summary: service_not_received complaint for TX-S039, reported 2026-09-21. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Verdance Plant Studio. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation, promised_service_date. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-11-20. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

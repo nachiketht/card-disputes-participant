@@ -15,7 +15,8 @@ from dispute_copilot.classifiers.guard import apply_duplicate_guard, duplicate_p
 from dispute_copilot.classifiers.haiku import quote_found
 from dispute_copilot.classifiers.engine import run_approach
 from dispute_copilot.classifiers.clef import ClefClient, build_clef, call_clef
-from dispute_copilot.classifiers.jev import JevClient, build_jev, call_jev, read_answer
+from dispute_copilot.classifiers.guide import category_lines, ranker_instructions, ranker_state
+from dispute_copilot.classifiers.jev import JevClient, build_jev, call_jev, read_answer, _criteria
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.fields import (
     AUTH_CONFIRMED,
@@ -120,9 +121,68 @@ def test_evidence_must_be_exact_complaint_text():
     assert quote_found(complaint, complaint) is True
     assert quote_found("Please   review\nthe posted amount.", complaint) is True
     assert quote_found("Please look at the posted amount.", complaint) is False
-    prompt = (Path(__file__).resolve().parents[2] / "prompts" / "classifier" / "v1.md").read_text(encoding="utf-8")
+    prompt = _pinned_classifier_prompt()
     assert "exact text copied from the complaint" in prompt
     assert "Do not paraphrase" in prompt
+
+
+def _pinned_classifier_prompt() -> str:
+    root = Path(__file__).resolve().parents[2]
+    pins = (root / "config" / "rules" / "prompts.yaml").read_text(encoding="utf-8")
+    version = None
+    for line in pins.splitlines():
+        if line.startswith("classifier:"):
+            version = int(line.split(":", 1)[1].strip())
+            break
+    if version is None:
+        raise AssertionError("classifier pin is missing")
+    return (root / "prompts" / "classifier" / f"v{version}.md").read_text(encoding="utf-8")
+
+
+def test_pinned_classifier_prompt_has_few_shot_examples():
+    prompt = _pinned_classifier_prompt()
+    assert "Worked examples" in prompt
+    assert "not my charge" in prompt
+    assert "never got it" in prompt
+    assert "machine gave me no cash" in prompt
+    assert "fraud" in prompt
+    assert "Do not copy evidence from the examples" in prompt
+
+
+def test_pinned_classifier_prompt_is_compact():
+    prompt = _pinned_classifier_prompt()
+    body = prompt.split("---", 2)[-1]
+    assert len(body) < 1800
+    for line in category_lines():
+        assert len(line) < 160, line
+
+
+def test_ranker_payload_is_compact():
+    rows = _criteria()
+    assert sum(len(value) for value in rows.values()) < 900
+    assert len(ranker_instructions()) < 200
+    state = ranker_state("hello")
+    assert "Signals include" not in state
+    assert len(state) < 900
+
+
+def test_ranker_criteria_name_signals_for_each_class():
+    rows = _criteria()
+    assert "unauthorized" in rows
+    assert "duplicate_charge" in rows
+    assert "service_not_received" in rows
+    assert "unsupported" in rows
+    assert "ambiguous" in rows
+    assert "ambiguous_or_unclear" in rows
+    folded = {key: value.casefold() for key, value in rows.items()}
+    assert "fraud" in folded["unauthorized"]
+    assert "not my charge" in folded["unauthorized"]
+    assert "twice" in folded["duplicate_charge"]
+    assert "never got it" in folded["service_not_received"]
+    assert "atm" in folded["unsupported"]
+    assert "short" in folded["ambiguous_or_unclear"]
+    for key, value in rows.items():
+        assert len(value) > 40, key
 
 
 def test_a_service_class_is_not_kept_for_an_unknown_authorization_label():
@@ -349,7 +409,8 @@ def test_the_ranker_sends_questions_as_a_choice_map():
         timeout_s=5,
         transport=httpx.MockTransport(handler),
     )
-    client.ask("I do not recognize this purchase.")
+    complaint = "I do not recognize this purchase."
+    client.ask(complaint)
     questions = captured["body"]["questions"]
     assert isinstance(questions, dict)
     question = questions["class"]
@@ -357,6 +418,13 @@ def test_the_ranker_sends_questions_as_a_choice_map():
     assert isinstance(question["criteria"], dict)
     assert "unauthorized" in question["criteria"]
     assert "ambiguous_or_unclear" in question["criteria"]
+    instructions = question["instructions"]
+    assert isinstance(instructions, str) and "concrete class" in instructions.casefold()
+    state = captured["body"]["state"]
+    assert complaint in state
+    assert "service_not_received" in state
+    assert "never got it" in state
+    assert "machine gave me no cash" in state
 
 
 def test_ranker_setup_and_bad_replies_fail_closed(monkeypatch):
@@ -784,15 +852,21 @@ def test_clef_choice_includes_instructions_and_parses():
         timeout_s=5,
         transport=httpx.MockTransport(handler),
     )
-    body = client.ask("Please review the posted amount.")
+    complaint = "Please review the posted amount."
+    body = client.ask(complaint)
     question = captured["body"]["questions"]["class"]
     assert question["type"] == "choice"
     instructions = question["instructions"]
     assert isinstance(instructions, str) and len(instructions.split()) >= 8
     assert instructions != "class"
+    assert "concrete class" in instructions.casefold()
     assert list(captured["body"]["questions"]) == ["class"]
     criteria = question["criteria"]
     assert isinstance(criteria, dict) and len(criteria) >= 2
+    assert "atm" in criteria["unsupported"].casefold()
+    state = captured["body"]["state"]
+    assert complaint in state
+    assert "unauthorized" in state
     parsed = read_answer(body, 0.7)
     assert parsed["class"] == "unauthorized"
     assert parsed["ambiguous"] is False
@@ -968,6 +1042,38 @@ def test_a_failed_jev_and_failed_clef_still_ask_haiku():
     assert clef.calls == 1
     assert model.calls == 1
     assert outcome.path == "haiku_assigned"
+
+
+def test_call_jev_prices_input_tokens():
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(
+            200,
+            json={
+                "answers": {
+                    "class": {
+                        "type": "choice",
+                        "choice": "unauthorized",
+                        "probabilities": {"unauthorized": 0.91, "ambiguous_or_unclear": 0.09},
+                        "confidence": 0.91,
+                    }
+                },
+                "usage": {"prompt_tokens": 40, "completion_tokens": 0},
+            },
+        )
+
+    client = JevClient(
+        base_url="https://ranker.example/v1/systemone",
+        api_key="k",
+        model="jev-latest",
+        timeout_s=5,
+        transport=httpx.MockTransport(handler),
+    )
+    parsed = call_jev(client, "I do not recognize this purchase.", 0.7)
+    assert parsed["failed"] is False
+    assert parsed["tokens_in"] == 40
+    assert parsed["tokens_out"] == 0
+    assert parsed["cost"] == {"status": "estimate from list price", "usd": 0.000002}
 
 
 def test_call_clef_prices_input_tokens():

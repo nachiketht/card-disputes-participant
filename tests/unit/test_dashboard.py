@@ -81,6 +81,7 @@ def test_listed_prices_match_the_model_id_and_a_missing_model_is_named():
     assert price_call("claude-haiku-5-5-2026-10-26", 1_000_000, 0, table)["usd"] == 0.1
     assert price_call("clef-flash", 1_000_000, 0, table)["usd"] == 0.038
     assert price_call("jev-latest", 1_000_000, 0, table)["usd"] == 0.042
+    assert price_call("jev-latest", 1_000_000, 1_000_000, table)["usd"] == 0.042
     assert price_call("claude-haiku-4-5", 1_000_000, 0, table) == {
         "status": "no price configured for claude-haiku-4-5",
         "usd": None,

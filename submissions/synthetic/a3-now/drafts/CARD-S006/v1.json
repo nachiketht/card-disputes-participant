@@ -1,0 +1,78 @@
+{
+  "case_id": "CARD-S006",
+  "classification": "unauthorized",
+  "routing": "request_information",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S006",
+    "amount": 613,
+    "currency": "XCR",
+    "reported_date": "2026-10-25"
+  },
+  "missing_information": [
+    "authorization_confirmation"
+  ],
+  "deadline": "2026-11-24",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Unauthorized deadline days: 30"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use unauthorized when the customer denies authorizing the named card purchase; if confirmation is absent,"
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S006-INTAKE",
+      "quote": "Why is there a 613 crowns payment to Quillon Moss Bakery???? I didnt do that!!!! Fix this!!!!"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S006-INTAKE",
+      "quote": "Reported date: 2026-10-25"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S006-INTAKE",
+      "quote": "Transaction ID: TX-S006"
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "use the provisional unauthorized classification and request authorization_confirmation."
+    },
+    {
+      "claim": "missing_information",
+      "source_id": "CARD-S006-INTAKE",
+      "quote": "Authorization: not supplied"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S006-TRANSACTIONS",
+      "quote": "\"amount\": 613"
+    }
+  ],
+  "follow_up_questions": [
+    {
+      "field": "authorization_confirmation",
+      "question": "Please confirm whether you authorized this card purchase."
+    }
+  ],
+  "narrative": "Case summary: unauthorized complaint for TX-S006, reported 2026-10-25. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Quillon Moss Bakery. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: Fields still needed: authorization_confirmation. Customer statements do not disagree about authorization. Recommendation: routing request_information. The supplied training-policy deadline is 2026-11-24. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

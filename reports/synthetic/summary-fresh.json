@@ -1,0 +1,341 @@
+{
+  "1": {
+    "written": 100,
+    "not_written": 0,
+    "elapsed_s": 1.932,
+    "run_id": "run-9f31782958",
+    "passed_cases": 59,
+    "total_cases": 100,
+    "eval_passed": false,
+    "class_hits": 59,
+    "class_total": 100,
+    "class_misses": [
+      {
+        "case_id": "CARD-S001",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S003",
+        "gold": "duplicate_charge",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S006",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S007",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S014",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S019",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S021",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S022",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S023",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S024",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S025",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S032",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S036",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S037",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S039",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S040",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S041",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S042",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S047",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S048",
+        "gold": "duplicate_charge",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S051",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S054",
+        "gold": "unsupported",
+        "pred": "unauthorized",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S060",
+        "gold": "ambiguous",
+        "pred": "duplicate_charge",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S061",
+        "gold": "duplicate_charge",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S063",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S065",
+        "gold": "duplicate_charge",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S066",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S069",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S070",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S074",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S075",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S078",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S080",
+        "gold": "duplicate_charge",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S083",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S084",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S088",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S089",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S092",
+        "gold": "duplicate_charge",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S094",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S098",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S100",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      }
+    ]
+  },
+  "2": {
+    "written": 100,
+    "not_written": 0,
+    "elapsed_s": 73.272,
+    "run_id": "run-0dda87da41",
+    "passed_cases": 95,
+    "total_cases": 100,
+    "eval_passed": false,
+    "class_hits": 95,
+    "class_total": 100,
+    "class_misses": [
+      {
+        "case_id": "CARD-S024",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S054",
+        "gold": "unsupported",
+        "pred": "unauthorized",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S060",
+        "gold": "ambiguous",
+        "pred": "duplicate_charge",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S078",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S100",
+        "gold": "unauthorized",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      }
+    ]
+  },
+  "3": {
+    "written": 100,
+    "not_written": 0,
+    "elapsed_s": 65.413,
+    "run_id": "run-14ca1ad3f0",
+    "passed_cases": 96,
+    "total_cases": 100,
+    "eval_passed": false,
+    "class_hits": 96,
+    "class_total": 100,
+    "class_misses": [
+      {
+        "case_id": "CARD-S024",
+        "gold": "unsupported",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      },
+      {
+        "case_id": "CARD-S054",
+        "gold": "unsupported",
+        "pred": "unauthorized",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S060",
+        "gold": "ambiguous",
+        "pred": "duplicate_charge",
+        "route": "ready_for_review"
+      },
+      {
+        "case_id": "CARD-S078",
+        "gold": "service_not_received",
+        "pred": "ambiguous",
+        "route": "manual_review"
+      }
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S078",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.00024
+    },
+    "evidence_end": 128,
+    "evidence_ok": true,
+    "evidence_sha256": "582c648d66f067fad0e0e1708a5e6ac619a09306f44588bc95926abc1b0323dc",
+    "evidence_start": 55,
+    "fallback_used": false,
+    "latency_ms": 2318.294,
+    "model": "gpt-6-luna",
+    "reason": "The complaint indicates the charge was taken after cancellation and that nothing was received, so both unauthorized and service-not-received claims apply.",
+    "tokens_in": 1054,
+    "tokens_out": 269,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 2320.782,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

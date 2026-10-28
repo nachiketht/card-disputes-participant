@@ -1,0 +1,66 @@
+{
+  "case_id": "CARD-S010",
+  "classification": "duplicate_charge",
+  "routing": "ready_for_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S010",
+    "amount": 437,
+    "currency": "XCR",
+    "reported_date": "2026-10-16"
+  },
+  "missing_information": [],
+  "deadline": "2026-11-30",
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "deadline",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Duplicate deadline days: 45"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Use duplicate_charge for a report of two charges for one purchase; retrieve both transaction records."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S010-INTAKE",
+      "quote": "Two things. First, Bramblewick Hardware charged me 437 credits and then charged it again, I can see both rows. Second, I never even wanted what they sold me, my cousin used my phone to order something and I have no idea if that was allowed. Either way I am not paying twice, and I also want to know if the original is something I should be paying at all."
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S010-INTAKE",
+      "quote": "Reported date: 2026-10-16"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S010-INTAKE",
+      "quote": "Transaction ID: TX-S010"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S010-TRANSACTIONS",
+      "quote": "\"amount\": 437"
+    },
+    {
+      "claim": "duplicate_transaction",
+      "source_id": "CARD-S010-TRANSACTIONS",
+      "quote": "\"transaction_id\": \"TX-S010-B\""
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: duplicate_charge complaint for TX-S010, reported 2026-10-16. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Bramblewick Hardware. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing ready_for_review. The supplied training-policy deadline is 2026-11-30. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

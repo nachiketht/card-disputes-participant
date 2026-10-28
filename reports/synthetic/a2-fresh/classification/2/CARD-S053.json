@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S053",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000132
+    },
+    "evidence_end": 84,
+    "evidence_ok": true,
+    "evidence_sha256": "229d7fbf78201a9af95b65a1a824d24d4621213fc78fc9914cbc2e4abbfbf2d7",
+    "evidence_start": 59,
+    "fallback_used": false,
+    "latency_ms": 4344.683,
+    "model": "gpt-6-luna",
+    "reason": "The customer says they did not make the purchase.",
+    "tokens_in": 1053,
+    "tokens_out": 54,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 4346.802,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

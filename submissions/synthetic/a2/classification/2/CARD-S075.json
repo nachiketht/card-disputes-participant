@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S075",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 5.3e-05
+    },
+    "evidence_end": 34,
+    "evidence_ok": true,
+    "evidence_sha256": "dc2c18a7a510f68172a99de7ca276ef2ac71a5013f976ddc757e2e91e3208231",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 988.887,
+    "model": "gpt-6-luna",
+    "reason": "The complaint concerns a cash withdrawal from a machine, which is unsupported.",
+    "tokens_in": 238,
+    "tokens_out": 59,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 991.335,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

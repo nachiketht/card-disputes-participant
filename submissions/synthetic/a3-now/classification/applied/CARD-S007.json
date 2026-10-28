@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S007",
+  "haiku_called": true,
+  "haiku_class": "service_not_received",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The custom item did not arrive by the ready-by date.",
+  "haiku_unusable": false
+}

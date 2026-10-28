@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S048",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000138
+    },
+    "evidence_end": 89,
+    "evidence_ok": true,
+    "evidence_sha256": "4045c93631110092fb2cf09d31443852e967d437cb98eb37ce19612a9a5f4b19",
+    "evidence_start": 72,
+    "fallback_used": false,
+    "latency_ms": 1046.577,
+    "model": "gpt-6-luna",
+    "reason": "The same checkout was charged twice after the customer tapped pay again.",
+    "tokens_in": 1056,
+    "tokens_out": 64,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1048.704,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

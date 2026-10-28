@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S053",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.3e-05
+    },
+    "evidence_end": 85,
+    "evidence_ok": true,
+    "evidence_sha256": "3bb3c83396341e229bc37a95ce3b6e427fcd5cc52cac4271f02dce2d608346a4",
+    "evidence_start": 59,
+    "fallback_used": false,
+    "latency_ms": 1124.018,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the purchase was not made by the cardholder.",
+    "tokens_in": 439,
+    "tokens_out": 79,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1126.108,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

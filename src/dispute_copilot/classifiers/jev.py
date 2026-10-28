@@ -6,13 +6,13 @@ import time
 import httpx
 
 from dispute_copilot.classifiers.config import ClassifierSettings, load_settings
-from dispute_copilot.classifiers.haiku import category_text, known_class
+from dispute_copilot.classifiers.guide import AMBIGUOUS_OPTION, ranker_criteria, ranker_instructions, ranker_state
+from dispute_copilot.classifiers.haiku import known_class
 from dispute_copilot.fields import Classification
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.observability.cost import price_call
 from dispute_copilot.observability.tracing import current
 
-AMBIGUOUS_OPTION = "ambiguous_or_unclear"
 _QUESTION = "class"
 
 
@@ -31,10 +31,11 @@ class JevClient:
     def ask(self, state: str) -> dict:
         payload = {
             "model": self.model,
-            "state": state,
+            "state": ranker_state(state),
             "questions": {
                 _QUESTION: {
                     "type": "choice",
+                    "instructions": ranker_instructions(),
                     "criteria": _criteria(),
                 }
             },
@@ -113,10 +114,12 @@ def call_jev(client, complaint: str, threshold: float) -> dict:
         with current().span("model.call") as span:
             body = client.ask(complaint)
             model_name = str(getattr(client, "model", "") or "")
-            tokens_in, tokens_out = _usage(body)
+            tokens_in, tokens_out = usage_tokens(body)
             if tokens_in is not None:
                 priced = price_call(model_name, tokens_in, tokens_out or 0)
             span.set(model=model_name, cost_status=priced["status"])
+            if tokens_in is not None:
+                span.set(tokens_in=tokens_in, tokens_out=tokens_out or 0)
             if priced.get("usd") is not None:
                 span.set(cost_usd=priced["usd"])
         parsed = read_answer(body, threshold)
@@ -133,16 +136,18 @@ def call_jev(client, complaint: str, threshold: float) -> dict:
             "tokens_in": None,
             "tokens_out": None,
             "cost": {"status": "unpriced", "usd": None},
+            "model": model_name,
         }
     parsed["failed"] = False
     parsed["latency_ms"] = round((time.perf_counter() - started) * 1000, 3)
     parsed["tokens_in"] = tokens_in
     parsed["tokens_out"] = tokens_out
     parsed["cost"] = priced
+    parsed["model"] = model_name
     return parsed
 
 
-def _usage(body: object) -> tuple[int | None, int | None]:
+def usage_tokens(body: object) -> tuple[int | None, int | None]:
     if not isinstance(body, dict):
         return None, None
     usage = body.get("usage")
@@ -166,14 +171,4 @@ def _option(name: str) -> Classification | None:
 
 
 def _criteria() -> dict[str, str]:
-    rows = {item.value: line for line, item in _pairs()}
-    rows[AMBIGUOUS_OPTION] = "ambiguous or unclear"
-    return rows
-
-
-def _pairs():
-    for line in category_text().splitlines():
-        name = line.split(":", 1)[0]
-        found = known_class(name)
-        if found is not None:
-            yield line, found
+    return ranker_criteria()

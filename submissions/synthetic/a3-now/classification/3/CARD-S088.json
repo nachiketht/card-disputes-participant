@@ -1,0 +1,58 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S088",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.0001
+    },
+    "evidence_end": 77,
+    "evidence_ok": true,
+    "evidence_sha256": "74b473e3b08750c684c444cb58133a7d23a0c562a87ebe02a8df7b0b9545bef9",
+    "evidence_start": 61,
+    "fallback_used": false,
+    "latency_ms": 1415.072,
+    "model": "gpt-6-luna",
+    "reason": "They paid for home repair work, but it still had not been performed after a month.",
+    "tokens_in": 466,
+    "tokens_out": 107,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 0.98,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 3.2e-05
+    },
+    "latency_ms": 72.819,
+    "model": "jev-latest",
+    "probabilities": {
+      "ambiguous": 0.02,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.98,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": 756,
+    "tokens_out": 74
+  },
+  "latency_ms": 1488.919,
+  "missing": [
+    "authorization_confirmation",
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

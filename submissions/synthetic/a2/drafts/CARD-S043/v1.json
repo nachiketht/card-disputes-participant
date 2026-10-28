@@ -1,0 +1,66 @@
+{
+  "case_id": "CARD-S043",
+  "classification": "ambiguous",
+  "routing": "manual_review",
+  "policy_ids": [
+    "CARD-POLICY-V1",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S043",
+    "amount": 162,
+    "currency": "XCR",
+    "reported_date": "2026-08-03"
+  },
+  "missing_information": [],
+  "deadline": null,
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V1",
+      "quote": "Effective from: 2026-01-01"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S043-INTAKE",
+      "quote": "unknown Kittering Auto Parts charge 162cr"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S043-INTAKE",
+      "quote": "Reported date: 2026-08-03"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S043-INTAKE",
+      "quote": "Transaction ID: TX-S043"
+    },
+    {
+      "claim": "conflicting_evidence",
+      "source_id": "CARD-S043-INTAKE",
+      "quote": "Authorization: denied"
+    },
+    {
+      "claim": "conflicting_evidence",
+      "source_id": "CARD-S043-FOLLOWUP",
+      "quote": "Authorization: confirmed"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S043-TRANSACTIONS",
+      "quote": "\"amount\": 162"
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: ambiguous complaint for TX-S043, reported 2026-08-03. Policy CARD-POLICY-V1 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Kittering Auto Parts. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

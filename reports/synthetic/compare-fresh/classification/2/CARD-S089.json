@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S089",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000137
+    },
+    "evidence_end": 88,
+    "evidence_ok": true,
+    "evidence_sha256": "7db12bf3a819e6fda3fbcae6a73c8f64c69c9c4b0edb36926840bd715a75e240",
+    "evidence_start": 80,
+    "fallback_used": false,
+    "latency_ms": 1011.776,
+    "model": "gpt-6-luna",
+    "reason": "A cash machine stopped without dispensing cash after the balance was debited.",
+    "tokens_in": 1056,
+    "tokens_out": 63,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1012.62,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

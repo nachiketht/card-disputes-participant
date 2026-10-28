@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S038",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.3e-05
+    },
+    "evidence_end": 12,
+    "evidence_ok": true,
+    "evidence_sha256": "dd4ab899cfe2c06dd591274b4dbbb253cec7d4799eba446892770419e2921c29",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1028.511,
+    "model": "gpt-6-luna",
+    "reason": "The complaint does not describe a specific claim.",
+    "tokens_in": 417,
+    "tokens_out": 62,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1030.378,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

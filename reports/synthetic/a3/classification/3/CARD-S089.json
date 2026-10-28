@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S089",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 4.7e-05
+    },
+    "evidence_end": 88,
+    "evidence_ok": true,
+    "evidence_sha256": "7db12bf3a819e6fda3fbcae6a73c8f64c69c9c4b0edb36926840bd715a75e240",
+    "evidence_start": 80,
+    "fallback_used": false,
+    "latency_ms": 1134.728,
+    "model": "gpt-6-luna",
+    "reason": "The complaint concerns an ATM cash withdrawal that did not dispense cash.",
+    "tokens_in": 225,
+    "tokens_out": 49,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unsupported",
+    "confidence": 0.88,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 80.988,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.1,
+      "unauthorized": 0.0,
+      "unsupported": 0.9
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1217.741,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

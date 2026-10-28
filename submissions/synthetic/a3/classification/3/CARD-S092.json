@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S092",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.2e-05
+    },
+    "evidence_end": 43,
+    "evidence_ok": true,
+    "evidence_sha256": "4fcf312676be7f9c85d0eda1d663451284efbf84ea58f494cd030070fee83192",
+    "evidence_start": 15,
+    "fallback_used": false,
+    "latency_ms": 1346.717,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the same 460 XCR charge appeared twice for one purchase.",
+    "tokens_in": 222,
+    "tokens_out": 100,
+    "unusable": false
+  },
+  "jev": {
+    "class": "duplicate_charge",
+    "confidence": 0.83,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 83.672,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.05,
+      "ambiguous_or_unclear": 0.09,
+      "duplicate_charge": 0.86,
+      "service_not_received": 0.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1432.534,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

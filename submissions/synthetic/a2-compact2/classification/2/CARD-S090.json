@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S090",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000102
+    },
+    "evidence_end": null,
+    "evidence_ok": false,
+    "evidence_sha256": "5cd30c568f0492abd5c91bf7b700640e4603603dfa850d4cdf9ccfef5a0f453d",
+    "evidence_start": null,
+    "fallback_used": false,
+    "latency_ms": 1337.628,
+    "model": "gpt-6-luna",
+    "reason": "The complaint describes both a possible duplicate charge and a purchase the customer says they did not order.",
+    "tokens_in": 460,
+    "tokens_out": 113,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1340.17,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S092",
+  "haiku_called": true,
+  "haiku_class": "duplicate_charge",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint indicates the same item was charged twice for one purchase.",
+  "haiku_unusable": false
+}

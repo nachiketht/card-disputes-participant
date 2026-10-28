@@ -1,0 +1,56 @@
+{
+  "case_id": "CARD-S090",
+  "classification": "ambiguous",
+  "routing": "manual_review",
+  "policy_ids": [
+    "CARD-POLICY-V2",
+    "CARD-PROCEDURE-01"
+  ],
+  "facts": {
+    "transaction_id": "TX-S090",
+    "amount": 668,
+    "currency": "XCR",
+    "reported_date": "2026-10-05"
+  },
+  "missing_information": [],
+  "deadline": null,
+  "citations": [
+    {
+      "claim": "policy_selection",
+      "source_id": "CARD-POLICY-V2",
+      "quote": "Effective from: 2026-09-01"
+    },
+    {
+      "claim": "classification",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "If customer accounts conflict about authorization, classification is ambiguous; deadline is null."
+    },
+    {
+      "claim": "routing",
+      "source_id": "CARD-PROCEDURE-01",
+      "quote": "Routing precedence: manual_review for unsupported/ambiguous cases or unavailable transaction service;"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S090-INTAKE",
+      "quote": "I see two lines of XCR 668 from Tamsin Brook Florist. Also, I never ordered from them in the first place."
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S090-INTAKE",
+      "quote": "Reported date: 2026-10-05"
+    },
+    {
+      "claim": "customer_evidence",
+      "source_id": "CARD-S090-INTAKE",
+      "quote": "Transaction ID: TX-S090"
+    },
+    {
+      "claim": "transaction_amount",
+      "source_id": "CARD-S090-TRANSACTIONS",
+      "quote": "\"amount\": 668"
+    }
+  ],
+  "follow_up_questions": [],
+  "narrative": "Case summary: ambiguous complaint for TX-S090, reported 2026-10-05. Policy CARD-POLICY-V2 was selected from the reported date. Evidence reviewed: transactions tool attempts 1; merchant tool attempts 1. The named purchase was returned. Merchant display name from the tool: Tamsin Brook Florist. Untrusted merchant text was not copied and was not treated as an instruction. Missing or conflicting: No required field is missing for this type. Customer statements do not disagree about authorization. Recommendation: routing manual_review. The supplied training-policy deadline does not apply to this classification. Uncertainty and limitations: template text only, with no model. Ledger at run time has no record for this case. The authoritative check is create-record. Customer message draft: We have prepared your complaint for review. We cannot confirm an outcome. No case has been created yet; human approval remains required."
+}

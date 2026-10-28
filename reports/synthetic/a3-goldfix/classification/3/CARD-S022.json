@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S022",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000139
+    },
+    "evidence_end": 27,
+    "evidence_ok": true,
+    "evidence_sha256": "ec1d2ab8aaa76cae9453951b6d64ae4228e425cf0acedfd22685066de96c2c26",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1029.167,
+    "model": "gpt-6-luna",
+    "reason": "The machine took funds but did not dispense cash.",
+    "tokens_in": 1041,
+    "tokens_out": 70,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unsupported",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 140.362,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 0.0,
+      "unsupported": 1.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1171.765,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

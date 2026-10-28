@@ -1,0 +1,37 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S006",
+  "clef": null,
+  "final_class": "unauthorized",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.4e-05
+    },
+    "evidence_end": 80,
+    "evidence_ok": true,
+    "evidence_sha256": "0453e0f590966c8a2e0254c144b9d3e14d8adbfc8f55f1884cd5531741fde663",
+    "evidence_start": 61,
+    "fallback_used": false,
+    "latency_ms": 927.934,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the customer did not make the payment.",
+    "tokens_in": 456,
+    "tokens_out": 57,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 930.347,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

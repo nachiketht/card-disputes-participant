@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S063",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.1e-05
+    },
+    "evidence_end": 43,
+    "evidence_ok": true,
+    "evidence_sha256": "c94a2faafe84ca5564c533fa45f2dc611d2bf8e76b5421ffb7e096b1a2f04840",
+    "evidence_start": 27,
+    "fallback_used": false,
+    "latency_ms": 1761.8,
+    "model": "gpt-6-luna",
+    "reason": "Cash was taken out, but the machine dispensed nothing.",
+    "tokens_in": 450,
+    "tokens_out": 71,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1762.776,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

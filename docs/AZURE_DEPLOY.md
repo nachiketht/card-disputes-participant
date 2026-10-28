@@ -344,7 +344,7 @@ Approach 1 is the default and does not call a model. It does not read `AZURE_BAS
 
 A duplicate stands only when the fetched transactions contain two charges with the same merchant id, amount, and currency. Without that pair the class does not stand. Classification audits do not store the complaint. The review page is the only page that shows it. Reviewer login is phase 2.
 
-`config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. `claude-haiku-4-5` is not listed, so that id is `no price configured for claude-haiku-4-5`. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. Cached input, long-context rates, and Data Zone premiums are not modelled.
+`config/rules/cost.yaml` prices `claude-haiku-5-5` from list at 0.10 USD per million input tokens and 0.50 USD per million output tokens for prompts up to 100,000 tokens. `claude-haiku-4-5` is not listed, so that id is `no price configured for claude-haiku-4-5`. `gpt-6-luna` is the Azure Global Standard short-context list at 0.10 in and 0.50 out. `jev-latest` is 0.042 in and 0.00 out from the vendor list. Cached input, long-context rates, and Data Zone premiums are not modelled.
 
 ## What was left out on purpose
 

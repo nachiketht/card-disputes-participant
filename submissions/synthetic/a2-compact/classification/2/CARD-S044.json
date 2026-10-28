@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S044",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.8e-05
+    },
+    "evidence_end": 12,
+    "evidence_ok": true,
+    "evidence_sha256": "f48976948a3dbb7761ccc418625e6f9e82c29c6d24a65f6e9d4f16fca6939252",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1179.491,
+    "model": "gpt-6-luna",
+    "reason": "\u201cWrong charge\u201d does not make clear whether the purchase was unauthorized, duplicated, or involved non-delivery.",
+    "tokens_in": 417,
+    "tokens_out": 92,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1180.408,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S003",
+  "haiku_called": true,
+  "haiku_class": "duplicate_charge",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint says the same order amount appeared twice, though only one order was placed.",
+  "haiku_unusable": false
+}

@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S085",
+  "haiku_called": true,
+  "haiku_class": "unauthorized",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer says they did not make the purchase and that someone stole their card number.",
+  "haiku_unusable": false
+}

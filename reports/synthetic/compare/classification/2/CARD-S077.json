@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S077",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 6.6e-05
+    },
+    "evidence_end": 103,
+    "evidence_ok": true,
+    "evidence_sha256": "c732c01447e0a1b4445ee2a55ebb7eb49780bfee8e47589883afc8da98ffd86d",
+    "evidence_start": 77,
+    "fallback_used": false,
+    "latency_ms": 1549.892,
+    "model": "gpt-6-luna",
+    "reason": "The customer says they have never shopped at the merchant, indicating they did not authorize the purchase.",
+    "tokens_in": 261,
+    "tokens_out": 79,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1552.004,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

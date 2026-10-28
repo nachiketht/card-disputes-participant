@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S015",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 9.2e-05
+    },
+    "evidence_end": 91,
+    "evidence_ok": true,
+    "evidence_sha256": "66931eadd3dd73f8ef96d2d4759381f0f4afca4cbc1f822f0a16180fc841bb9c",
+    "evidence_start": 64,
+    "fallback_used": false,
+    "latency_ms": 1310.238,
+    "model": "gpt-6-luna",
+    "reason": "The complaint describes an item that was sent but was not what was ordered, including the wrong size and colour.",
+    "tokens_in": 465,
+    "tokens_out": 91,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1312.446,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

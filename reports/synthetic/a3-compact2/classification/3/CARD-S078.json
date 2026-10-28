@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S078",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000132
+    },
+    "evidence_end": 129,
+    "evidence_ok": true,
+    "evidence_sha256": "4a2e64a73d7fb61d01cc9309fd7be8c31a2a3dc067c5013aef20b4c11e137b44",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 2016.231,
+    "model": "gpt-6-luna",
+    "reason": "The account was cancelled before renewal, but the charge was taken and nothing was received.",
+    "tokens_in": 457,
+    "tokens_out": 173,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 0.66,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 81.27,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.1,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.72,
+      "unauthorized": 0.18,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 2098.237,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

@@ -1,4 +1,7 @@
 {
+  "prompts/classifier/v1.md": "256ac070de7f84587ed859d7b29c3c4b5279b2571e77cc2ef4b97ffd566a1ae1",
+  "prompts/classifier/v2.md": "b25417f756ddd2b0470428e5df6019ddf780061a3e90ad840d22d690a5a8a9be",
+  "prompts/classifier/v3.md": "5cb2637ff2ba50e3fdea71c638aa046a4d054fe8270edccb7723e974d7e3bbc6",
   "prompts/critic/v1.md": "a43335d14a4e8cd9c85a1523f020431be194d43f18286927fd0c824864008127",
   "prompts/critic/v2.md": "2125919eeb8204dee29eda9ee503aaab1bfdf72769b4305ef978cd07ba2caffa",
   "prompts/critic/v3.md": "a5676e65163513e63c4cf59a54d00d3b2bed6e99b001902d03e36fb4976999ef",

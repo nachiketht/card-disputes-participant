@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S003",
+  "clef": null,
+  "final_class": "duplicate_charge",
+  "haiku": {
+    "class": "duplicate_charge",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000103
+    },
+    "evidence_end": 130,
+    "evidence_ok": true,
+    "evidence_sha256": "adc1df09ddbd44e4e5c59024190ac9d14fa7d0c1ab38c0667a05dc48fb1a6ae4",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1283.822,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says one order was paid for but two charges of the same amount appeared.",
+    "tokens_in": 475,
+    "tokens_out": 111,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1286.215,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

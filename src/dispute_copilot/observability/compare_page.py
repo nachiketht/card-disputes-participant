@@ -65,7 +65,12 @@ def _approach(name: str, rows: dict[str, dict], feedback: dict[str, str], min_sa
     called = sum(1 for row in ordered if row.get("called_model") is True)
     manual = sum(1 for row in ordered if row.get("route") == Routing.MANUAL_REVIEW.value)
     latencies = [float(row["latency_ms"]) for row in ordered if isinstance(row.get("latency_ms"), (int, float))]
-    priced = [float(row["haiku_usd"]) for row in ordered if isinstance(row.get("haiku_usd"), (int, float))]
+    priced = [
+        float(row[key])
+        for row in ordered
+        for key in ("haiku_usd", "jev_usd")
+        if isinstance(row.get(key), (int, float))
+    ]
     paired = [row for row in ordered if row.get(CASE_ID) in feedback]
     wrong = sum(1 for row in paired if _label_wrong(row, feedback))
     ready = Routing.READY_FOR_REVIEW.value
@@ -206,25 +211,19 @@ def _safe_row(path: Path, case_id: str) -> dict | None:
         "called_model": loaded.get("called_model") is True,
         "latency_ms": loaded.get("latency_ms") if isinstance(loaded.get("latency_ms"), (int, float)) else None,
         "haiku_usd": _usd(haiku.get("cost") if isinstance(haiku, dict) else None),
-        "jev_usd": _listed_usd(jev.get("cost") if isinstance(jev, dict) else None),
+        "jev_usd": _usd(jev.get("cost") if isinstance(jev, dict) else None),
         "fallback_used": haiku.get("fallback_used") is True if isinstance(haiku, dict) else False,
     }
 
 
 def _usd(cost: object) -> float | None:
-    if not isinstance(cost, dict):
+    """A figure counts only when the saved status is the list-price label."""
+    if not isinstance(cost, dict) or cost.get("status") != LIST_PRICE:
         return None
     value = cost.get("usd")
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     return float(value)
-
-
-def _listed_usd(cost: object) -> float | None:
-    """A Jev figure counts only when the saved status is the list-price label."""
-    if not isinstance(cost, dict) or cost.get("status") != LIST_PRICE:
-        return None
-    return _usd(cost)
 
 
 def _markup(view: dict, back_href: str) -> str:
@@ -241,7 +240,7 @@ def _markup(view: dict, back_href: str) -> str:
         "<p class=\"mark\">Read-only</p>",
         "<button type=\"button\" id=\"theme-toggle\">Dark</button></div>",
         "<h1>Comparison</h1>",
-        "<p class=\"lede\">Saved classification runs. The five rates are wrong-label, auto-routed but wrong, manual review, configured-model cost per case, and latency p95. This page has case ids and counts. It does not include complaint text.</p>",
+        "<p class=\"lede\">Saved classification runs. The five rates are wrong-label, auto-routed but wrong, manual review, list-price cost per case, and latency p95. This page has case ids and counts. It does not include complaint text.</p>",
         "</header><main>",
         _approach_table(view),
         _wins_table(view),
@@ -293,9 +292,9 @@ def _approach_table(view: dict) -> str:
         "<p class=\"note\">Wrong-label rate uses every case with a reviewer category. "
         "Auto-routed but wrong uses only those cases whose route is ready_for_review. "
         "Manual review is that route over cases run. "
-        "Cost per case is the configured-model list-price USD over cases run. "
+        "Cost per case is list-price USD for the configured model and Jev, over cases run. "
         "Jev is priced from the vendor list in config/rules/cost.yaml at 0.042 USD per million input tokens, and output tokens are free. "
-        "Latency p95 is the classification audit.</p>"
+        "A case with no priced call adds zero. Latency p95 is the classification audit.</p>"
     )
     note = "".join(f"<p class=\"note\">{escape(line)}</p>" for line in notes)
     return (
@@ -389,6 +388,7 @@ def _case_table(view: dict) -> str:
     for item in view["cases"]:
         latency = item["latency_ms"]
         haiku = item["haiku_usd"]
+        jev = item.get("jev_usd")
         rows.append(
             "<tr>"
             f"<td>{escape(str(item['approach']))}</td>"
@@ -397,7 +397,7 @@ def _case_table(view: dict) -> str:
             f"<td>{escape(str(item['route']))}</td>"
             f"<td>{escape(_ms(latency if isinstance(latency, (int, float)) else None))}</td>"
             f"<td>{escape(_usd_text(haiku if isinstance(haiku, (int, float)) else None))}</td>"
-            f"<td>{escape(_jev_text(item.get('jev_usd')))}</td>"
+            f"<td>{escape(_usd_text(jev if isinstance(jev, (int, float)) else None))}</td>"
             f"<td>{'yes' if item.get('fallback_used') else 'no'}</td>"
             "</tr>"
         )
@@ -407,7 +407,7 @@ def _case_table(view: dict) -> str:
         "<section id=\"case-costs\"><h2>Per case</h2>"
         "<p class=\"note\">Fallback used names the answering model when the configured model could not answer.</p>"
         "<table><thead><tr><th>Approach</th><th>Case</th><th>Class</th><th>Route</th>"
-        "<th>Latency ms</th><th>Haiku USD</th><th>Jev</th><th>Fallback used</th></tr></thead>"
+        "<th>Latency ms</th><th>Haiku USD</th><th>Jev USD</th><th>Fallback used</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></section>"
     )
 
@@ -435,19 +435,13 @@ def _cost(row: dict) -> str:
         return "—"
     amount = f"{row['cost_per_case']:.6f} USD"
     if row["priced_calls"] <= 0:
-        return f"{amount}. No configured-model call"
+        return f"{amount}. No priced call"
     return amount
 
 
 def _usd_text(value: float | None) -> str:
     if value is None:
         return "unpriced"
-    return f"{value:.6f}"
-
-
-def _jev_text(value: object) -> str:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return "—"
     return f"{value:.6f}"
 
 

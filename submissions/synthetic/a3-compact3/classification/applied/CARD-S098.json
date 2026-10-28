@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S098",
+  "haiku_called": true,
+  "haiku_class": "unauthorized",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The complaint says the charge was not made by the cardholder.",
+  "haiku_unusable": false
+}

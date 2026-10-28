@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S050",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 4.5e-05
+    },
+    "evidence_end": 4,
+    "evidence_ok": true,
+    "evidence_sha256": "106a5842fc5fce6f663176285ed1516dbb1e3d15c05abab12fdca46d60b539b7",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 830.289,
+    "model": "gpt-6-luna",
+    "reason": "The complaint does not explain what happened or identify a purchase issue.",
+    "tokens_in": 199,
+    "tokens_out": 51,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 832.362,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

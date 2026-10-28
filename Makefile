@@ -1,4 +1,4 @@
-.PHONY: sync lint test check cov daily mock regen-gold metrics dashboard review-page secrets evals week10 week10-duplicate mcp compare
+.PHONY: sync lint test check cov daily mock regen-gold metrics dashboard review-page secrets evals week10 week10-duplicate mcp compare synthetic
 
 sync:
 	uv sync --locked
@@ -44,6 +44,9 @@ evals:
 
 compare:
 	uv run --locked dispute-copilot compare
+
+synthetic:
+	uv run --locked python tools/run_synthetic.py
 
 week10:
 	scripts/week10_evidence.sh

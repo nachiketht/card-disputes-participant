@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S085",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "unauthorized",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 5.4e-05
+    },
+    "evidence_end": 89,
+    "evidence_ok": true,
+    "evidence_sha256": "a684ca0b0f264354fbf923161e45274041648bbd5673a8b2961ab5b50298e9da",
+    "evidence_start": 57,
+    "fallback_used": false,
+    "latency_ms": 1057.262,
+    "model": "gpt-6-luna",
+    "reason": "The customer says they did not make the purchase and that someone stole their card number.",
+    "tokens_in": 218,
+    "tokens_out": 64,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1059.444,
+  "missing": [],
+  "path": "authorization_conflict",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

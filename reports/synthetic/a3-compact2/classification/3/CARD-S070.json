@@ -1,0 +1,57 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S070",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 8.4e-05
+    },
+    "evidence_end": 177,
+    "evidence_ok": true,
+    "evidence_sha256": "368d088ff6cbef11f4160c382aa273d49cb221afd7f786a6fa1a2a2f8736cc1a",
+    "evidence_start": 166,
+    "fallback_used": false,
+    "latency_ms": 934.964,
+    "model": "gpt-6-luna",
+    "reason": "They paid for work that was never performed because no one came for the scheduled visit.",
+    "tokens_in": 515,
+    "tokens_out": 65,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 99.076,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1036.816,
+  "missing": [
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

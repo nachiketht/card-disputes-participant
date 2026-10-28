@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S078",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 9.3e-05
+    },
+    "evidence_end": 129,
+    "evidence_ok": true,
+    "evidence_sha256": "4a2e64a73d7fb61d01cc9309fd7be8c31a2a3dc067c5013aef20b4c11e137b44",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1607.432,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the renewal was cancelled before the charge, suggesting an unauthorized purchase, and also says nothing was received.",
+    "tokens_in": 223,
+    "tokens_out": 142,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1609.69,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S069",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.6e-05
+    },
+    "evidence_end": 92,
+    "evidence_ok": true,
+    "evidence_sha256": "558f7cda170ee50f62c7a25ddcc686e89bc0da841020cb73e66e12319fa173bf",
+    "evidence_start": 67,
+    "fallback_used": false,
+    "latency_ms": 1123.466,
+    "model": "gpt-6-luna",
+    "reason": "The booking was cancelled on the day, so the paid service was not performed.",
+    "tokens_in": 464,
+    "tokens_out": 59,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 3.2e-05
+    },
+    "latency_ms": 77.335,
+    "model": "jev-latest",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": 755,
+    "tokens_out": 74
+  },
+  "latency_ms": 1202.717,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

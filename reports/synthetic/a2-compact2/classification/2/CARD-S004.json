@@ -1,0 +1,18 @@
+{
+  "approach": "2",
+  "called_model": false,
+  "case_id": "CARD-S004",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": null,
+  "jev": null,
+  "latency_ms": 0.03,
+  "missing": [],
+  "path": "duplicate_unmatched",
+  "route": "manual_review",
+  "rules": {
+    "class": "duplicate_charge",
+    "conflict": false,
+    "missing": []
+  }
+}

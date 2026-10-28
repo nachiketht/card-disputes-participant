@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S087",
+  "clef": null,
+  "final_class": "ambiguous",
+  "haiku": {
+    "class": "multiple_or_unclear",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 9.2e-05
+    },
+    "evidence_end": null,
+    "evidence_ok": false,
+    "evidence_sha256": "6ce3a410c7db4da9393675cd9353fb54a109c1d202046ba81234c6d2ab3e184a",
+    "evidence_start": null,
+    "fallback_used": false,
+    "latency_ms": 1233.891,
+    "model": "gpt-6-luna",
+    "reason": "The complaint includes both an unauthorized booking and a service that was not performed.",
+    "tokens_in": 460,
+    "tokens_out": 93,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1237.018,
+  "missing": [],
+  "path": "haiku_unclear",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

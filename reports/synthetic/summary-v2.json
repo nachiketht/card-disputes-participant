@@ -1,0 +1,20 @@
+{
+  "2": {
+    "written": 100,
+    "not_written": 0,
+    "elapsed_s": 75.311,
+    "run_id": "run-798ce8ab52",
+    "passed_cases": 72,
+    "total_cases": 100,
+    "eval_passed": false
+  },
+  "3": {
+    "written": 100,
+    "not_written": 0,
+    "elapsed_s": 59.421,
+    "run_id": "run-4aeee827e0",
+    "passed_cases": 72,
+    "total_cases": 100,
+    "eval_passed": false
+  }
+}

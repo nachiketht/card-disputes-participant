@@ -1,0 +1,54 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S075",
+  "clef": null,
+  "final_class": "unsupported",
+  "haiku": {
+    "class": "unsupported",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.3e-05
+    },
+    "evidence_end": 120,
+    "evidence_ok": true,
+    "evidence_sha256": "bc485e5901202ddf4ed778d76c6e4fd2e6d4355a405fe3b6b7e0ce27d9ae765f",
+    "evidence_start": 107,
+    "fallback_used": false,
+    "latency_ms": 970.106,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the cash machine did not dispense any money.",
+    "tokens_in": 472,
+    "tokens_out": 51,
+    "unusable": false
+  },
+  "jev": {
+    "class": "unsupported",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 116.992,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.0,
+      "unauthorized": 0.0,
+      "unsupported": 1.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1089.32,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "manual_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

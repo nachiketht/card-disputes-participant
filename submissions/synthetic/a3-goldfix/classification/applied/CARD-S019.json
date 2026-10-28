@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S019",
+  "haiku_called": true,
+  "haiku_class": "service_not_received",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer says the school took payment and then ghosted them, indicating the paid service was not provided.",
+  "haiku_unusable": false
+}

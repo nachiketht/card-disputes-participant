@@ -1,0 +1,57 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S019",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000114
+    },
+    "evidence_end": 93,
+    "evidence_ok": true,
+    "evidence_sha256": "8ab336703014a326199f2002d7b096ffa36cc0349770d6306c1795eb17cb39c8",
+    "evidence_start": 29,
+    "fallback_used": false,
+    "latency_ms": 1776.276,
+    "model": "gpt-6-luna",
+    "reason": "The complaint indicates the music school took payment and then did not respond, suggesting the service was not received.",
+    "tokens_in": 219,
+    "tokens_out": 184,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 0.77,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 81.756,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.13,
+      "ambiguous_or_unclear": 0.06,
+      "duplicate_charge": 0.0,
+      "service_not_received": 0.81,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1859.939,
+  "missing": [
+    "promised_service_date",
+    "purchase_receipt"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

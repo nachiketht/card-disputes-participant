@@ -1,0 +1,56 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S014",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000104
+    },
+    "evidence_end": 60,
+    "evidence_ok": true,
+    "evidence_sha256": "c5c242d784cf9fc8d8dfb35b3e6f58e931fd4a1c1ec7e40622de2a88d5d0e31d",
+    "evidence_start": 43,
+    "fallback_used": false,
+    "latency_ms": 1413.249,
+    "model": "gpt-6-luna",
+    "reason": "The complaint says the paid service was not provided.",
+    "tokens_in": 456,
+    "tokens_out": 117,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "unpriced",
+      "usd": null
+    },
+    "latency_ms": 96.859,
+    "model": "",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": null,
+    "tokens_out": null
+  },
+  "latency_ms": 1512.522,
+  "missing": [
+    "authorization_confirmation"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

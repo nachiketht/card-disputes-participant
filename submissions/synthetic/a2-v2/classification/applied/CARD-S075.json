@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S075",
+  "haiku_called": true,
+  "haiku_class": "unsupported",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The customer tried to withdraw cash, but the machine dispensed none and the amount was debited.",
+  "haiku_unusable": false
+}

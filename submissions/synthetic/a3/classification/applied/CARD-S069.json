@@ -1,0 +1,8 @@
+{
+  "case_id": "CARD-S069",
+  "haiku_called": true,
+  "haiku_class": "service_not_received",
+  "haiku_quote_missing": false,
+  "haiku_reason": "The booked service was cancelled on the day and no new date was offered.",
+  "haiku_unusable": false
+}

@@ -1,0 +1,57 @@
+{
+  "approach": "3",
+  "called_model": true,
+  "case_id": "CARD-S039",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 7.6e-05
+    },
+    "evidence_end": 93,
+    "evidence_ok": true,
+    "evidence_sha256": "7485245474f0066442de71959e2a6c7668a0d7541881e9527c9124d10670c70a",
+    "evidence_start": 71,
+    "fallback_used": false,
+    "latency_ms": 1143.003,
+    "model": "gpt-6-luna",
+    "reason": "The order was paid for but has not arrived.",
+    "tokens_in": 459,
+    "tokens_out": 61,
+    "unusable": false
+  },
+  "jev": {
+    "class": "service_not_received",
+    "confidence": 1.0,
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 3.1e-05
+    },
+    "latency_ms": 77.861,
+    "model": "jev-latest",
+    "probabilities": {
+      "ambiguous": 0.0,
+      "ambiguous_or_unclear": 0.0,
+      "duplicate_charge": 0.0,
+      "service_not_received": 1.0,
+      "unauthorized": 0.0,
+      "unsupported": 0.0
+    },
+    "tokens_in": 749,
+    "tokens_out": 74
+  },
+  "latency_ms": 1223.41,
+  "missing": [
+    "authorization_confirmation",
+    "promised_service_date"
+  ],
+  "path": "haiku_assigned",
+  "route": "request_information",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}

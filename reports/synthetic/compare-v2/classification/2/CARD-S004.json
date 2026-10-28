@@ -1,0 +1,35 @@
+{
+  "approach": "2",
+  "called_model": true,
+  "case_id": "CARD-S004",
+  "clef": null,
+  "final_class": "service_not_received",
+  "haiku": {
+    "class": "service_not_received",
+    "cost": {
+      "status": "estimate from list price",
+      "usd": 0.000143
+    },
+    "evidence_end": 13,
+    "evidence_ok": true,
+    "evidence_sha256": "1526d0062cbb061d883186c30eb7dc3e8be5fdfcf98c6392ea3523876cad205d",
+    "evidence_start": 0,
+    "fallback_used": false,
+    "latency_ms": 1110.482,
+    "model": "gpt-6-luna",
+    "reason": "The customer paid for tutoring but says it has not been received.",
+    "tokens_in": 1046,
+    "tokens_out": 77,
+    "unusable": false
+  },
+  "jev": null,
+  "latency_ms": 1112.615,
+  "missing": [],
+  "path": "haiku_assigned",
+  "route": "ready_for_review",
+  "rules": {
+    "class": "ambiguous",
+    "conflict": false,
+    "missing": []
+  }
+}
