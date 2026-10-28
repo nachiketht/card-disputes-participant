@@ -24,7 +24,7 @@ Evidence for the human boundary and the credential scan: `evidence/week10/05_inj
 | `adapters/case_system.py` | Submit a review, create an approved record | `GET /v1/records/CASE`, `GET /v1/reviews/ID`, `POST /v1/reviews`, `POST /v1/records` | Approve, reject, reset, or call any other path (`test_security.py::test_the_only_mock_writes_are_review_submission_and_record_creation`) |
 | `review_flow/gate.py` | Decide if create may post | Pure function, single caller (`create_record`) | Post, change a review |
 | `review_flow/agent_review.py` + `llm/` critic | Optional checklist check | Sends scored fields and the template narrative to Claude Haiku 4.5 when `FEATURE_LLM_REVIEW=block`; never raw document or merchant text; key from the environment | Approve, pass a failing check, set a scored field |
-| `classifiers/*` | Optional class on approach 2 and approach 3 | Sends a redacted complaint only when the case is eligible. Writes audit JSON that must not contain the complaint. Jev cost stays unpriced | Approve; call a model on approach 1; call a model when the label is denied or the rules class is unsupported, duplicate, or service |
+| `classifiers/*` | Optional class on approach 2 and approach 3 | Sends a redacted complaint only when the case is eligible. Writes audit JSON that must not contain the complaint. Jev cost stays unpriced. Clef-flash is list-priced when usage tokens are present | Approve; call a model on approach 1; call a model when the label is denied or the rules class is unsupported, duplicate, or service |
 | `observability/*` | Record what happened | Writes under `reports/` only; every attribute redacted and truncated. The comparison page copies case id, class, route, latency, and cost, not the complaint | Log document or merchant text, restricted values, the complaint |
 | `cli.py` | Operator commands `run`, `run-all`, `compare`, `review-page`, `agent-review`, `submit-review`, `create-record`, `metrics`, `evals`, `dashboard` | Uses the adapters above. `run` and `run-all` take `--approach` and `--shadow` | Approve or reject (no such command) |
 | `tools/runtime.py` operator CLI | Human approval | Local SQLite state | Not imported or called by `src/` |
@@ -36,6 +36,7 @@ Known limits, not claimed as solved: the mock has no authentication, so least pr
 - Keys are read only from the environment: `llm/openai_compat.py:resolve_api_key` (`LLM_API_KEY`). `cli.py:_load_env_file` loads an untracked `.env` without overriding the environment.
 - `.env` and `.env.*` are git-ignored; `.env.example` has `LLM_API_KEY=` blank.
 - `JEV_API_KEY`, `JEV_BASE_URL`, and `JEV_MODEL` are read from the environment. `.env.example` leaves them empty. An empty url or key means the ranker is not built. The host is not written in this file.
+- `CLEF_API_KEY`, `CLEF_ACCOUNT_ID`, and `CLEF_MODEL` are read from the environment. `.env.example` leaves them empty. An empty key or account id means Clef is not built. The Cloudflare Workers AI host is a public API path built from the account id. The account id and key are not written in this file.
 - The mock needs no credentials.
 
 ## Complaint text and review

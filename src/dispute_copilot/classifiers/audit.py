@@ -66,6 +66,7 @@ def record_body(case_id: str, approach: str, outcome: Outcome, complaint: str = 
         "called_model": outcome.called_model,
         CASE_ID: case_id,
         "final_class": outcome.decision.classification.value,
+        "clef": _without_complaint(outcome.clef, complaint),
         "haiku": _without_complaint(outcome.haiku, complaint),
         "jev": _without_complaint(outcome.jev, complaint),
         "latency_ms": outcome.latency_ms,

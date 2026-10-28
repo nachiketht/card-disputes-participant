@@ -32,7 +32,7 @@ The development scorecard scores the draft from approach 1, the default. That ru
 
 - Image build, compose, and any sign-in to the running Azure app. `docker` was not installed in this session, and this session could not reach `<subscription>`. The names in ADR-33 were supplied, not queried. Cost cells are unmeasured. Job `azure` and `.github/workflows/azure-deploy.yml` were not run against the replica. No `az containerapp exec`, `az login`, registry push, or `az containerapp update` was issued here. The side-ledger rehearsal in `tests/unit/test_azure_live.py` did run: a seeded demo review stayed `pending`, the demo calls row stayed at 7, and evaluate was 12 of 12.
 - A socket listing that the mock refused non-loopback binds, beyond the fixed address in code and the health call to `127.0.0.1`.
-- The critic, approach 2, approach 3, and the ranker with a live key. No key was used. Default runs stay on approach 1 with the checklist judge off. `JEV_BASE_URL` and `JEV_API_KEY` stay empty, so the ranker is not built.
+- The critic, approach 2, approach 3, and the ranker with a live key. No key was used in the recorded development run. Default runs stay on approach 1 with the checklist judge off. Empty `JEV_BASE_URL` or `JEV_API_KEY` skips Jev. Empty `CLEF_API_KEY` or `CLEF_ACCOUNT_ID` skips Clef.
 - Phone and account shapes outside the patterns above. No extra examples were supplied.
 - Data other than `data/dev`.
 - Reviewer login. The review page has no login. That work is phase 2.

@@ -370,6 +370,9 @@ export FEATURE_LLM_REVIEW=off
 | `JEV_BASE_URL` | ranker | Ranker host. Empty means the ranker is not built. Leave it empty in git. |
 | `JEV_API_KEY` | ranker | Ranker key. Empty means the ranker is not built. |
 | `JEV_MODEL` | ranker | Optional. Empty uses `jev-latest`. |
+| `CLEF_API_KEY` | ranker fallback | Cloudflare Clef key. Empty means Clef is not built. Leave it empty in git. |
+| `CLEF_ACCOUNT_ID` | ranker fallback | Cloudflare account id. Empty means Clef is not built. Leave it empty in git. |
+| `CLEF_MODEL` | ranker fallback | Optional. Empty uses `clef-flash`. |
 | `HTTP_TIMEOUT_S`, `RETRY_BASE_DELAY_S`, `RETRY_MAX_DELAY_S` | read tools | Override `config/rules/retry.yaml`. |
 | `BREAKER_ENABLED`, `BREAKER_FAILURE_THRESHOLD`, `BREAKER_COOLDOWN_S` | read tools | Override `config/rules/breaker.yaml`. `0`, `false`, `off`, or `no` disables the breaker. |
 | `MOCK_PORT`, `MOCK_STATE` | week-10 scripts and `scripts/idempotency_demo.py` | Default port `8766`, default state `.state/week10.sqlite`. |

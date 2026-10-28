@@ -20,6 +20,8 @@ class ClassifierSettings:
     ab_seed: int
     ab_weights: dict[str, float]
     min_sample: int
+    clef_model: str = "clef-flash"
+    clef_timeout_s: float = 30.0
 
 
 def load_settings(path: Path | None = None) -> ClassifierSettings:
@@ -29,6 +31,7 @@ def load_settings(path: Path | None = None) -> ClassifierSettings:
         raise ValueError("classifier.yaml must be a mapping")
     jev = loaded.get("jev") if isinstance(loaded.get("jev"), dict) else {}
     haiku = loaded.get("haiku") if isinstance(loaded.get("haiku"), dict) else {}
+    clef = loaded.get("clef") if isinstance(loaded.get("clef"), dict) else {}
     ab = loaded.get("ab") if isinstance(loaded.get("ab"), dict) else {}
     comparison = loaded.get("comparison") if isinstance(loaded.get("comparison"), dict) else {}
     weights = ab.get("weights") if isinstance(ab.get("weights"), dict) else {"1": 1, "2": 1, "3": 1}
@@ -43,6 +46,8 @@ def load_settings(path: Path | None = None) -> ClassifierSettings:
         ab_seed=int(ab.get("seed") or 0),
         ab_weights=clean,
         min_sample=int(comparison.get("min_sample") or 30),
+        clef_model=str(clef.get("model") or "clef-flash"),
+        clef_timeout_s=_float(clef.get("timeout_s"), 30.0),
     )
 
 

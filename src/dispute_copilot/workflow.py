@@ -46,6 +46,7 @@ from dispute_copilot.classifiers.assign import assign_approach
 from dispute_copilot.classifiers.config import load_settings, selected_approach
 from dispute_copilot.classifiers.engine import run_approach
 from dispute_copilot.classifiers.guard import apply_duplicate_guard
+from dispute_copilot.classifiers.clef import build_clef
 from dispute_copilot.classifiers.jev import build_jev
 from dispute_copilot.rules.classify import ATTACHMENT_MISSING, Decision, classify
 from dispute_copilot.rules.deadline import add_calendar_days
@@ -94,6 +95,7 @@ def prepare(
     reports_dir: Path | None = None,
     model_client=None,
     jev_client=None,
+    clef_client=None,
 ) -> dict:
     tracer = current()
     if case is None:
@@ -159,6 +161,7 @@ def prepare(
         reports_dir=reports_dir,
         model_client=model_client,
         jev_client=jev_client,
+        clef_client=clef_client,
     )
     decision, _withdrawn = apply_duplicate_guard(decision, transactions, transactions_unavailable)
     with tracer.span("rules.routing") as span:
@@ -262,6 +265,7 @@ def _apply_approaches(
     reports_dir: Path | None,
     model_client,
     jev_client,
+    clef_client=None,
 ) -> Decision:
     """Pick an approach. Shadow runs write records and do not change the draft."""
     settings = load_settings()
@@ -274,7 +278,7 @@ def _apply_approaches(
         names.extend(name for name in ("1", "2", "3") if name != chosen)
     primary = None
     for name in names:
-        model, jev = _callers(name, model_client, jev_client, settings)
+        model, jev, clef = _callers(name, model_client, jev_client, settings, clef_client)
         outcome = run_approach(
             approach=name,
             rules=rules,
@@ -288,6 +292,7 @@ def _apply_approaches(
             model=model,
             jev=jev,
             jev_threshold=settings.jev_threshold,
+            clef=clef,
         )
         if submissions_dir is not None or reports_dir is not None:
             write_audit(
@@ -343,7 +348,7 @@ def compare_approaches(
     for name in approaches:
         if name not in {"1", "2", "3"}:
             raise ValueError("approach must be 1, 2, or 3")
-        model, jev = _callers(name, None, None, settings)
+        model, jev, clef = _callers(name, None, None, settings)
         outcome = run_approach(
             approach=name,
             rules=rules,
@@ -357,6 +362,7 @@ def compare_approaches(
             model=model,
             jev=jev,
             jev_threshold=settings.jev_threshold,
+            clef=clef,
         )
         rows.append(
             write_audit(
@@ -371,16 +377,19 @@ def compare_approaches(
     return rows
 
 
-def _callers(name: str, model_client, jev_client, settings):
+def _callers(name: str, model_client, jev_client, settings, clef_client=None):
     model = model_client
     jev = jev_client if name == "3" else None
+    clef = clef_client if name == "3" else None
     if name in {"2", "3"} and model is None:
         from dispute_copilot.llm.factory import build_critic
 
         model = build_critic()
     if name == "3" and jev is None:
         jev = build_jev(settings)
-    return model, jev
+    if name == "3" and clef is None:
+        clef = build_clef(settings)
+    return model, jev, clef
 
 
 def _flag_untrusted(source_id: str, text: object, flags: list[str] | None = None) -> None:

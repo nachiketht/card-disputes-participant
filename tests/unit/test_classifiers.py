@@ -14,6 +14,7 @@ from dispute_copilot.classifiers.config import ClassifierSettings
 from dispute_copilot.classifiers.guard import apply_duplicate_guard, duplicate_pair
 from dispute_copilot.classifiers.haiku import quote_found
 from dispute_copilot.classifiers.engine import run_approach
+from dispute_copilot.classifiers.clef import ClefClient, build_clef, call_clef
 from dispute_copilot.classifiers.jev import JevClient, build_jev, call_jev, read_answer
 from dispute_copilot.llm.base import LLMError
 from dispute_copilot.fields import (
@@ -94,6 +95,7 @@ def _run(
     *,
     model=None,
     jev=None,
+    clef=None,
     promised: str | None = None,
     receipt: str | None = None,
 ):
@@ -109,6 +111,7 @@ def _run(
         transactions_unavailable=False,
         model=model,
         jev=jev,
+        clef=clef,
     )
 
 
@@ -598,6 +601,9 @@ def test_ranker_settings_are_read_from_the_env_file(tmp_path: Path, monkeypatch)
         "JEV_MODEL",
         "RANK_HOST",
         "QUOTED_HOST",
+        "CLEF_API_KEY",
+        "CLEF_ACCOUNT_ID",
+        "CLEF_MODEL",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("JEV_API_KEY", "")
@@ -643,3 +649,204 @@ def test_duplicate_guard_ignores_rows_that_are_not_charges():
     )
     assert withdrawn is False
     assert decision.classification == Classification.UNAUTHORIZED
+
+
+def _clef_choice(label: str = "unauthorized") -> dict:
+    return {
+        "model": "clef-flash",
+        "answers": {
+            "class": {
+                "type": "choice",
+                "choice": label,
+                "probabilities": {label: 0.91, "ambiguous_or_unclear": 0.09},
+                "confidence": 0.91,
+            }
+        },
+        "usage": {"prompt_tokens": 40, "completion_tokens": 0},
+    }
+
+
+_CLEF_ACCOUNT = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+
+def test_clef_posts_to_workers_ai_and_unwraps_the_envelope():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["authorization"] = request.headers.get("authorization")
+        captured["body"] = json.loads(request.content.decode())
+        return httpx.Response(200, json={"success": True, "result": _clef_choice()})
+
+    client = ClefClient(
+        account_id=_CLEF_ACCOUNT,
+        api_key="k",
+        model="clef-flash",
+        timeout_s=5,
+        transport=httpx.MockTransport(handler),
+    )
+    body = client.ask("I do not recognize this purchase.")
+    assert captured["url"].endswith(
+        f"/client/v4/accounts/{_CLEF_ACCOUNT}/ai/run/@cf/cloudflare/clef-flash"
+    )
+    assert captured["authorization"] == "Bearer k"
+    assert captured["body"]["model"] == "clef-flash"
+    assert captured["body"]["questions"]["class"]["type"] == "choice"
+    assert "unauthorized" in captured["body"]["questions"]["class"]["criteria"]
+    assert body["answers"]["class"]["choice"] == "unauthorized"
+
+
+def test_clef_setup_and_bad_replies_fail_closed(monkeypatch):
+    try:
+        ClefClient(account_id=" ", api_key="k", model="clef-flash", timeout_s=1)
+    except LLMError:
+        pass
+    else:
+        raise AssertionError("an empty account id was accepted")
+    try:
+        ClefClient(account_id="not-a-cloudflare-id", api_key="k", model="clef-flash", timeout_s=1)
+    except LLMError:
+        pass
+    else:
+        raise AssertionError("a non-hex account id was accepted")
+    try:
+        ClefClient(account_id=_CLEF_ACCOUNT, api_key="", model="clef-flash", timeout_s=1)
+    except LLMError:
+        pass
+    else:
+        raise AssertionError("an empty clef key was accepted")
+
+    monkeypatch.delenv("CLEF_API_KEY", raising=False)
+    monkeypatch.delenv("CLEF_ACCOUNT_ID", raising=False)
+    assert build_clef() is None
+    monkeypatch.setenv("CLEF_API_KEY", "k")
+    monkeypatch.setenv("CLEF_ACCOUNT_ID", _CLEF_ACCOUNT)
+    monkeypatch.setenv("CLEF_MODEL", "clef-flash")
+    built = build_clef()
+    assert built is not None
+    assert built.model == "clef-flash"
+
+    def failed(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(400, json={"success": False, "errors": [{"message": "nope"}]})
+
+    def envelope_error(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, json={"success": False, "errors": [{"message": "nope"}]})
+
+    for handler in (failed, envelope_error):
+        client = ClefClient(
+            account_id=_CLEF_ACCOUNT,
+            api_key="k",
+            model="clef-flash",
+            timeout_s=1,
+            transport=httpx.MockTransport(handler),
+        )
+        try:
+            client.ask("state")
+        except LLMError:
+            continue
+        raise AssertionError("a bad clef reply was accepted")
+
+
+def test_a_failed_jev_call_asks_clef():
+    class BoomJev:
+        model = "m"
+        calls = 0
+
+        def ask(self, state: str) -> dict:
+            self.calls += 1
+            raise LLMError("down")
+
+    jev = BoomJev()
+    clef = ScriptedJev(Classification.UNAUTHORIZED.value)
+    clef.model = "clef-flash"
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, jev=jev, clef=clef, model=Boom())
+    assert jev.calls == 1
+    assert clef.calls == 1
+    assert outcome.path == "clef_agreed"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+    assert outcome.clef is not None
+    assert outcome.clef["class"] == Classification.UNAUTHORIZED.value
+
+
+def test_an_ambiguous_jev_choice_does_not_ask_clef():
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    clef = ScriptedJev(Classification.UNAUTHORIZED.value)
+    outcome = _run(
+        "3",
+        rules,
+        WORDING,
+        AUTH_NOT_SUPPLIED,
+        jev=ScriptedJev("ambiguous_or_unclear"),
+        clef=clef,
+    )
+    assert outcome.path == "jev_ambiguous"
+    assert clef.calls == 0
+
+
+def test_approach_three_without_jev_can_still_ask_clef():
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    clef = ScriptedJev(Classification.UNAUTHORIZED.value)
+    clef.model = "clef-flash"
+    outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, jev=None, clef=clef, model=Boom())
+    assert clef.calls == 1
+    assert outcome.path == "clef_agreed"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+
+
+def test_a_failed_clef_keeps_the_rules_class():
+    class BoomClef:
+        model = "clef-flash"
+        calls = 0
+
+        def ask(self, state: str) -> dict:
+            self.calls += 1
+            raise LLMError("down")
+
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    clef = BoomClef()
+    outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, jev=None, clef=clef)
+    assert clef.calls == 1
+    assert outcome.path == "model_failed"
+    assert outcome.decision.classification == Classification.UNAUTHORIZED
+
+
+def test_a_failed_jev_and_failed_clef_still_ask_haiku():
+    class BoomRanker:
+        model = "m"
+        calls = 0
+
+        def ask(self, state: str) -> dict:
+            self.calls += 1
+            raise LLMError("down")
+
+    rules = _rules(WORDING, AUTH_NOT_SUPPLIED)
+    model = ScriptedModel("unauthorized", WORDING)
+    jev = BoomRanker()
+    clef = BoomRanker()
+    outcome = _run("3", rules, WORDING, AUTH_NOT_SUPPLIED, model=model, jev=jev, clef=clef)
+    assert jev.calls == 1
+    assert clef.calls == 1
+    assert model.calls == 1
+    assert outcome.path == "haiku_assigned"
+
+
+def test_call_clef_prices_input_tokens():
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(200, json={"success": True, "result": _clef_choice()})
+
+    client = ClefClient(
+        account_id=_CLEF_ACCOUNT,
+        api_key="k",
+        model="clef-flash",
+        timeout_s=5,
+        transport=httpx.MockTransport(handler),
+    )
+    parsed = call_clef(client, "I do not recognize this purchase.", 0.7)
+    assert parsed["failed"] is False
+    assert parsed["tokens_in"] == 40
+    assert parsed["cost"]["status"] == "estimate from list price"
+    assert parsed["cost"]["usd"] is not None

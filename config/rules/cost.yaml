@@ -9,5 +9,9 @@ models:
   claude-haiku-4-5:
     input_per_million: 1.00
     output_per_million: 5.00
+  # Clef models do not charge for output tokens.
+  clef-flash:
+    input_per_million: 0.038
+    output_per_million: 0.00
 compute:
   status: "estimate, unmeasured"

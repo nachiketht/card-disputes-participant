@@ -353,6 +353,7 @@ def _load_env_file() -> None:
     preexisting = {key for key, value in os.environ.items() if str(value).strip()}
     candidates = (Path.cwd() / ".env", Path(__file__).resolve().parents[2] / ".env")
     seen: set[Path] = set()
+    assigned: set[str] = set()
     for path in candidates:
         if not path.is_file():
             continue
@@ -361,10 +362,11 @@ def _load_env_file() -> None:
             continue
         seen.add(resolved)
         for key, value in _env_assignments(path).items():
-            if key in preexisting:
+            if key in preexisting or key in assigned:
                 continue
+            assigned.add(key)
             current = os.environ.get(key, "")
-            if str(current).strip() and not value.strip():
+            if str(current).strip():
                 continue
             os.environ[key] = value
 
