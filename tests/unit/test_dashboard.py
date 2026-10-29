@@ -202,6 +202,13 @@ def test_server_binds_loopback_and_refuses_writes():
         server.server_close()
 
 
+def test_bind_page_can_listen_on_all_interfaces():
+    server = bind_page("<p>status ok</p>", 0, None, "0.0.0.0")
+    host, _port = server.server_address[:2]
+    server.server_close()
+    assert host == "0.0.0.0"
+
+
 def test_cli_help_and_module_entrypoint(monkeypatch: pytest.MonkeyPatch):
     with pytest.raises(SystemExit) as caught:
         main(["--help"])

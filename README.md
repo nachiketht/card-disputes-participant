@@ -82,3 +82,57 @@ uv run --locked python tools/runtime.py audit --state .state/run.sqlite > report
 Replace REVIEW_ID with the returned identifier. Create `reports/` before redirecting the audit. To reject, use `reject` with the same arguments and the same `--state`. For a fresh run, stop clients and use `uv run --locked python tools/runtime.py reset --confirm --state .state/run.sqlite`.
 These commands must use the state file the mock was started with. `make mock` and the `serve` example above use `.state/run.sqlite`.
 This CLI simulates a human boundary, not production identity. During assessment the assessor controls approval and state. Do not expose the service to the public internet.
+
+## Private Azure stack
+
+Resource group `card-disputes-rg`. The review app is `cd-review`. Drafts always use approach 3, through the job `cd-approach3`. Do not update the live `card-disputes` app. Do not reset Postgres.
+
+When case data in storage account `stcd319c1259`, container `cases`, has changed, turn public access off and start approach 3. The job is allowed 30 minutes. Open the review app only after the execution is `Succeeded`.
+
+```sh
+# Turn storage public access off.
+az storage account update --name stcd319c1259 --resource-group card-disputes-rg --public-network-access Disabled
+# Start approach 3. Prints the execution name.
+az containerapp job start --name cd-approach3 --resource-group card-disputes-rg --query name --output tsv
+# Show that execution's status.
+az containerapp job execution show --name cd-approach3 --resource-group card-disputes-rg --job-execution-name EXECUTION --query properties.status --output tsv
+```
+
+Replace `EXECUTION` with the name printed by `job start`.
+
+Turn public network access on only while a portal or Cloud Shell upload needs it, then turn it off.
+
+```sh
+# Turn storage public access on.
+az storage account update --name stcd319c1259 --resource-group card-disputes-rg --public-network-access Enabled
+# Turn storage public access off.
+az storage account update --name stcd319c1259 --resource-group card-disputes-rg --public-network-access Disabled
+# Show storage public access.
+az storage account show --name stcd319c1259 --resource-group card-disputes-rg --query publicNetworkAccess --output tsv
+# Turn Key Vault public access on.
+az keyvault update --name kv-carddisputes --resource-group card-disputes-rg --public-network-access Enabled
+# Turn Key Vault public access off.
+az keyvault update --name kv-carddisputes --resource-group card-disputes-rg --public-network-access Disabled
+# Show Key Vault public access.
+az keyvault show --name kv-carddisputes --resource-group card-disputes-rg --query properties.publicNetworkAccess --output tsv
+```
+
+The review image, the app address, a job's executions, and its logs:
+
+```sh
+# Show the review app image.
+az containerapp show --name cd-review --resource-group card-disputes-rg --query "properties.template.containers[0].image" --output tsv
+# Show the review app address.
+az containerapp show --name cd-review --resource-group card-disputes-rg --query properties.configuration.ingress.fqdn --output tsv
+# List approach 3 executions.
+az containerapp job execution list --name cd-approach3 --resource-group card-disputes-rg --query "[].{name:name,status:properties.status}" --output table
+# Show approach 3 logs.
+az containerapp job logs show --name cd-approach3 --resource-group card-disputes-rg --execution EXECUTION --container cd-approach3
+```
+
+The status page is `cd-dashboard`. It fills after the next successful approach 3 execution.
+
+```sh
+# Show the status page address.
+az containerapp show --name cd-dashboard --resource-group card-disputes-rg --query properties.configuration.ingress.fqdn --output tsv
+```

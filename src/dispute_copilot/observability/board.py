@@ -115,10 +115,10 @@ def write_html(reports_dir: Path, dest: Path, submissions_dir: Path | None = Non
     )
 
 
-def bind_page(html: str, port: int, compare_html: str | None = None) -> ThreadingHTTPServer:
+def bind_page(html: str, port: int, compare_html: str | None = None, host: str = _HOST) -> ThreadingHTTPServer:
     encoded = None if compare_html is None else compare_html.encode("utf-8")
     handler = _handler(html.encode("utf-8"), encoded)
-    return ThreadingHTTPServer((_HOST, port), handler)
+    return ThreadingHTTPServer((host, port), handler)
 
 
 def _overview(spans: list[dict], metrics: dict, alerts: list[dict], target: float) -> dict:

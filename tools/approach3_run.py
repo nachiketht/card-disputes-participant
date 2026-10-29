@@ -4,11 +4,13 @@ The mock stays on loopback in this same process tree. The model provider is left
 unset so an API key can select it. This does not reset or clear Postgres.
 """
 
+import importlib.util
 import json
 import os
 import sys
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +31,35 @@ def child_env() -> dict[str, str]:
     env["REVIEW_BACKEND"] = "postgres"
     env["FEATURE_LLM_REVIEW"] = "off"
     env["MOCK_BASE_URL"] = MOCK_URL
+    run_id = env.get("RUN_ID", "").strip() or ("run-" + uuid.uuid4().hex[:10])
+    if not _files().safe_run_id(run_id):
+        raise RuntimeError("run")
+    env["RUN_ID"] = run_id
+    os.environ["RUN_ID"] = run_id
     return env
+
+
+def publish_reports(root: Path, open_store=None) -> None:
+    """Upload this run when REPORTS_CONTAINER is set. Otherwise do nothing."""
+    name = os.environ.get("REPORTS_CONTAINER", "").strip()
+    if not name:
+        return
+    run_id = os.environ.get("RUN_ID", "").strip()
+    files = _files()
+    if not files.safe_run_id(run_id):
+        raise RuntimeError("run")
+    opener = open_store or (lambda container: files.azure_reports(container, create=True))
+    files.upload_run(opener(name), root, run_id)
+
+
+def _files():
+    path = Path(__file__).resolve().parent / "report_files.py"
+    spec = importlib.util.spec_from_file_location("report_files", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("reports")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def mock_argv() -> list[str]:
@@ -109,7 +139,11 @@ def main() -> int:
             proc.kill()
 
     try:
-        return run_approach3(start, wait_healthy, run_copilot, stop, lambda: print_paths(PATHS))
+        def report() -> None:
+            publish_reports(ROOT)
+            print_paths(PATHS)
+
+        return run_approach3(start, wait_healthy, run_copilot, stop, report)
     except Exception as exc:
         print(type(exc).__name__, file=sys.stderr)
         return 1

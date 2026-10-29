@@ -98,7 +98,8 @@ az containerapp job create \
     JEV_BASE_URL=secretref:jev-base-url \
     CLEF_MODEL=clef-flash \
     CLEF_API_KEY=secretref:clef-api-key \
-    CLEF_ACCOUNT_ID=secretref:clef-account-id
+    CLEF_ACCOUNT_ID=secretref:clef-account-id \
+    REPORTS_CONTAINER=reports
 
 EXECUTION=$(az containerapp job start --name "$JOB" --resource-group "$RG" --query name --output tsv)
 echo "execution ${EXECUTION}"

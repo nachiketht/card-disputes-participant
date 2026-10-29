@@ -123,6 +123,60 @@ def test_main_prints_the_error_type_only(monkeypatch, capsys):
     assert captured.out == ""
 
 
+def test_child_env_sets_one_run_id(monkeypatch):
+    _ready(monkeypatch)
+    monkeypatch.delenv("RUN_ID", raising=False)
+    module = _load()
+    env = module.child_env()
+    assert env["RUN_ID"].startswith("run-")
+    assert os.environ["RUN_ID"] == env["RUN_ID"]
+
+
+def test_an_unset_reports_container_uploads_nothing(monkeypatch, tmp_path: Path):
+    _ready(monkeypatch)
+    monkeypatch.delenv("REPORTS_CONTAINER", raising=False)
+    monkeypatch.setenv("RUN_ID", "run-abc")
+    module = _load()
+    opened = []
+
+    def open_store(name):
+        opened.append(name)
+        raise AssertionError("opened")
+
+    module.publish_reports(tmp_path, open_store)
+    assert opened == []
+
+
+def test_a_failed_copilot_does_not_upload(monkeypatch):
+    _ready(monkeypatch)
+    module = _load()
+    uploaded = []
+
+    def start(argv, env):
+        return "mock"
+
+    def report():
+        uploaded.append("upload")
+
+    assert module.run_approach3(start, lambda: None, lambda argv, env: 1, lambda proc: None, report) == 1
+    assert uploaded == []
+
+
+def test_a_successful_run_writes_latest(monkeypatch, tmp_path: Path):
+    from dispute_copilot.adapters.blob_store import MemoryBlob
+
+    _ready(monkeypatch)
+    monkeypatch.setenv("REPORTS_CONTAINER", "reports")
+    monkeypatch.setenv("RUN_ID", "run-abc")
+    module = _load()
+    (tmp_path / "reports" / "traces").mkdir(parents=True)
+    (tmp_path / "reports" / "traces" / "CARD-S001.jsonl").write_text("{}\n", encoding="utf-8")
+    blob = MemoryBlob()
+    module.publish_reports(tmp_path, lambda name: blob)
+    assert blob.get("latest") == b"run-abc"
+    assert blob.get("runs/run-abc/reports/traces/CARD-S001.jsonl") == b"{}\n"
+
+
 def test_path_lines_omit_a_planted_complaint(tmp_path: Path, capsys):
     module = _load()
     complaint = "I found a card purchase at Morrow Supplies"
